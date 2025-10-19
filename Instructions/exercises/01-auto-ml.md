@@ -8,7 +8,7 @@ lab:
 
 In this exercise, you'll use the automated machine learning to train and evaluate a machine learning model. You'll then deploy and test the trained model.
 
-> **Note**: This exercise is designed to take you through the steps to train and test a model using ***Azure Machine Learning***. If you have an Azure subscription with sufficient permissions, you can provision an Azure Machine Learning workspace and use that for the exercise. However, if you don't have access to Azure, or if you have limited time to complete the exercise, a browser-based ***ML Lab*** app that includes the core functionality of Azure ML used in is exercise is provided.
+> **Note**: This exercise is designed to take you through the steps to train and test a model using ***Azure Machine Learning***. If you have an Azure subscription with sufficient permissions, you can provision an Azure Machine Learning workspace and use that for the exercise. However, if you don't have access to Azure, or if you have limited time to complete the exercise, a browser-based ***ML Lab*** app that includes the core functionality of Azure ML used in is exercise is provided. Note that the ML Lab app runs in the browser, so refreshing the page at any point will restart the app!
 
 This exercise should take approximately **35** minutes to complete (less if you use the browser-based ML Lab app).
 
