@@ -8,9 +8,9 @@ lab:
 
 In this exercise, you'll use the automated machine learning to train and evaluate a machine learning model. You'll then deploy and test the trained model.
 
-> **Note**: This exercise is designed to take you through the steps to train and test a model using ***Azure Machine Learning***. If you have an Azure subscription with sufficient permissions, you can provision an Azure Machine Learning workspace and use that for the exercise. However, if you don't have access to Azure, or if you have limited time to complete the exercise, a browser-based ***ML Lab*** application that includes the core functionality of Azure ML used in is exercise is provided.
+> **Note**: This exercise is designed to take you through the steps to train and test a model using ***Azure Machine Learning***. If you have an Azure subscription with sufficient permissions, you can provision an Azure Machine Learning workspace and use that for the exercise. However, if you don't have access to Azure, or if you have limited time to complete the exercise, a browser-based ***ML Lab*** app that includes the core functionality of Azure ML used in is exercise is provided.
 
-This exercise should take approximately **35** minutes to complete (less if you use the browser-based ML Lab application).
+This exercise should take approximately **35** minutes to complete (less if you use the browser-based ML Lab app).
 
 ## Create a workspace
 
@@ -34,7 +34,7 @@ A workspace is used to keep all your machine learning resources together, making
 
 In this exercise, you'll use a dataset of ice cream sales to train a model that predicts the demand for ice creams on a given day, based on seasonal and meteorological features.
 
-1. In a new browser tab, navigate to []() and view the ice cream sales data, which is in a comma-separated values (CSV) file.
+1. In a new browser tab, navigate to [https://raw.githubusercontent.com/GraemeMalcolm/ai-labs/refs/heads/main/data/ice-cream.csv](https://raw.githubusercontent.com/GraemeMalcolm/ai-labs/refs/heads/main/data/ice-cream.csv) and view the ice cream sales data, which is in a comma-separated values (CSV) file.
 1. Save the data file as **ice-cream.csv** on your local computer.
 
 ## Use automated machine learning to train a model
@@ -55,6 +55,8 @@ Automated machine learning enables you to try multiple algorithms and parameters
 
     - Set the task type to **Regression**.
     - Create a new ***tabular*** data asset named **ice-cream**  from a local file by uploading the local **ice-cream.csv** file to the default workspace storage. Verify that the columns and schema are correct, and create the data asset. Then ensure your newly created **ice-cream** data asset is selected before moving to the next step
+
+    > **Note**: If you are using an Azure subscription for which you are not an administrator, key-based access to storage may have been disallowed by policy. In this case, you'll need to work with your administrator to allow key-based access or reconfigure your Azure Machine Learning workspace to use Entra ID authentication to access storage. If you can't do this, use the browser-based ***ML Lab*** app for this exercise.
 
     **Task settings**:
 
@@ -152,7 +154,7 @@ Now that you have a predictive model, developers can build applications that con
 
 ## If time permits
 
-If you want to experiment further with automated machine learning, try training a **classification** model based on the penguins.csv dataset at []().
+If you want to experiment further with automated machine learning, try training a **classification** model based on the **penguins.csv** dataset at [https://raw.githubusercontent.com/GraemeMalcolm/ai-labs/refs/heads/main/data/penguins.csv](https://raw.githubusercontent.com/GraemeMalcolm/ai-labs/refs/heads/main/data/penguins.csv).
 
 After training and deploying a classification model, you can test it in the endpoint with the following JSON:
 
