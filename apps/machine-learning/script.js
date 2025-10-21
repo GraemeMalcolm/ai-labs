@@ -15,11 +15,111 @@ let appState = {
     metrics: {},
     scaler: null,
     encoder: null,
-    features: []
+    features: [],
+    // Training session state tracking
+    lastTrainingSettings: null,
+    hasUnsavedChanges: false
 };
 
 // Tab management
 const tabs = ['model-data', 'training-settings', 'training-process', 'training-results', 'test'];
+
+// Training session state management
+function getCurrentTrainingSettings() {
+    return {
+        modelType: appState.modelType,
+        targetColumn: appState.targetColumn,
+        featureColumns: [...appState.featureColumns],
+        trainSplit: appState.trainSplit,
+        numClusters: appState.numClusters,
+        clusterMethod: appState.clusterMethod
+    };
+}
+
+function hasTrainingSettingsChanged() {
+    if (!appState.lastTrainingSettings) {
+        return false;
+    }
+    
+    const current = getCurrentTrainingSettings();
+    const last = appState.lastTrainingSettings;
+    
+    return (
+        current.modelType !== last.modelType ||
+        current.targetColumn !== last.targetColumn ||
+        JSON.stringify(current.featureColumns) !== JSON.stringify(last.featureColumns) ||
+        current.trainSplit !== last.trainSplit ||
+        current.numClusters !== last.numClusters ||
+        current.clusterMethod !== last.clusterMethod
+    );
+}
+
+function saveCurrentTrainingSettings() {
+    appState.lastTrainingSettings = getCurrentTrainingSettings();
+    appState.hasUnsavedChanges = false;
+}
+
+function markSettingsChanged() {
+    if (appState.trainedModel && appState.lastTrainingSettings) {
+        appState.hasUnsavedChanges = hasTrainingSettingsChanged();
+        updateTrainingStatus();
+    }
+}
+
+function invalidateTrainedModel() {
+    if (appState.trainedModel && hasTrainingSettingsChanged()) {
+        appState.trainedModel = null;
+        appState.metrics = {};
+        appState.hasUnsavedChanges = true;
+        
+        // Update UI to reflect that model needs retraining
+        updateTrainingStatus();
+        updateNextButtonState();
+        
+        console.log('Trained model invalidated due to settings change');
+    }
+}
+
+function updateTrainingStatus() {
+    const statusContainer = document.getElementById('training-status-message');
+    
+    if (!statusContainer) {
+        // Create status container if it doesn't exist
+        const trainingSettings = document.getElementById('training-settings');
+        if (trainingSettings) {
+            const statusDiv = document.createElement('div');
+            statusDiv.id = 'training-status-message';
+            statusDiv.className = 'training-status-message';
+            trainingSettings.insertBefore(statusDiv, trainingSettings.firstChild);
+        }
+    }
+    
+    const statusElement = document.getElementById('training-status-message');
+    if (!statusElement) return;
+    
+    if (appState.trainedModel && !appState.hasUnsavedChanges) {
+        // Model is trained and up to date
+        statusElement.innerHTML = `
+            <div class="status-success">
+                <i class="fas fa-check-circle"></i>
+                Model trained successfully with current settings
+            </div>
+        `;
+        statusElement.style.display = 'block';
+    } else if (appState.lastTrainingSettings && appState.hasUnsavedChanges) {
+        // Settings have changed since last training - show subtle info message
+        statusElement.innerHTML = `
+            <div class="status-info">
+                <i class="fas fa-info-circle"></i>
+                Settings have been modified. Click "Start Training" to train with updated configuration.
+            </div>
+        `;
+        statusElement.style.display = 'block';
+    } else {
+        // No previous training or no changes
+        statusElement.style.display = 'none';
+    }
+}
 
 // Initialize the application
 function initializeApp() {
@@ -202,6 +302,7 @@ function setupEventListeners() {
     // Model type selection
     document.getElementById('modelType').addEventListener('change', (e) => {
         appState.modelType = e.target.value;
+        invalidateTrainedModel();
         updateNextButtonState();
     });
 
@@ -215,6 +316,7 @@ function setupEventListeners() {
         const testPercent = 100 - trainPercent;
         document.getElementById('splitDisplay').textContent = 
             `${trainPercent}% training / ${testPercent}% testing`;
+        markSettingsChanged();
     });
     
     // Initialize training split slider to match appState (ensure 70% default position)
@@ -243,6 +345,7 @@ function setupEventListeners() {
                 if (numClustersInput) numClustersInput.disabled = false;
             }
             
+            markSettingsChanged();
             updateNextButtonState();
         });
     });
@@ -250,6 +353,7 @@ function setupEventListeners() {
     // Number of clusters
     document.getElementById('numClusters').addEventListener('change', (e) => {
         appState.numClusters = parseInt(e.target.value);
+        markSettingsChanged();
     });
 
     // Start training button
@@ -263,6 +367,12 @@ function setupEventListeners() {
 function switchToTab(tabIndex) {
     console.log('switchToTab called with index:', tabIndex);
     if (tabIndex < 0 || tabIndex >= tabs.length) return;
+    
+    // Prevent navigation to results/test tabs if no model has ever been trained
+    if (tabIndex >= 3 && !appState.lastTrainingSettings) {
+        console.log('Cannot navigate to results/test tabs without any previous training');
+        return;
+    }
     
     appState.currentTab = tabIndex;
     console.log('Updated appState.currentTab to:', appState.currentTab);
@@ -295,6 +405,10 @@ function switchToTab(tabIndex) {
         case 1: // Training settings
             console.log('Switching to Training Settings tab, calling setupTrainingSettings()');
             setupTrainingSettings();
+            // Check if settings have changed and update status
+            if (appState.trainedModel) {
+                markSettingsChanged();
+            }
             break;
         case 2: // Training process
             setupTrainingProcess();
@@ -354,7 +468,8 @@ function updateNextButtonState() {
             }
             break;
         case 2: // Training process
-            canProceed = appState.trainedModel !== null;
+            // Can only proceed if model is trained AND settings haven't changed
+            canProceed = appState.trainedModel !== null && !appState.hasUnsavedChanges;
             break;
         case 3: // Training results
             canProceed = true;
@@ -388,13 +503,23 @@ function updateNextButtonState() {
         if (saveModelButton) saveModelButton.style.display = 'none';
     }
     
-    // Update tab button states
+    // Update tab button states - allow navigation to previously completed tabs
     document.querySelectorAll('.tab-button').forEach((button, index) => {
-        if (index <= appState.currentTab || (index === appState.currentTab + 1 && canProceed)) {
-            button.disabled = false;
-        } else {
-            button.disabled = true;
+        let shouldEnable = false;
+        
+        if (index <= appState.currentTab) {
+            // Can always go back to current or previous tabs
+            shouldEnable = true;
+        } else if (index === appState.currentTab + 1 && canProceed) {
+            // Can go to next tab if requirements are met
+            shouldEnable = true;
+        } else if (appState.lastTrainingSettings && index <= 4) {
+            // If we've previously trained a model, allow navigation to all tabs
+            // (even if current model is invalidated, user can still view previous results)
+            shouldEnable = true;
         }
+        
+        button.disabled = !shouldEnable;
     });
 }
 
@@ -433,6 +558,11 @@ function parseCSVData(csvText) {
     const lines = csvText.trim().split('\n');
     const data = lines.map(line => line.split(',').map(cell => cell.trim()));
     
+    // Check if this is the same data (avoid unnecessary resets)
+    const isSameData = appState.data && 
+                      appState.data.length === data.length - 1 && 
+                      JSON.stringify(appState.headers) === JSON.stringify(data[0]);
+    
     // Always assume first row contains headers
     if (data.length > 0) {
         appState.headers = data[0];
@@ -440,6 +570,22 @@ function parseCSVData(csvText) {
     } else {
         appState.headers = [];
         appState.data = [];
+    }
+    
+    // Only invalidate training state if this is actually new/different data
+    if (!isSameData) {
+        // New data means previous training is no longer valid
+        if (appState.trainedModel) {
+            appState.trainedModel = null;
+            appState.metrics = {};
+            appState.lastTrainingSettings = null;
+            appState.hasUnsavedChanges = false;
+            console.log('Trained model invalidated due to new data upload');
+        }
+        
+        // Reset training-related state since we have new data
+        appState.targetColumn = null;
+        appState.featureColumns = [];
     }
     
     updateTabState();
@@ -574,9 +720,14 @@ function setupTrainingSettings() {
                 option.textContent = header;
                 targetSelect.appendChild(option);
             });
-            // Reset selection
-            targetSelect.value = '';
-            appState.targetColumn = null;
+            
+            // Preserve existing selection if it's still valid
+            if (appState.targetColumn && appState.headers.includes(appState.targetColumn)) {
+                targetSelect.value = appState.targetColumn;
+            } else {
+                targetSelect.value = '';
+                appState.targetColumn = null;
+            }
             
             // Remove any existing event listeners and add fresh one
             targetSelect.removeEventListener('change', handleTargetChange);
@@ -589,7 +740,7 @@ function setupTrainingSettings() {
         if (featureContainer) {
             console.log('Setting up feature columns container');
             featureContainer.innerHTML = '';
-            appState.featureColumns = []; // Clear feature columns array
+            // Don't clear appState.featureColumns - preserve user's selections
             updateFeatureColumns();
             featureContainer.style.display = 'block';
         }
@@ -599,18 +750,33 @@ function setupTrainingSettings() {
         if (clusteringContainer) {
             console.log('Setting up clustering features container');
             clusteringContainer.innerHTML = '';
-            appState.featureColumns = []; // Clear feature columns array
+            // Don't clear appState.featureColumns - preserve user's selections
             updateClusteringFeatures();
         }
         
         // Initialize manual clusters container visibility based on current selection
         const manualClustersContainer = document.getElementById('manual-clusters');
-        const selectedMethod = document.querySelector('input[name="clusterMethod"]:checked');
-        if (manualClustersContainer && selectedMethod) {
-            if (selectedMethod.value === 'manual') {
+        
+        // Preserve cluster method radio button selection
+        const clusterMethodRadios = document.querySelectorAll('input[name="clusterMethod"]');
+        clusterMethodRadios.forEach(radio => {
+            radio.checked = (radio.value === appState.clusterMethod);
+        });
+        
+        // Preserve number of clusters input value
+        const numClustersInput = document.getElementById('numClusters');
+        if (numClustersInput) {
+            numClustersInput.value = appState.numClusters;
+        }
+        
+        // Update manual clusters container visibility based on preserved selection
+        if (manualClustersContainer) {
+            if (appState.clusterMethod === 'manual') {
                 manualClustersContainer.style.display = 'block';
+                if (numClustersInput) numClustersInput.disabled = false;
             } else {
                 manualClustersContainer.style.display = 'none';
+                if (numClustersInput) numClustersInput.disabled = true;
             }
         }
     }
@@ -650,15 +816,25 @@ function setupTrainingSettings() {
         }
     }, 100);
     
+    // Update training status after setup
+    updateTrainingStatus();
+    
     console.log('setupTrainingSettings completed');
 }
 
 // Handle target column selection change
 function handleTargetChange(e) {
+    const previousTarget = appState.targetColumn;
     appState.targetColumn = e.target.value;
-    // Clear existing feature columns when target changes
-    appState.featureColumns = [];
+    
+    // Only clear feature columns if target actually changed and we had features selected for the previous target
+    if (previousTarget !== appState.targetColumn && previousTarget) {
+        // Remove the old target from feature columns if it was selected
+        appState.featureColumns = appState.featureColumns.filter(col => col !== previousTarget);
+    }
+    
     updateFeatureColumns();
+    markSettingsChanged();
     updateNextButtonState();
 }
 
@@ -688,9 +864,13 @@ function updateFeatureColumns() {
     // Get all columns except the target column
     const availableFeatures = appState.headers.filter(header => header !== appState.targetColumn);
     
-    // If this is the first time showing features after selecting target, select all by default
-    if (appState.featureColumns.length === 0) {
+    // Only auto-select all features if none are currently selected AND this is a fresh setup
+    // (not when navigating back to a previously configured state)
+    if (appState.featureColumns.length === 0 && !appState.lastTrainingSettings) {
         appState.featureColumns = [...availableFeatures];
+    } else {
+        // When navigating back, filter out any features that are no longer available
+        appState.featureColumns = appState.featureColumns.filter(col => availableFeatures.includes(col));
     }
     
     availableFeatures.forEach(header => {
@@ -705,6 +885,7 @@ function updateFeatureColumns() {
             } else {
                 appState.featureColumns = appState.featureColumns.filter(col => col !== header);
             }
+            markSettingsChanged();
             updateNextButtonState();
         });
         
@@ -736,6 +917,7 @@ function updateClusteringFeatures() {
             } else {
                 appState.featureColumns = appState.featureColumns.filter(col => col !== header);
             }
+            markSettingsChanged();
             updateNextButtonState();
         });
         
@@ -751,6 +933,70 @@ function updateClusteringFeatures() {
 // Setup training process tab
 function setupTrainingProcess() {
     displayConfigurationSummary();
+    
+    const startButton = document.getElementById('startTraining');
+    const retrainButton = document.getElementById('retrainButton');
+    const saveModelButton = document.getElementById('saveModelButton');
+    const trainingProgress = document.getElementById('training-progress');
+    const progressLog = document.getElementById('progressLog');
+    
+    // Remove retrain button if it exists (we'll use Start Training instead)
+    if (retrainButton) {
+        retrainButton.remove();
+    }
+    
+    if (appState.hasUnsavedChanges || !appState.trainedModel) {
+        // Settings have changed or no model - need to (re)train
+        
+        // Show Start Training button
+        if (startButton) {
+            startButton.style.display = 'inline-block';
+            startButton.textContent = appState.lastTrainingSettings ? 'Start Training' : 'Start Training';
+        }
+        
+        // Hide save model button
+        if (saveModelButton) {
+            saveModelButton.style.display = 'none';
+        }
+        
+        // Clear previous training progress/logs
+        if (trainingProgress) {
+            trainingProgress.style.display = 'none';
+        }
+        if (progressLog) {
+            progressLog.textContent = '';
+        }
+        
+        // Reset progress bar
+        const progressBar = document.getElementById('trainingProgressBar');
+        const progressText = document.getElementById('progressText');
+        const progressPercentage = document.getElementById('progressPercentage');
+        if (progressBar) {
+            progressBar.style.width = '0%';
+            progressBar.classList.remove('animation-stopped');
+            progressBar.style.removeProperty('animation');
+        }
+        if (progressText) progressText.textContent = 'Initializing...';
+        if (progressPercentage) progressPercentage.textContent = '0%';
+        
+        // Reset training log to collapsed state
+        const logContent = document.getElementById('logContent');
+        const toggleBtn = document.getElementById('toggleLogBtn');
+        if (logContent && toggleBtn) {
+            logContent.classList.remove('expanded');
+            logContent.classList.add('collapsed');
+            toggleBtn.innerHTML = '<span id="logToggleIcon">▼</span> Show Details';
+        }
+        
+    } else {
+        // Model is trained and up to date - hide training button, show save button
+        if (startButton) {
+            startButton.style.display = 'none';
+        }
+        if (saveModelButton) {
+            saveModelButton.style.display = 'inline-block';
+        }
+    }
 }
 
 // Display configuration summary
@@ -1074,6 +1320,9 @@ async function runTrainingWithPyScript() {
                 logProgress(`Metrics calculated: ${Object.keys(parsedResult.metrics).join(', ')}`);
             }
             
+            // Save the current training settings as the baseline
+            saveCurrentTrainingSettings();
+            
             updateNextButtonState();
         } else {
             // Provide more detailed error information
@@ -1315,7 +1564,10 @@ function resetApplication() {
         metrics: {},
         scaler: null,
         encoder: null,
-        features: []
+        features: [],
+        // Training session state tracking
+        lastTrainingSettings: null,
+        hasUnsavedChanges: false
     };
     
     console.log('Application state reset');
@@ -1403,6 +1655,19 @@ function resetApplication() {
     const clusteringSettings = document.getElementById('clustering-settings');
     if (clusteringSettings) {
         clusteringSettings.style.display = 'none';
+    }
+    
+    // Clear training status message
+    const trainingStatusMessage = document.getElementById('training-status-message');
+    if (trainingStatusMessage) {
+        trainingStatusMessage.innerHTML = '';
+        trainingStatusMessage.style.display = 'none';
+    }
+    
+    // Remove retrain button if it exists (we don't use it anymore)
+    const retrainButton = document.getElementById('retrainButton');
+    if (retrainButton) {
+        retrainButton.remove();
     }
     
     // Reset all sliders to default values

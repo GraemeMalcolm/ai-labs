@@ -1175,3 +1175,72 @@ input[type="range"]::-moz-range-thumb {
     white-space: pre-wrap;
     word-wrap: break-word;
 }
+
+/* Training Status Messages */
+.training-status-message {
+    margin-bottom: 20px;
+    border-radius: 8px;
+    padding: 0;
+    font-size: 14px;
+}
+
+.status-success,
+.status-warning,
+.status-info {
+    padding: 12px 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+}
+
+.status-success {
+    background-color: #f0f8f0;
+    border: 1px solid #d4edda;
+    color: var(--success-green);
+}
+
+.status-warning {
+    background-color: #fff8e6;
+    border: 1px solid #ffeaa7;
+    color: #e17055;
+}
+
+.status-info {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    color: #495057;
+}
+
+.status-success i,
+.status-warning i,
+.status-info i {
+    font-size: 16px;
+}
+
+.status-warning details {
+    margin-top: 8px;
+}
+
+.status-warning summary {
+    cursor: pointer;
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.status-warning summary:hover {
+    opacity: 1;
+}
+
+/* Retrain Button Styling */
+.btn.btn-warning {
+    background-color: var(--warning-orange);
+    color: white;
+    border: 1px solid #e67e22;
+}
+
+.btn.btn-warning:hover {
+    background-color: #e67e22;
+    border-color: #d35400;
+}
