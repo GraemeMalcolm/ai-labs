@@ -103,7 +103,7 @@ When the automated machine learning job has completed, you can review the best m
 
 1. On the **Model** tab for the best model trained by your automated machine learning job, select **Deploy** to deploy the model to a Real-time endpoint.
 
-    Select appropriate **Instances** and **Virtual machine** options for the compute on which the deployed endpoint will run (which may depend on thw quota available in your Azure subscription), and assign suitable **endpoint** and **deployment** names.
+    Select appropriate **Instances** and **Virtual machine** options for the compute on which the deployed endpoint will run (which may depend on the quota available in your Azure subscription), and assign suitable **endpoint** and **deployment** names.
 
 1. Wait for a notification that the deployment is complete.
 
