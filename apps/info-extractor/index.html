@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Information Extractor</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.0/dist/tesseract.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Information Extractor</h1>
+        </header>
+
+        <main>
+            <div class="app-layout">
+                <!-- Left sidebar - File upload area -->
+                <div class="upload-sidebar">
+                    <div class="upload-zone">
+                        <input type="file" id="imageInput" accept=".jpg,.jpeg,.png" multiple style="display: none;">
+                        <div id="uploadArea" class="upload-area">
+                            <div class="upload-icon">📁</div>
+                            <div class="upload-text">
+                                Drag & drop files<br>
+                                here or<br>
+                                <span class="browse-link">Browse for files</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="thumbnailsContainer" class="thumbnails-list">
+                        <!-- Thumbnails will be added here -->
+                    </div>
+                </div>
+
+                <!-- Center area - Main content -->
+                <div class="main-content">
+                    <div class="analyze-header">
+                        <button id="analyzeBtn" class="analyze-btn" disabled>� Run analysis</button>
+                    </div>
+
+                    <div id="progressSection" class="progress-section" style="display: none;">
+                        <div class="progress-bar">
+                            <div id="progressFill" class="progress-fill"></div>
+                        </div>
+                        <p id="progressText">Processing...</p>
+                    </div>
+
+                    <!-- Model loading section -->
+                    <div id="modelLoadingSection" class="model-loading-section">
+                        <div class="model-loading-content">
+                            <div class="loading-spinner"></div>
+                            <h3>Loading AI Model...</h3>
+                            <p id="modelLoadingText">Initializing model, please wait...</p>
+                            <div class="model-progress-bar">
+                                <div id="modelProgressFill" class="model-progress-fill"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="content-display">
+                        <div id="imageContainer" class="image-container" style="display: none;">
+                            <div class="image-viewer">
+                                <img id="selectedImage" alt="Selected image">
+                                <canvas id="annotatedCanvas" style="display: none;"></canvas>
+                            </div>
+                            <div class="zoom-controls">
+                                <button id="zoomOutBtn" class="zoom-btn" title="Zoom Out">-</button>
+                                <span id="zoomLevel" class="zoom-level">100%</span>
+                                <button id="zoomInBtn" class="zoom-btn" title="Zoom In">+</button>
+                                <button id="resetZoomBtn" class="zoom-btn reset" title="Reset Zoom">⌂</button>
+                            </div>
+                        </div>
+                        <div id="imagePlaceholder" class="content-placeholder">
+                            Select an image to analyze
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right sidebar - Results -->
+                <div class="results-panel">
+                    <div class="results-tabs">
+                        <button class="tab-btn active" data-tab="fields">Fields</button>
+                        <button class="tab-btn" data-tab="result">Result</button>
+                    </div>
+
+                    <div class="results-content">
+                        <div id="fieldsTab" class="tab-content active">
+                            <div class="results-placeholder">
+                                Run analysis to see the results
+                            </div>
+                            <div id="fieldsList" class="fields-list" style="display: none;">
+                                <!-- Fields will be populated here -->
+                            </div>
+                        </div>
+
+                        <div id="resultTab" class="tab-content">
+                            <div class="results-placeholder">
+                                Run analysis to see the results
+                            </div>
+                            <div id="resultContent" class="result-content" style="display: none;">
+                                <pre id="ocrResult"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error section -->
+            <div id="errorSection" class="error-section" style="display: none;">
+                <h2>Error</h2>
+                <p id="errorMessage"></p>
+                <button id="retryBtn" class="action-btn">Try Again</button>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
