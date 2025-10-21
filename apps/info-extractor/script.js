@@ -104,9 +104,13 @@ class InformationExtractor {
 
     bindEvents() {
         // File input and upload area
-        this.uploadArea.addEventListener('click', () => this.triggerFileInput());
+        this.uploadArea.addEventListener('click', () => {
+            if (!this.uploadArea.classList.contains('disabled')) {
+                this.triggerFileInput();
+            }
+        });
         this.uploadArea.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
+            if (!this.uploadArea.classList.contains('disabled') && (e.key === 'Enter' || e.key === ' ')) {
                 e.preventDefault();
                 this.triggerFileInput();
             }
@@ -145,7 +149,9 @@ class InformationExtractor {
         
         ['dragenter', 'dragover'].forEach(eventName => {
             dropZone.addEventListener(eventName, () => {
-                dropZone.classList.add('dragover');
+                if (!dropZone.classList.contains('disabled')) {
+                    dropZone.classList.add('dragover');
+                }
             }, false);
         });
         
@@ -164,6 +170,9 @@ class InformationExtractor {
     }
 
     handleDrop(e) {
+        if (this.uploadArea.classList.contains('disabled')) {
+            return;
+        }
         const dt = e.dataTransfer;
         const files = dt.files;
         this.processFiles(files);
@@ -227,14 +236,14 @@ class InformationExtractor {
         `;
         
         thumbnailItem.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('thumbnail-remove')) {
+            if (!e.target.classList.contains('thumbnail-remove') && !thumbnailItem.classList.contains('disabled')) {
                 this.selectImage(index);
             }
         });
         
         // Add keyboard navigation
         thumbnailItem.addEventListener('keydown', (e) => {
-            if ((e.key === 'Enter' || e.key === ' ') && !e.target.classList.contains('thumbnail-remove')) {
+            if ((e.key === 'Enter' || e.key === ' ') && !e.target.classList.contains('thumbnail-remove') && !thumbnailItem.classList.contains('disabled')) {
                 e.preventDefault();
                 this.selectImage(index);
             }
@@ -323,6 +332,12 @@ class InformationExtractor {
 
     removeImage(index) {
         if (index < 0 || index >= this.uploadedImages.length) return;
+        
+        // Don't allow removal during analysis
+        const removeButtons = document.querySelectorAll('.thumbnail-remove');
+        if (removeButtons[index] && removeButtons[index].disabled) {
+            return;
+        }
         
         // Clean up URL
         URL.revokeObjectURL(this.uploadedImages[index].url);
@@ -462,6 +477,7 @@ class InformationExtractor {
         
         try {
             this.showProgress();
+            this.disableUploadAndSelection();
             const imageData = this.uploadedImages[this.selectedImageIndex];
             
             // Step 1: OCR with Tesseract
@@ -477,7 +493,10 @@ class InformationExtractor {
             this.displayResults();
             
             this.updateProgress(100, 'Analysis complete!');
-            setTimeout(() => this.hideProgress(), 1000);
+            setTimeout(() => {
+                this.hideProgress();
+                this.enableUploadAndSelection();
+            }, 1000);
             
         } catch (error) {
             console.error('Analysis error details:', error);
@@ -497,6 +516,7 @@ class InformationExtractor {
             
             this.showError(errorMessage);
             this.hideProgress();
+            this.enableUploadAndSelection();
         }
     }
 
@@ -832,6 +852,52 @@ Respond as a list of fields with their values.`;
     hideProgress() {
         this.progressSection.style.display = 'none';
         this.analyzeBtn.disabled = false;
+    }
+
+    disableUploadAndSelection() {
+        // Disable file upload area
+        this.uploadArea.classList.add('disabled');
+        this.uploadArea.setAttribute('tabindex', '-1');
+        this.uploadArea.setAttribute('aria-disabled', 'true');
+        this.imageInput.disabled = true;
+        
+        // Disable all thumbnail selection
+        const thumbnails = document.querySelectorAll('.thumbnail-item');
+        thumbnails.forEach(thumbnail => {
+            thumbnail.classList.add('disabled');
+            thumbnail.setAttribute('tabindex', '-1');
+            thumbnail.setAttribute('aria-disabled', 'true');
+        });
+        
+        // Disable remove buttons
+        const removeButtons = document.querySelectorAll('.thumbnail-remove');
+        removeButtons.forEach(button => {
+            button.disabled = true;
+            button.setAttribute('aria-disabled', 'true');
+        });
+    }
+
+    enableUploadAndSelection() {
+        // Enable file upload area
+        this.uploadArea.classList.remove('disabled');
+        this.uploadArea.setAttribute('tabindex', '0');
+        this.uploadArea.setAttribute('aria-disabled', 'false');
+        this.imageInput.disabled = false;
+        
+        // Enable all thumbnail selection
+        const thumbnails = document.querySelectorAll('.thumbnail-item');
+        thumbnails.forEach(thumbnail => {
+            thumbnail.classList.remove('disabled');
+            thumbnail.setAttribute('tabindex', '0');
+            thumbnail.setAttribute('aria-disabled', 'false');
+        });
+        
+        // Enable remove buttons
+        const removeButtons = document.querySelectorAll('.thumbnail-remove');
+        removeButtons.forEach(button => {
+            button.disabled = false;
+            button.setAttribute('aria-disabled', 'false');
+        });
     }
 
     showError(message) {
