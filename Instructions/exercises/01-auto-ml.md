@@ -32,12 +32,12 @@ A workspace is used to keep all your machine learning resources together, making
 
     Note that the workspace has multiple pages, which are displayed in the navigation pane on the left. You can expand and collapse this pane by using the **&#9776;** menu at the top.
 
-## View and download data
+## Download data
 
 In this exercise, you'll use a dataset of ice cream sales to train a model that predicts the demand for ice creams on a given day, based on seasonal and meteorological features.
 
-1. In a new browser tab, navigate to [https://raw.githubusercontent.com/GraemeMalcolm/ai-labs/refs/heads/main/data/ice-cream.csv](https://raw.githubusercontent.com/GraemeMalcolm/ai-labs/refs/heads/main/data/ice-cream.csv) and view the ice cream sales data, which is in a comma-separated values (CSV) file.
-1. Save the data file as **ice-cream.csv** on your local computer.
+1. In a new browser tab, navigate to [https://raw.githubusercontent.com/GraemeMalcolm/ai-labs/refs/heads/main/data/ml-data.zip](https://raw.githubusercontent.com/GraemeMalcolm/ai-labs/refs/heads/main/data/ml-data.zip) and download the **ml-data.zip** to your local computer.
+1. Extract the downloaded **ml-data.zip** archive to see the files it contains. Note that one of these files is **ice-cream.csv**, which contains the ice cream sales data required for this exercise.
 
 ## Use automated machine learning to train a model
 
@@ -156,7 +156,7 @@ Now that you have a predictive model, developers can build applications that con
 
 ## If time permits
 
-If you want to experiment further with automated machine learning, try training a **classification** model based on the **penguins.csv** dataset at [https://raw.githubusercontent.com/GraemeMalcolm/ai-labs/refs/heads/main/data/penguins.csv](https://raw.githubusercontent.com/GraemeMalcolm/ai-labs/refs/heads/main/data/penguins.csv).
+If you want to experiment further with automated machine learning, try training a **classification** model based on the **penguins.csv** file that was included in the **ml-data.zip** archive you downloaded previously.
 
 After training and deploying a classification model, you can test it in the endpoint with the following JSON:
 
