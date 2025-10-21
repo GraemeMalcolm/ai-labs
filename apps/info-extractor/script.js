@@ -52,6 +52,11 @@ class InformationExtractor {
     updateModelLoadingProgress(percentage, text) {
         this.modelProgressFill.style.width = `${percentage}%`;
         this.modelLoadingText.textContent = text;
+        
+        // Update ARIA attributes
+        const progressBar = this.modelLoadingSection.querySelector('.model-progress-bar');
+        progressBar.setAttribute('aria-valuenow', percentage);
+        progressBar.setAttribute('aria-valuetext', `${Math.round(percentage)}% - ${text}`);
     }
 
     initializeElements() {
@@ -100,6 +105,12 @@ class InformationExtractor {
     bindEvents() {
         // File input and upload area
         this.uploadArea.addEventListener('click', () => this.triggerFileInput());
+        this.uploadArea.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.triggerFileInput();
+            }
+        });
         this.imageInput.addEventListener('change', (e) => this.handleFileSelect(e));
         
         // Analyze button
@@ -206,13 +217,25 @@ class InformationExtractor {
     createThumbnail(imageData, index) {
         const thumbnailItem = document.createElement('div');
         thumbnailItem.className = 'thumbnail-item';
+        thumbnailItem.setAttribute('role', 'listitem');
+        thumbnailItem.setAttribute('tabindex', '0');
+        thumbnailItem.setAttribute('aria-label', `Receipt image ${index + 1}: ${imageData.name}`);
         thumbnailItem.innerHTML = `
-            <img src="${imageData.url}" alt="${imageData.name}" />
-            <button class="thumbnail-remove" onclick="app.removeImage(${index})">×</button>
+            <img src="${imageData.url}" alt="Thumbnail of ${imageData.name}" />
+            <button class="thumbnail-remove" onclick="app.removeImage(${index})" 
+                    aria-label="Remove ${imageData.name}">×</button>
         `;
         
         thumbnailItem.addEventListener('click', (e) => {
             if (!e.target.classList.contains('thumbnail-remove')) {
+                this.selectImage(index);
+            }
+        });
+        
+        // Add keyboard navigation
+        thumbnailItem.addEventListener('keydown', (e) => {
+            if ((e.key === 'Enter' || e.key === ' ') && !e.target.classList.contains('thumbnail-remove')) {
+                e.preventDefault();
                 this.selectImage(index);
             }
         });
@@ -234,10 +257,15 @@ class InformationExtractor {
         // Display selected image
         const imageData = this.uploadedImages[index];
         this.selectedImage.src = imageData.url;
+        this.selectedImage.alt = `Receipt image: ${imageData.name}`;
         this.imageContainer.style.display = 'flex';
         this.imagePlaceholder.style.display = 'none';
         this.annotatedCanvas.style.display = 'none';
         this.selectedImage.style.display = 'block';
+        
+        // Announce to screen readers
+        this.imagePlaceholder.textContent = `Selected image: ${imageData.name}`;
+        this.imagePlaceholder.setAttribute('aria-live', 'polite');
         
         // Enable analyze button
         this.analyzeBtn.disabled = !this.isModelLoaded;
@@ -691,14 +719,18 @@ Respond as a list of fields with their values.`;
         Object.entries(this.extractedFields).forEach(([fieldName, fieldValue]) => {
             const fieldItem = document.createElement('div');
             fieldItem.className = 'field-item';
+            fieldItem.setAttribute('role', 'listitem');
             
             const label = document.createElement('div');
             label.className = 'field-label';
             label.textContent = fieldName.replace('-', ' ');
+            label.id = `label-${fieldName}`;
             
             const value = document.createElement('div');
             value.className = `field-value ${fieldValue ? '' : 'empty'}`;
             value.textContent = fieldValue || 'Not found';
+            value.setAttribute('aria-labelledby', `label-${fieldName}`);
+            value.setAttribute('aria-description', fieldValue ? `${fieldName.replace('-', ' ')}: ${fieldValue}` : `${fieldName.replace('-', ' ')}: Not found in receipt`);
             
             fieldItem.appendChild(label);
             fieldItem.appendChild(value);
@@ -708,6 +740,14 @@ Respond as a list of fields with their values.`;
         // Show fields list and hide placeholder
         this.fieldsList.style.display = 'flex';
         this.fieldsTab.querySelector('.results-placeholder').style.display = 'none';
+        
+        // Announce completion to screen readers
+        const announcement = document.createElement('div');
+        announcement.setAttribute('aria-live', 'polite');
+        announcement.className = 'sr-only';
+        announcement.textContent = `Analysis complete. ${Object.keys(this.extractedFields).length} fields extracted from receipt.`;
+        document.body.appendChild(announcement);
+        setTimeout(() => document.body.removeChild(announcement), 1000);
     }
 
     displayOCRResult() {
@@ -725,8 +765,10 @@ Respond as a list of fields with their values.`;
         // Update tab buttons
         this.tabBtns.forEach(btn => {
             btn.classList.remove('active');
+            btn.setAttribute('aria-selected', 'false');
             if (btn.dataset.tab === tabName) {
                 btn.classList.add('active');
+                btn.setAttribute('aria-selected', 'true');
             }
         });
 
@@ -739,6 +781,12 @@ Respond as a list of fields with their values.`;
             this.fieldsTab.classList.add('active');
         } else if (tabName === 'result') {
             this.resultTab.classList.add('active');
+        }
+        
+        // Announce tab change to screen readers
+        const activeTab = document.querySelector(`[data-tab="${tabName}"]`);
+        if (activeTab) {
+            activeTab.focus();
         }
     }
 
@@ -774,6 +822,11 @@ Respond as a list of fields with their values.`;
     updateProgress(percentage, text) {
         this.progressFill.style.width = `${percentage}%`;
         this.progressText.textContent = text;
+        
+        // Update ARIA attributes
+        const progressBar = this.progressSection.querySelector('.progress-bar');
+        progressBar.setAttribute('aria-valuenow', percentage);
+        progressBar.setAttribute('aria-valuetext', `${Math.round(percentage)}% - ${text}`);
     }
 
     hideProgress() {
