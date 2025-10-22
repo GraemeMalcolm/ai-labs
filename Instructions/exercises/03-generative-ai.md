@@ -22,6 +22,9 @@ Let's start by using a chat interface to submit prompts to a generative AI model
     > **Tip**: The first time you open the chat playground, it may take a few minutes for the model to download. Subsequent downloads will be faster.
 
 1. When the model is ready, enter a prompt such as `What is the capital of Scotland?`, and review the response.
+
+    ![Screenshot of the chat playground.](./media/gen-ai-01.png)
+
 1. Enter a follow-up prompt, such as `List 5 things I should do there.` and review the response; noting that the context of the conversation is "remembered" (the AI assistant "knows" you're asking about things to do in *Edinburgh* for example).
 1. At the top of the chat pane, use the **Clear chat** (&#128465;) button to restart the conversation.
 1. Try you're follow-up prompt again - this time, the conversational context has been reset; so the response may not be relevant to the previous messages (or indeed, make much sense).

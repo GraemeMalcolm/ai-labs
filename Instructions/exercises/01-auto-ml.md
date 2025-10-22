@@ -1,8 +1,8 @@
----
+<!---
 lab:
     title: 'Explore Automated Machine Learning'
     description: 'Use automated machine learning to train a model'
----
+--->
 
 # Explore Automated Machine Learning
 

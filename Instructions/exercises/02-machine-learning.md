@@ -25,28 +25,28 @@ Let's start by training  regression model, which predicts a numeric value. In th
 1. Wait for the ML Engine to load and initialize (this can take a few seconds). When the ML Engine is ready, you can complete the pages in the wizard to train and test a machine learning model.
 1. On the **Model Type & Data** page, select **Regression** and upload the **ice-cream.csv** text file to see a preview of the data it contains.
 
-![Screenshot of the Model Type and Data page.](./media/ml-lite-01.png)
-
+    ![Screenshot of the Model Type and Data page.](./media/ml-lite-01.png)
+    
 1. On the **Training Settings** page:
     - Set the **Target column** to *IceCreamsSold*.
     - <u>De</u>select **Date** as a feature (as it's unique each day, so unlikely to be predictive on its own) and use the other remaining columns as features with which to train the model.
     - Review the **Training/Testing split** (which determines how much of the dataset to use for training the model, and how much to hold back for model evaluation).
 
-![Screenshot of the Training Settings page.](./media/ml-lite-02.png)
+    ![Screenshot of the Training Settings page.](./media/ml-lite-02.png)
 
 1. On the **Training Process** page, review the settings and train the model. When the model is trained, you can save it on your local computer (to use in your own Python application) and view the training log and model details.
 
-![Screenshot of the Training Process page.](./media/ml-lite-03.png)
+    ![Screenshot of the Training Process page.](./media/ml-lite-03.png)
 
 1. On the **Training Results** page, view the metrics and visualizations that were produced from the test data you held back. These metrics indicate how well the model predicted ice cream sales based on the features in the test data.
 
-![Screenshot of the Training Results page](./media/ml-lite-04.png)
+    ![Screenshot of the Training Results page](./media/ml-lite-04.png)
 
     The visualization shows a comparison of the predicted numeric values and the actual numeric values in the test data. A model that predicts well should show a linear trend where the predictions and actual values correlate well.
 
 1. On the **Test Model** page, use the default test data to generate a prediction.
 
-![Screenshot of the Test Model page.](./media/ml-lite-05.png)
+    ![Screenshot of the Test Model page.](./media/ml-lite-05.png)
 
 1. Try generating predictions with the following test cases:
 

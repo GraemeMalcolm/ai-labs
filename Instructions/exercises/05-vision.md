@@ -21,7 +21,7 @@ Let's start by chatting with a generative AI model. In this exercise, we'll use 
 
     > **Tip**: The first time you open the chat playground, it may take a few minutes for the model to download. Subsequent downloads will be faster.
 
-1. When the model is ready, enter a prompt such as `How can I improve my cooking skills?`, and review the response.
+1. When the model is ready, enter a prompt such as `Give me a short tip to improve my cooking.`, and review the response.
 
     The model should respond with a text-based answer, that hopefully includes some relevant information about learning how to cook.
 
@@ -34,6 +34,8 @@ Computer vision models enable AI systems to interpret image-based data, such as 
 1. Return to the browser tab containing the chat playground, and at the top-right of the **Chat history** pane, use the **Settings** (**&#x2699;**) button to view the chat capabilities options.
 1. In the **Vision** section, enable **Image analysis**. Then wait for the computer vision model to be downloaded and initialized before saving the changes.
 
+   ![Screenshot of the Image analysis option.](./media/vision-01.png)
+
     Under the chat interface, an **Upload image** (**&#x1F4CE;**) button is enabled.
 
 1. Click the **Upload image** button, and browse to select one of the images you extracted on your computer.
@@ -41,6 +43,8 @@ Computer vision models enable AI systems to interpret image-based data, such as 
     A thumbnail of the image is added to the prompt input area.
 
 1. Enter a prompt like `What recipes can I use this in?`. The image is included in the message.
+
+   ![Screenshot of the chat app with an image in a prompt.](./media/vision-02.png)
 
     The MobileNetV3 model is used to determine the likely subject of the image, and the results of that analysis is included in the prompt to the Phi language model. The result should ba a reponse that uses the image information to answer the question.
 

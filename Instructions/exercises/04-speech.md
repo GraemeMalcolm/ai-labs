@@ -32,6 +32,8 @@ Speech-to-text (STT) is an AI technique that transforms audible speech into text
 1. At the top-right of the **Chat history** pane, use the **Settings** (**&#x2699;**) button to view the chat capabilities options.
 1. In the **Speech** section, enable **Speech to text**. Then save the changes.
 
+   ![Screenshot of the Speech to text option.](./media/speech-01.png)
+
     Under the chat interface, a **Voice input** (**🎙**) button is enabled.
 
 1. Click the **Voice input** button, and if prompted, allow access to your computer's microphone. Then after the tone, say something like "*Should I go to the gym?*".
@@ -44,6 +46,8 @@ For a fully functional speech-capable AI agent, the conversation should flow in 
 
 1. At the top-right of the **Chat history** pane, use the **Settings** (**&#x2699;**) button to re-open the chat capabilities options.
 1. In the **Speech** section, enable **Text to speech**. Then explore the available voices, trying them out with the voice sample. When you have chosen a voice for your agent, save the changes.
+
+   ![Screenshot of the Text to speech option.](./media/speech-02.png)
 
     The chat restarts after enabling text to speech.
 
