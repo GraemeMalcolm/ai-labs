@@ -20,7 +20,7 @@ A workspace is used to keep all your machine learning resources together, making
 
 1. Open the portal for the environment you want to use in this lab, and sign in if prompted:
     - Azure-based [Azure Machine Learning Studio](https://ml.azure.com){:target="_blank"}
-    - Browser-based [ML Lab](https://aka.ms/ml-lab){:target="_blank"}
+    - Browser-based [ML Lab]https://graememalcolm.github.io/ai-labs/apps/auto-ml/){:target="_blank"}
 
     > **Tip**: If Azure Machine Learning studio opens in an existing workspace, navigate to the **All workspaces** page.
 
@@ -56,7 +56,16 @@ Automated machine learning enables you to try multiple algorithms and parameters
    **Task type & data**:
 
     - Set the task type to **Regression**.
-    - Create a new ***tabular*** data asset named **ice-cream**  from a local file by uploading the local **ice-cream.csv** file to the default workspace storage. Verify that the columns and schema are correct, and create the data asset. Then ensure your newly created **ice-cream** data asset is selected before moving to the next step
+    - Create a new ***tabular*** data asset named **ice-cream**
+        - Upload the local **ice-cream.csv** file to the default workspace storage.
+        - Include <u>only</u> the following columns (*Date* is unique for each row, and adds predictive capability on its own):
+            - **DayOfWeek**
+            - **Month**
+            - **Temperature**
+            - **Rainfall**
+            - **IceCreamsSold**
+        - Create the data asset.
+    - Ensure your newly created **ice-cream** data asset is selected before moving to the next step
 
     > **Note**: If you are using an Azure subscription for which you are not an administrator, key-based access to storage may have been disallowed by policy. In this case, you'll need to work with your administrator to allow key-based access or reconfigure your Azure Machine Learning workspace to use Entra ID authentication to access storage. If you can't do this, use the browser-based ***ML Lab*** app for this exercise.
 
@@ -156,7 +165,7 @@ Now that you have a predictive model, developers can build applications that con
 
 ## If time permits
 
-If you want to experiment further with automated machine learning, try training a **classification** model based on the **penguins.csv** file that was included in the **ml-data.zip** archive you downloaded previously.
+If you want to experiment further with automated machine learning, try training a **classification** model based on the **penguins.csv** file that was included in the **ml-data.zip** archive you downloaded previously. Use all of the columns in this dataset.
 
 After training and deploying a classification model, you can test it in the endpoint with the following JSON:
 
