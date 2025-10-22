@@ -21,6 +21,22 @@ let currentRegistrationContext = null;
 // PyScript status (keeping for future use)
 let pyScriptReady = false;
 
+// Column selection tracking
+let selectedColumns = new Set();
+
+// Global error handler to catch forEach errors
+window.addEventListener('error', function(event) {
+    if (event.error && event.error.message && event.error.message.includes('forEach')) {
+        console.error('Global error caught:', {
+            message: event.error.message,
+            filename: event.filename,
+            lineno: event.lineno,
+            colno: event.colno,
+            stack: event.error.stack
+        });
+    }
+});
+
 // Accessibility support functions
 function handleKeyPress(event, callback) {
     // Handle Enter and Space key presses for clickable elements
@@ -161,6 +177,174 @@ function setupAccessibilityFeatures() {
 document.addEventListener('DOMContentLoaded', function() {
     setupAccessibilityFeatures();
 });
+
+// Column selection functions
+function initializeSelectedColumns(columns) {
+    // Initialize selectedColumns with all columns by default
+    selectedColumns.clear();
+    if (columns && Array.isArray(columns)) {
+        columns.forEach(col => selectedColumns.add(col));
+    } else {
+        console.error('initializeSelectedColumns called with invalid columns:', columns);
+    }
+}
+
+function toggleColumnSelection(columnName) {
+    if (currentData && currentData.isSaved) {
+        alert('Dataset is already saved. To make changes, please remove and re-upload the file.');
+        return;
+    }
+    
+    if (selectedColumns.has(columnName)) {
+        selectedColumns.delete(columnName);
+    } else {
+        selectedColumns.add(columnName);
+    }
+    
+    // Update the checkbox state (using escaped ID)
+    const checkboxId = `col-select-${columnName.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    const checkbox = document.getElementById(checkboxId);
+    if (checkbox) {
+        checkbox.checked = selectedColumns.has(columnName);
+    }
+    
+    // Update select all checkbox state
+    updateSelectAllCheckbox();
+    
+    // Update target column dropdown to only show selected columns
+    updateTargetColumnDropdown();
+}
+
+function toggleColumnByIndex(columnIndex) {
+    if (!currentData || !currentData.columns || columnIndex >= currentData.columns.length) {
+        return;
+    }
+    
+    const columnName = currentData.columns[columnIndex];
+    toggleColumnSelection(columnName);
+    
+    // Update the checkbox using the index-based ID
+    const checkbox = document.getElementById(`col-select-${columnIndex}`);
+    if (checkbox) {
+        checkbox.checked = selectedColumns.has(columnName);
+    }
+}
+
+function toggleSelectAllColumns() {
+    if (currentData && currentData.isSaved) {
+        alert('Dataset is already saved. To make changes, please remove and re-upload the file.');
+        return;
+    }
+    
+    const selectAllCheckbox = document.getElementById('select-all-columns');
+    if (!selectAllCheckbox || !currentData || !currentData.columns || !Array.isArray(currentData.columns)) return;
+    
+    if (selectAllCheckbox.checked) {
+        // Select all columns
+        currentData.columns.forEach(col => selectedColumns.add(col));
+    } else {
+        // Deselect all columns
+        selectedColumns.clear();
+    }
+    
+    // Update individual column checkboxes using index-based IDs
+    currentData.columns.forEach((col, index) => {
+        const checkbox = document.getElementById(`col-select-${index}`);
+        if (checkbox) {
+            checkbox.checked = selectedColumns.has(col);
+        }
+    });
+    
+    // Update target column dropdown to only show selected columns
+    updateTargetColumnDropdown();
+}
+
+function updateSelectAllCheckbox() {
+    const selectAllCheckbox = document.getElementById('select-all-columns');
+    if (!selectAllCheckbox || !currentData || !currentData.columns) return;
+    
+    const totalColumns = currentData.columns.length;
+    const selectedCount = currentData.columns.filter(col => selectedColumns.has(col)).length;
+    
+    if (selectedCount === 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+    } else if (selectedCount === totalColumns) {
+        selectAllCheckbox.checked = true;
+        selectAllCheckbox.indeterminate = false;
+    } else {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = true;
+    }
+}
+
+function getSelectedColumns() {
+    return Array.from(selectedColumns);
+}
+
+function getFilteredData() {
+    if (!currentData || !currentData.preview) return null;
+    
+    const selectedCols = getSelectedColumns();
+    if (selectedCols.length === 0) return null;
+    
+    // Filter preview data to only include selected columns
+    const filteredPreview = currentData.preview.map(row => {
+        const filteredRow = {};
+        selectedCols.forEach(col => {
+            if (row.hasOwnProperty(col)) {
+                filteredRow[col] = row[col];
+            }
+        });
+        return filteredRow;
+    });
+    
+    return {
+        ...currentData,
+        columns: selectedCols,
+        preview: filteredPreview,
+        shape: [currentData.shape[0], selectedCols.length]
+    };
+}
+
+function updateTargetColumnDropdown() {
+    const targetSelect = document.getElementById('target-column');
+    if (!targetSelect || !currentData) return;
+    
+    const selectedValue = targetSelect.value; // Save current selection
+    
+    // Use currentData.columns if selectedColumns is not properly initialized
+    let columnsToUse = [];
+    try {
+        const selectedCols = getSelectedColumns();
+        if (selectedCols && selectedCols.length > 0) {
+            columnsToUse = selectedCols;
+        } else if (currentData.columns && Array.isArray(currentData.columns)) {
+            columnsToUse = currentData.columns;
+        }
+    } catch (error) {
+        console.warn('Error getting selected columns, using all columns:', error);
+        if (currentData.columns && Array.isArray(currentData.columns)) {
+            columnsToUse = currentData.columns;
+        }
+    }
+    
+    targetSelect.innerHTML = '<option value="">Select target column</option>';
+    
+    if (columnsToUse && Array.isArray(columnsToUse)) {
+        columnsToUse.forEach(column => {
+            const option = document.createElement('option');
+            option.value = column;
+            option.textContent = `${column} (${currentData.dtypes && currentData.dtypes[column] ? currentData.dtypes[column] : 'unknown'})`;
+            targetSelect.appendChild(option);
+        });
+        
+        // Restore selection if the column is still available
+        if (selectedValue && columnsToUse.includes(selectedValue)) {
+            targetSelect.value = selectedValue;
+        }
+    }
+}
 
 // Utility functions
 function getMetricDisplayName(metric, taskType) {
@@ -1345,19 +1529,27 @@ function handleFileUpload(input) {
 
 function parseCSVData(csvContent, fileName) {
     try {
+        console.log('Starting CSV parsing for:', fileName);
+        
         // Check if PyScript is available
         if (!pyScriptReady) {
             console.log('PyScript not ready, using fallback parser');
             // Use fallback JavaScript CSV parsing
             const useHeaders = useFirstRowAsHeaders;
-            const fallbackData = parseCSVFallback(csvContent, fileName, useHeaders);
-            if (fallbackData) {
-                handleParsedData(JSON.stringify(fallbackData));
-            } else {
+            try {
+                const fallbackData = parseCSVFallback(csvContent, fileName, useHeaders);
+                if (fallbackData) {
+                    console.log('Fallback parsing successful:', fallbackData);
+                    handleParsedData(JSON.stringify(fallbackData));
+                } else {
+                    throw new Error('Fallback parser returned null');
+                }
+            } catch (fallbackError) {
+                console.error('Fallback parsing failed:', fallbackError);
                 // Even fallback failed, create error data
                 const errorData = {
                     success: false,
-                    error: 'Unable to parse CSV file. Please check the file format.',
+                    error: `Unable to parse CSV file: ${fallbackError.message}`,
                     filename: fileName,
                     columns: [],
                     parser: 'failed'
@@ -1446,8 +1638,12 @@ function parseCSVData(csvContent, fileName) {
 
 // Fallback CSV parser using JavaScript
 function parseCSVFallback(csvContent, fileName, useFirstRowAsHeaders = true) {
+    console.log('Starting parseCSVFallback with:', { fileName, useFirstRowAsHeaders });
+    
     try {
         const lines = csvContent.trim().split('\n');
+        console.log('Split CSV into lines:', lines.length);
+        
         if (lines.length < 1) {
             throw new Error('CSV must have at least one row');
         }
@@ -1455,13 +1651,22 @@ function parseCSVFallback(csvContent, fileName, useFirstRowAsHeaders = true) {
         let headers;
         let dataStartIndex;
         
+        console.log('Processing headers...');
+        
         if (useFirstRowAsHeaders) {
             // Use first row as headers (original behavior)
             if (lines.length < 2) {
                 throw new Error('CSV must have at least a header and one data row');
             }
             
+            console.log('Parsing first line as headers:', lines[0]);
             headers = parseCSVLine(lines[0]);
+            console.log('Parsed headers:', headers);
+            
+            if (!headers || !Array.isArray(headers)) {
+                throw new Error('Failed to parse headers from first line');
+            }
+            
             dataStartIndex = 1;
             
             // Validate headers
@@ -1480,23 +1685,50 @@ function parseCSVFallback(csvContent, fileName, useFirstRowAsHeaders = true) {
         } else {
             // Generate column headers, treat first row as data
             const firstRowCells = parseCSVLine(lines[0]);
+            if (!firstRowCells || !Array.isArray(firstRowCells)) {
+                throw new Error('Failed to parse first row for column detection');
+            }
             headers = firstRowCells.map((_, index) => `Column${index + 1}`);
             dataStartIndex = 0;
         }
         
+        console.log('Final headers:', headers);
+        console.log('Data start index:', dataStartIndex);
+        
         // Parse a few sample rows to determine data types
         const sampleRows = lines.slice(dataStartIndex, Math.min(dataStartIndex + 10, lines.length));
+        console.log('Sample rows for type detection:', sampleRows.length);
+        
         const dtypes = {};
         
+        // Safety check - ensure headers is an array
+        if (!Array.isArray(headers) || headers.length === 0) {
+            throw new Error('Failed to parse CSV headers');
+        }
+        
+        console.log('Starting type detection...');
+        
         headers.forEach((header, index) => {
+            console.log(`Processing header ${index}: ${header}`);
+            
             // Improved type detection - check more samples and handle edge cases
             let isNumeric = true;
             let hasDecimals = false;
             let validValues = 0;
             
-            for (let row of sampleRows) {
-                const cells = parseCSVLine(row);
-                if (index < cells.length) {
+            for (let rowIndex = 0; rowIndex < sampleRows.length; rowIndex++) {
+                const row = sampleRows[rowIndex];
+                console.log(`  Checking row ${rowIndex}: ${row.substring(0, 50)}...`);
+                
+                try {
+                    const cells = parseCSVLine(row);
+                    console.log(`  Parsed cells:`, cells);
+                    
+                    if (!cells || !Array.isArray(cells) || index >= cells.length) {
+                        console.log(`  Skipping row - malformed or incomplete`);
+                        continue; // Skip malformed or incomplete rows
+                    }
+                    
                     const value = cells[index].trim();
                     if (value && value !== '' && value.toLowerCase() !== 'nan' && value.toLowerCase() !== 'null') {
                         validValues++;
@@ -1510,6 +1742,9 @@ function parseCSVFallback(csvContent, fileName, useFirstRowAsHeaders = true) {
                             }
                         }
                     }
+                } catch (rowError) {
+                    console.warn('Error parsing row for type detection:', rowError);
+                    continue; // Skip problematic rows
                 }
             }
             
@@ -1526,6 +1761,15 @@ function parseCSVFallback(csvContent, fileName, useFirstRowAsHeaders = true) {
         const preview = previewRows.map(row => {
             const cells = parseCSVLine(row);
             const rowObj = {};
+            
+            if (!cells || !Array.isArray(cells)) {
+                // Return empty row if parsing failed
+                headers.forEach(header => {
+                    rowObj[header] = '';
+                });
+                return rowObj;
+            }
+            
             headers.forEach((header, index) => {
                 let value = index < cells.length ? cells[index] : '';
                 // Handle empty values and potential NaN-like strings
@@ -1559,6 +1803,15 @@ function parseCSVFallback(csvContent, fileName, useFirstRowAsHeaders = true) {
 
 // Validate CSV headers
 function validateCSVHeaders(headers, lines) {
+    // Safety check for headers
+    if (!headers || !Array.isArray(headers)) {
+        return {
+            valid: false,
+            reason: 'Invalid headers provided',
+            suggestedHeaders: ['Column_1']
+        };
+    }
+    
     // Check for empty or missing headers
     const hasEmptyHeaders = headers.some(h => !h || h.trim() === '');
     
@@ -1572,16 +1825,24 @@ function validateCSVHeaders(headers, lines) {
     
     // Check if first row looks like data compared to second row
     let firstRowLooksLikeData = false;
-    if (lines.length > 1) {
-        const firstRow = parseCSVLine(lines[0]);
-        const secondRow = parseCSVLine(lines[1]);
-        
-        // If first row has more numbers than text, and similar pattern to second row
-        const firstRowNumbers = firstRow.filter(cell => !isNaN(parseFloat(cell.trim()))).length;
-        const secondRowNumbers = secondRow.filter(cell => !isNaN(parseFloat(cell.trim()))).length;
-        
-        if (firstRowNumbers > firstRow.length * 0.7 && Math.abs(firstRowNumbers - secondRowNumbers) <= 1) {
-            firstRowLooksLikeData = true;
+    if (lines && lines.length > 1) {
+        try {
+            const firstRow = parseCSVLine(lines[0]);
+            const secondRow = parseCSVLine(lines[1]);
+            
+            // Safety check - ensure both rows are arrays
+            if (Array.isArray(firstRow) && Array.isArray(secondRow)) {
+                // If first row has more numbers than text, and similar pattern to second row
+                const firstRowNumbers = firstRow.filter(cell => !isNaN(parseFloat(cell.trim()))).length;
+                const secondRowNumbers = secondRow.filter(cell => !isNaN(parseFloat(cell.trim()))).length;
+                
+                if (firstRowNumbers > firstRow.length * 0.7 && Math.abs(firstRowNumbers - secondRowNumbers) <= 1) {
+                    firstRowLooksLikeData = true;
+                }
+            }
+        } catch (error) {
+            console.warn('Error comparing rows for validation:', error);
+            // Continue with validation even if row comparison fails
         }
     }
     
@@ -1661,22 +1922,16 @@ function handleParsedData(columnDataJson) {
         return;
     }
 
-    // Update target column dropdown
-    const targetSelect = document.getElementById('target-column');
-    targetSelect.innerHTML = '<option value="">Select target column</option>';
-    
-    console.log('Populating target column dropdown with columns:', columnData.columns);
-    
-    columnData.columns.forEach(column => {
-        const option = document.createElement('option');
-        option.value = column;
-        option.textContent = `${column} (${columnData.dtypes[column]})`;
-        targetSelect.appendChild(option);
-    });
+    // Initialize selected columns with all columns by default
+    initializeSelectedColumns(columnData.columns);
+
+    // Update target column dropdown with the actual columns
+    updateTargetColumnDropdown(columnData.columns || []);
 
     document.getElementById('target-column-group').style.display = 'block';
     
     // Add change event listener to target column dropdown for validation
+    const targetSelect = document.getElementById('target-column');
     targetSelect.addEventListener('change', validateWizardStep);
     
     console.log('Target column dropdown populated. Options:', Array.from(targetSelect.options).map(opt => opt.value));
@@ -1758,6 +2013,24 @@ function displayUploadedFile(fileName) {
                     <div style="overflow-x: auto; max-width: 100%;">
                         <table id="data-preview-table" style="border-collapse: collapse; font-size: 11px; min-width: 100%;">
                             <thead>
+                                <!-- Column selection row -->
+                                <tr id="column-selection-row">
+                                    ${columns.map(col => `
+                                        <th style="padding: 4px 8px; border: 1px solid #ddd; background: #e8f4fd; text-align: center;">
+                                            <label style="display: flex; align-items: center; justify-content: center; gap: 4px; cursor: pointer; font-size: 10px; font-weight: normal;">
+                                                <input type="checkbox" 
+                                                       id="col-${col}" 
+                                                       class="column-checkbox" 
+                                                       data-column="${col}" 
+                                                       onchange="toggleColumnSelection('${col}')" 
+                                                       checked 
+                                                       style="margin: 0; scale: 0.8;">
+                                                <span style="white-space: nowrap;">Include</span>
+                                            </label>
+                                        </th>
+                                    `).join('')}
+                                </tr>
+                                <!-- Header row -->
                                 <tr id="header-row">
                                     ${columns.map(col => `<th style="padding: 6px 8px; border: 1px solid #ddd; background: #f1f3f4; text-align: left; white-space: nowrap; font-weight: 600;">${col}</th>`).join('')}
                                 </tr>
@@ -1816,6 +2089,13 @@ function displayUploadedFile(fileName) {
     
     uploadedFilesDiv.innerHTML = fileDisplay;
     
+    // Check if we have valid data
+    const hasValidData = currentData && currentData.success && currentData.preview && currentData.preview.length > 0;
+    
+    console.log('Display file called with currentData:', currentData);
+    console.log('Has valid data:', hasValidData);
+    console.log('Columns:', currentData?.columns || 'No columns');
+    
     // Auto-scroll to show the table area after file upload
     if (currentData && currentData.success && currentData.preview && currentData.preview.length > 0) {
         setTimeout(() => {
@@ -1823,6 +2103,13 @@ function displayUploadedFile(fileName) {
             if (tableElement) {
                 tableElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
+            // Initialize the select all checkbox state
+            updateSelectAllCheckbox();
+            
+            // Debug: Check if checkboxes exist
+            console.log('Checking for checkboxes...');
+            console.log('Select all checkbox:', document.getElementById('select-all-columns'));
+            console.log('First column checkbox:', document.getElementById('col-select-0'));
         }, 100); // Small delay to ensure DOM is updated
     }
 }
@@ -1834,6 +2121,7 @@ function removeUploadedFile() {
     fileInput.disabled = false; // Re-enable the file input
     document.getElementById('target-column-group').style.display = 'none';
     currentData = null;
+    selectedColumns.clear(); // Clear column selections
 }
 
 // Header management functions
@@ -1971,6 +2259,13 @@ function saveDataset() {
         return;
     }
     
+    // Check if at least one column is selected
+    const selectedCols = getSelectedColumns();
+    if (selectedCols.length === 0) {
+        alert('Please select at least one column to include in the dataset.');
+        return;
+    }
+    
     // Validate dataset name
     const datasetNameInput = document.getElementById('dataset-name');
     const customName = datasetNameInput ? datasetNameInput.value.trim() : '';
@@ -1988,17 +2283,30 @@ function saveDataset() {
     // Use custom name if provided, otherwise use filename
     const datasetName = customName || currentData.filename;
     
-    // Create a finalized copy of the current data
+    // Get filtered data with only selected columns
+    const filteredData = getFilteredData();
+    if (!filteredData) {
+        alert('Error creating filtered dataset');
+        return;
+    }
+    
+    // Create a finalized copy of the current data with only selected columns
     const finalizedData = {
-        ...currentData,
+        ...filteredData,
         isSaved: true,
         savedAt: new Date().toISOString(),
         uploadTime: new Date(), // Add uploadTime for data list compatibility
-        finalColumns: [...currentData.columns],
-        finalHeaders: currentData.usingCustomHeaders ? [...currentData.customHeaders] : [...currentData.columns],
+        finalColumns: [...selectedCols],
+        finalHeaders: currentData.usingCustomHeaders ? 
+            selectedCols.map(col => {
+                const index = currentData.columns.indexOf(col);
+                return currentData.customHeaders ? currentData.customHeaders[index] : col;
+            }) : [...selectedCols],
         name: datasetName, // Use the custom name or filename
         customName: customName, // Store the custom name separately
-        filename: currentData.filename // Keep original filename
+        filename: currentData.filename, // Keep original filename
+        selectedColumns: [...selectedCols], // Store which columns were selected
+        originalColumns: [...currentData.columns] // Store original columns for reference
     };
     
     // Update the uploadedDataFiles array with the finalized data
@@ -2010,6 +2318,19 @@ function saveDataset() {
         uploadedDataFiles[existingIndex] = finalizedData;
     } else {
         uploadedDataFiles.push(finalizedData);
+    }
+    
+    // Filter the PyScript DataFrame to only include selected columns
+    if (typeof window.filter_dataframe_columns === 'function') {
+        console.log('Filtering PyScript DataFrame to selected columns:', selectedCols);
+        const filterSuccess = window.filter_dataframe_columns(selectedCols);
+        if (!filterSuccess) {
+            console.warn('Failed to filter PyScript DataFrame, but continuing with dataset creation');
+        } else {
+            console.log('✓ PyScript DataFrame filtered successfully');
+        }
+    } else {
+        console.warn('filter_dataframe_columns function not available');
     }
     
     // Mark current data as saved
@@ -2153,10 +2474,14 @@ function updateCategoricalColumnsDisplay() {
     const categoricalDiv = document.getElementById('categorical-columns');
     const categoricalGroup = document.getElementById('categorical-columns-group');
     
-    // Find non-numeric columns
+    // Get selected columns
+    const selectedCols = getSelectedColumns();
+    
+    // Find non-numeric columns from ONLY the selected columns
     const nonNumericColumns = [];
     Object.entries(currentData.dtypes).forEach(([column, dtype]) => {
-        if (dtype === 'object' || dtype.includes('string')) {
+        // Only include if column is in selected columns
+        if (selectedCols.includes(column) && (dtype === 'object' || dtype.includes('string'))) {
             nonNumericColumns.push(column);
         }
     });
@@ -2306,6 +2631,18 @@ function saveConfig() {
 // Featurization flyout
 function openFeaturizationFlyout() {
     if (currentData) {
+        // Clean up categorical settings to only include selected columns
+        const selectedCols = getSelectedColumns();
+        if (currentJobData.categoricalSettings) {
+            const cleanedSettings = {};
+            Object.keys(currentJobData.categoricalSettings).forEach(column => {
+                if (selectedCols.includes(column)) {
+                    cleanedSettings[column] = currentJobData.categoricalSettings[column];
+                }
+            });
+            currentJobData.categoricalSettings = cleanedSettings;
+        }
+        
         updateCategoricalColumnsDisplay();
     }
     
@@ -2340,12 +2677,16 @@ function saveFeaturization() {
     const missingDataStrategy = document.querySelector('input[name="missing-data-strategy"]:checked').value;
     currentJobData.missingDataStrategy = missingDataStrategy;
     
-    // Save categorical column settings
+    // Save categorical column settings (only for selected columns)
+    const selectedCols = getSelectedColumns();
     const categoricalSettings = {};
     document.querySelectorAll('#categorical-columns input:checked').forEach(radio => {
         const name = radio.name;
         const column = name.replace('categorical-', '');
-        categoricalSettings[column] = radio.value;
+        // Only save settings for selected columns
+        if (selectedCols.includes(column)) {
+            categoricalSettings[column] = radio.value;
+        }
     });
     currentJobData.categoricalSettings = categoricalSettings;
     
@@ -2578,14 +2919,17 @@ function trainModels(job) {
         }
 
         // Prepare job data for Python function
+        const selectedCols = getSelectedColumns();
         const jobDataForPython = {
             ...currentJobData,
             id: job.id,
-            jobName: job.name
+            jobName: job.name,
+            selectedColumns: selectedCols  // Add selected columns to job data
         };
 
         console.log('DEBUG: jobDataForPython.targetColumn =', jobDataForPython.targetColumn);
         console.log('DEBUG: currentJobData.targetColumn =', currentJobData.targetColumn);
+        console.log('DEBUG: selectedColumns =', selectedCols);
 
         // Validate required fields
         if (!jobDataForPython.targetColumn) {
@@ -2594,6 +2938,15 @@ function trainModels(job) {
         
         if (!jobDataForPython.taskType) {
             throw new Error('Task type is not set. Please go back and select a task type.');
+        }
+        
+        // Validate that target column is included in selected columns
+        if (selectedCols.length === 0) {
+            throw new Error('No columns selected. Please select at least one column to include in the dataset.');
+        }
+        
+        if (!selectedCols.includes(jobDataForPython.targetColumn)) {
+            throw new Error('Target column must be included in the selected columns. Please check your column selection.');
         }
 
         console.log('Starting PyScript ML training with real algorithms...');
@@ -3226,23 +3579,38 @@ function showHeaderValidationInterface(columnData) {
     `;
     
     // Add rows from raw data
-    columnData.rawData.forEach((row, index) => {
-        const tr = document.createElement('tr');
-        const cells = row.split(','); // Simple split for preview
-        
-        cells.forEach(cell => {
-            const td = document.createElement('td');
-            td.style.cssText = `
-                border: 1px solid #ddd;
-                padding: 4px 8px;
-                ${index === 0 ? 'background-color: #f5f5f5; font-weight: bold;' : ''}
-            `;
-            td.textContent = cell.trim();
-            tr.appendChild(td);
+    if (columnData.rawData && Array.isArray(columnData.rawData)) {
+        columnData.rawData.forEach((row, index) => {
+            const tr = document.createElement('tr');
+            const cells = row.split(','); // Simple split for preview
+            
+            cells.forEach(cell => {
+                const td = document.createElement('td');
+                td.style.cssText = `
+                    border: 1px solid #ddd;
+                    padding: 4px 8px;
+                    ${index === 0 ? 'background-color: #f5f5f5; font-weight: bold;' : ''}
+                `;
+                td.textContent = cell.trim();
+                tr.appendChild(td);
+            });
+            
+            previewTable.appendChild(tr);
         });
-        
+    } else {
+        // Add a placeholder row if no raw data
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.style.cssText = `
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+            color: #666;
+        `;
+        td.textContent = 'No preview data available';
+        tr.appendChild(td);
         previewTable.appendChild(tr);
-    });
+    }
     
     // Create header input table
     const headerInputTable = document.createElement('table');

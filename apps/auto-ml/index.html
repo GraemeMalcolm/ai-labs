@@ -1615,6 +1615,32 @@ if hasattr(model, 'predict_proba'):
         js.window.parse_csv_with_pyscript = parse_csv_with_pyscript
         js.window.update_dataframe_headers = update_dataframe_headers
         
+        # Function to filter DataFrame by selected columns
+        def filter_dataframe_columns(selected_columns):
+            """Filter the stored DataFrame to only include selected columns"""
+            if 'current_dataframe' in globals():
+                df = globals()['current_dataframe']
+                if selected_columns and len(selected_columns) > 0:
+                    # Verify all selected columns exist
+                    missing_columns = [col for col in selected_columns if col not in df.columns]
+                    if missing_columns:
+                        print(f"✗ Selected columns not found: {missing_columns}")
+                        return False
+                    
+                    # Filter DataFrame
+                    filtered_df = df[selected_columns]
+                    globals()['current_dataframe'] = filtered_df
+                    print(f"✓ DataFrame filtered from {df.shape[1]} to {filtered_df.shape[1]} columns")
+                    print(f"  Selected columns: {selected_columns}")
+                    return True
+                else:
+                    print("✗ No columns selected")
+                    return False
+            print("✗ No DataFrame available")
+            return False
+        
+        js.window.filter_dataframe_columns = filter_dataframe_columns
+        
         # Training function for ML models - Full implementation with all metrics
         def train_ml_models_pyscript(job_data_json, data_info):
             from datetime import datetime
@@ -1668,8 +1694,27 @@ if hasattr(model, 'predict_proba'):
                 
                 df = globals()['current_dataframe']
                 log_message(f"📊 Dataset loaded successfully:")
-                log_message(f"  • Shape: {df.shape[0]} rows × {df.shape[1]} columns")
-                log_message(f"  • Columns: {list(df.columns)}")
+                log_message(f"  • Original shape: {df.shape[0]} rows × {df.shape[1]} columns")
+                log_message(f"  • Original columns: {list(df.columns)}")
+                
+                # Filter DataFrame to only include selected columns
+                selected_columns = job_data.get('selectedColumns', [])
+                if selected_columns and len(selected_columns) > 0:
+                    log_message(f"🔍 Filtering dataset to selected columns:")
+                    log_message(f"  • Selected columns: {selected_columns}")
+                    
+                    # Verify all selected columns exist in the DataFrame
+                    missing_columns = [col for col in selected_columns if col not in df.columns]
+                    if missing_columns:
+                        raise ValueError(f"Selected columns not found in dataset: {missing_columns}")
+                    
+                    # Filter DataFrame to only selected columns
+                    df = df[selected_columns]
+                    log_message(f"  • Filtered shape: {df.shape[0]} rows × {df.shape[1]} columns")
+                    log_message(f"  • Filtered columns: {list(df.columns)}")
+                else:
+                    log_message("⚠️  No column selection provided, using all columns")
+                    log_message(f"  • Using all {df.shape[1]} columns: {list(df.columns)}")
                 
                 # Get training parameters
                 target_column = job_data['targetColumn']
@@ -2366,7 +2411,7 @@ if hasattr(model, 'predict_proba'):
         window.addEventListener('py:all-done', hidePyScriptElements);
     </script>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=2"></script>
 
     <!-- Create Workspace Flyout Panel -->
     <div id="create-workspace-flyout" class="flyout-panel" role="dialog" aria-labelledby="create-workspace-title" aria-modal="true">
