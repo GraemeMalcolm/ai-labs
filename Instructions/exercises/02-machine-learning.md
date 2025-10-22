@@ -15,7 +15,7 @@ This exercise should take approximately **15** minutes to complete.
 In this exercise, you'll use data files to train multiple types of machine learning model.
 
 1. Download **[ml-data.zip](https://raw.githubusercontent.com/GraemeMalcolm/ai-labs/refs/heads/main/data/ml-data.zip){:target="_blank"}** to your local computer.
-1. Extract the downloaded archive in a local folder see the files it contains. These files contain data suitable for training machine learning models.
+1. Extract the downloaded archive in a local folder to see the files it contains. These files contain data suitable for training machine learning models.
 
 ## Train a regression model
 

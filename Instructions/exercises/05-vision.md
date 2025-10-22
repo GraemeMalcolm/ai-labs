@@ -30,7 +30,7 @@ Let's start by chatting with a generative AI model. In this exercise, we'll use 
 Computer vision models enable AI systems to interpret image-based data, such as photographs, videos, and other visual elements. In this exercise, we'll use a small CNN-based image classification model to determine the contents of an image, and a generative AI model to interpret and answer questions about the images.
 
 1. In a new browser tab, download **[images.zip](https://raw.githubusercontent.com/GraemeMalcolm/ai-labs/refs/heads/main/data/images.zip){:target="_blank"}** to your local computer.
-1. Extract the downloaded archive in a local folder see the files it contains. These files are the images you will use AI to analyze.
+1. Extract the downloaded archive in a local folder to see the files it contains. These files are the images you will use AI to analyze.
 1. Return to the browser tab containing the chat playground, and at the top-right of the **Chat history** pane, use the **Settings** (**&#x2699;**) button to view the chat capabilities options.
 1. In the **Vision** section, enable **Image analysis**. Then wait for the computer vision model to be downloaded and initialized before saving the changes.
 
