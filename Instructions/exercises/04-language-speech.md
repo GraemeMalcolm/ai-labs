@@ -1,7 +1,7 @@
 ---
 lab:
-    title: 'Explore AI speech'
-    description: 'Use speech-to-text and text-to-speech with a generative AI model.'
+    title: 'Explore AI natural language processing and speech'
+    description: 'Use Ai to analyze text, and experience speech-to-text and text-to-speech capabilities with a generative AI model.'
 ---
 
 # Explore AI speech
@@ -21,9 +21,42 @@ Let's start by chatting with a generative AI model. In this exercise, we'll use 
 
     > **Tip**: The first time you open the chat playground, it may take a few minutes for the model to download. Subsequent downloads will be faster.
 
-1. When the model is ready, enter a prompt such as `What's a good way to improve my general health and fitness?`, and review the response.
+1. When the model is ready, enter the following prompt:
 
-    The model should respond with a text-based answer, that hopefully includes some relevant information about healthy lifestyle choices.
+    ```
+    Summarize this hotel review as a single, short paragraph:
+    
+    ---
+    Review Title: Good Hotel and staff
+    Hotel: The Royal Hotel, London, UK
+    Review Date: March 2nd 2025
+    
+    Clean rooms, good service, great location near Buckingham Palace and Westminster Abbey, and so on. We thoroughly enjoyed our stay. The courtyard is very peaceful and we went to a restaurant which is part of the same group and is Indian ( West coast so plenty of fish) with a Michelin Star. We had the taster menu which was fabulous. The rooms were very well appointed with a comfortable bedroom and enormous bathroom.
+
+    The hotel staff were very friendly and helpful. In particular, George at the front desk had some great recommendations for activities and sights that made our visit even more enjoyable.
+
+    Thoroughly recommended.
+    ---
+    
+    ```
+
+    The response should summarize the review text.
+
+1. Submit the following prompt:
+
+    ```
+    List the named entities you detect in this review.
+    ```
+
+    The response should identify entities such as places, dates, and people mentioned in the review.
+
+1. Submit the following prompt:
+
+    ```
+    Classify the sentiment of the review as "positive", "negative", or "neutral".
+    ```
+
+    The response should indicate the sentiment of the review.
 
 ## Use speech-to-text for voice recognition
 
@@ -36,7 +69,7 @@ Speech-to-text (STT) is an AI technique that transforms audible speech into text
 
     Under the chat interface, a **Voice input** (**🎙**) button is enabled.
 
-1. Click the **Voice input** button, and if prompted, allow access to your computer's microphone. Then after the tone, say something like "*Should I go to the gym?*".
+1. Click the **Voice input** button, and if prompted, allow access to your computer's microphone. Then after the tone, say something like "*What should I consider when choosing a hotel in London?*".
 
     Your speech should be converted to text and entered as a prompt, to which the model responds.
 
@@ -51,7 +84,7 @@ For a fully functional speech-capable AI agent, the conversation should flow in 
 
     The chat restarts after enabling text to speech.
 
-1. Use the **Voice input** button to speak to the agent (try something like "*What's the distance of a marathon?*")
+1. Use the **Voice input** button to speak to the agent (try something like "*Suggest three tourist activities in London*")
 
     > **Note**: The agent may take longer to respond when text to speech is enabled.
 
