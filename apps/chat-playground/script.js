@@ -572,6 +572,12 @@ class ChatPlayground {
             };
         }
         
+        // Detect potential virtual environment limitations
+        const virtualEnvIndicators = this.detectVirtualEnvironment();
+        if (virtualEnvIndicators.isVirtual) {
+            console.warn('⚠️ Virtual environment detected:', virtualEnvIndicators.indicators);
+        }
+        
         // Check SharedArrayBuffer support (required for WASM threading)
         if (typeof SharedArrayBuffer === 'undefined') {
             console.warn('⚠️ SharedArrayBuffer not available - may impact WASM performance');
@@ -587,6 +593,15 @@ class ChatPlayground {
             // Check cross-origin isolation headers
             if (!window.crossOriginIsolated) {
                 console.warn('⚠️ Cross-origin isolation not enabled - WASM threading unavailable');
+                
+                // In virtual environments, this combination is often problematic
+                if (virtualEnvIndicators.isVirtual) {
+                    return {
+                        isCompatible: false,
+                        reason: 'Virtual environment detected with insufficient browser feature support. Try accessing from a physical machine with full browser capabilities.'
+                    };
+                }
+                
                 // Allow to continue but with degraded performance
                 return {
                     isCompatible: true,
@@ -633,6 +648,49 @@ class ChatPlayground {
         return {
             isCompatible: true,
             reason: 'WASM fully compatible'
+        };
+    }
+
+    /**
+     * Detects indicators that suggest we're running in a virtual environment
+     */
+    detectVirtualEnvironment() {
+        const indicators = [];
+        
+        // Check user agent for VM indicators
+        const userAgent = navigator.userAgent.toLowerCase();
+        if (userAgent.includes('vmware') || userAgent.includes('virtualbox') || userAgent.includes('hyper-v')) {
+            indicators.push('VM-specific user agent');
+        }
+        
+        // Check for hardware concurrency (VMs often have fewer cores)
+        if (navigator.hardwareConcurrency <= 2) {
+            indicators.push('Limited CPU cores');
+        }
+        
+        // Check for WebGL renderer info (VMs often have software rendering)
+        try {
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (gl) {
+                const renderer = gl.getParameter(gl.RENDERER);
+                if (renderer && (renderer.includes('Software') || renderer.includes('Microsoft') || renderer.includes('VMware'))) {
+                    indicators.push('Software/VM graphics renderer');
+                }
+            }
+        } catch (error) {
+            // Ignore WebGL detection errors
+        }
+        
+        // Check memory limitations (VMs often have less available memory)
+        if ('memory' in performance && performance.memory.jsHeapSizeLimit < 2000000000) { // Less than ~2GB
+            indicators.push('Limited memory allocation');
+        }
+        
+        return {
+            isVirtual: indicators.length >= 2, // Likely virtual if 2+ indicators
+            indicators: indicators,
+            confidence: indicators.length >= 3 ? 'high' : indicators.length >= 2 ? 'medium' : 'low'
         };
     }
 
@@ -947,8 +1005,10 @@ class ChatPlayground {
         
         if (!deviceInfo.hasGPU) {
             console.log('⚙️ Configuring for WASM fallback (CPU inference)');
-            // WebLLM will automatically use WASM when WebGPU is not available
-            // No special configuration needed - WebLLM handles this internally
+            // Try to force CPU-only mode for older WebLLM versions
+            // These options may help WebLLM skip GPU detection entirely
+            config.context_window_size = 1024; // Smaller context for CPU
+            config.prefill_chunk_size = 256;   // Smaller chunks for CPU
         } else {
             console.log('⚙️ Configuring for WebGPU acceleration');
         }
@@ -1598,12 +1658,25 @@ class ChatPlayground {
                     
                 } catch (modelError) {
                     console.error(`Failed to load ${model.model_id}:`, modelError);
+                    
+                    // Check if this is the specific WebGPU adapter error for WASM fallback
+                    if (modelError.message.includes('Unable to find a compatible GPU') && !deviceInfo.hasGPU) {
+                        console.error('❌ WebLLM WASM fallback failed - this version may not support CPU-only mode on this environment');
+                        throw new Error('This browser environment does not support the required features for AI model execution. Virtual machines or restricted environments may have limitations. Try using a different browser or environment with full WebGPU or WASM support.');
+                    }
                     continue;
                 }
             }
             
             if (!engineCreated) {
-                throw new Error('Failed to load any available models. Please check your internet connection and try again.');
+                // Provide more specific guidance based on device info
+                if (deviceInfo.wasmError) {
+                    throw new Error(`WASM compatibility issue: ${deviceInfo.reason}`);
+                } else if (!deviceInfo.hasGPU) {
+                    throw new Error('WASM fallback failed: This environment may not support WebLLM\'s CPU inference mode. Virtual machines and restricted browsers often have limitations. Try accessing from a different environment with full browser support.');
+                } else {
+                    throw new Error('Failed to load any available models. Please check your internet connection and try again.');
+                }
             }
             
             console.log('WebLLM engine created successfully');
@@ -1636,6 +1709,16 @@ class ChatPlayground {
      */
     analyzeWebLLMError(error) {
         const errorMessage = error.message.toLowerCase();
+        
+        // Check for specific WebGPU adapter error in environments without GPU support
+        if (errorMessage.includes('unable to find a compatible gpu') || 
+            errorMessage.includes('no available adapters')) {
+            return {
+                isDeviceRelated: true,
+                userMessage: 'Environment incompatible with AI features',
+                guidance: '🚫 This environment (virtual machine, restricted browser, or limited hardware) cannot run AI models. Try using Chrome/Edge on a physical machine with GPU support, or access from a different environment.'
+            };
+        }
         
         // Check for WASM-specific compatibility issues
         if (errorMessage.includes('sharedarraybuffer') || 
