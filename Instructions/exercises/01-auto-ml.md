@@ -8,9 +8,7 @@ lab:
 
 In this exercise, you'll use the automated machine learning to train and evaluate a machine learning model. You'll then deploy and test the trained model.
 
-> **Note**: This exercise is designed to take you through the steps to train and test a model using ***Azure Machine Learning***. If you have an Azure subscription with sufficient permissions, you can provision an Azure Machine Learning workspace and use that for the exercise.
->
-> However,  Azure Machine Learning is designed for enterprise-scale machine learning solutions that involve huge volumes of data and cloud-based compute - more than is required for the scenario in this exercise. If you don't have access to Azure, or if you have limited time to complete the exercise, a browser-based ***ML Lab*** app that includes the core functionality of Azure ML used in this exercise is also provided, and you can use that to to train and test real machine learning models, just as you would in Azure ML, in a similar user interface. Note that the ML Lab app runs in the browser, so refreshing the page at any point will restart the app!
+> **Note**: This exercise is designed to take you through the steps to train and test a model using ***Azure Machine Learning***. If you have an Azure subscription with sufficient permissions, you can provision an Azure Machine Learning workspace and use that for the exercise. However,  Azure Machine Learning is designed for enterprise-scale machine learning solutions that involve huge volumes of data and cloud-based compute - more than is required for the scenario in this exercise. Some operations in Azure Machine Learning require provisioning compute, which can take time. If you don't have access to Azure, or if you have limited time to complete the exercise, a browser-based ***ML Lab*** app that includes the core functionality of Azure ML used in this exercise is also provided, and you can use that to to train and test real machine learning models, just as you would in Azure ML, in a similar user interface. While the user interface in ML Lab is not identical to Azure Machine Learning, it's similar enough to make the transition to Azure Machine Learning intuitive. Note that the ML Lab app runs in the browser, so refreshing the page at any point will restart the app!
 
 This exercise should take approximately **35** minutes to complete (less if you use the browser-based ML Lab app).
 
@@ -19,8 +17,8 @@ This exercise should take approximately **35** minutes to complete (less if you 
 A workspace is used to keep all your machine learning resources together, making it easier to manage data, code, models, and other assets in a single place.
 
 1. Open the portal for the environment you want to use in this lab, and sign in if prompted:
-    - Azure-based [Azure Machine Learning Studio](https://ml.azure.com){:target="_blank"}
-    - Browser-based [ML Lab]https://graememalcolm.github.io/ai-labs/apps/auto-ml/){:target="_blank"}
+    - Azure-based [Azure Machine Learning Studio](https://ml.azure.com){:target="_blank"} at `https://ml.azure.com`
+    - Browser-based [ML Lab](https://aka.ms/ml-lab){:target="_blank"} at `https://aka.ms/ml-lab`
 
     > **Tip**: If Azure Machine Learning studio opens in an existing workspace, navigate to the **All workspaces** page.
 
@@ -36,7 +34,7 @@ A workspace is used to keep all your machine learning resources together, making
 
 In this exercise, you'll use a dataset of ice cream sales to train a model that predicts the demand for ice creams on a given day, based on seasonal and meteorological features.
 
-1. In a new browser tab, navigate to [https://raw.githubusercontent.com/GraemeMalcolm/ai-labs/refs/heads/main/data/ml-data.zip](https://raw.githubusercontent.com/GraemeMalcolm/ai-labs/refs/heads/main/data/ml-data.zip) and download the **ml-data.zip** to your local computer.
+1. In a new browser tab, download **[ml-data.zip](https://aka.ms/mslearn-ml-data)** from `https://aka.ms/mslearn-ml-data` to your local computer.
 1. Extract the downloaded **ml-data.zip** archive to see the files it contains. Note that one of these files is **ice-cream.csv**, which contains the ice cream sales data required for this exercise.
 
 ## Use automated machine learning to train a model
@@ -132,14 +130,13 @@ Now you can test your deployed service.
    {
      "input_data": {
         "columns": [
-            "Date",
             "DayOfWeek",
             "Month",
             "Temperature",
             "Rainfall"
         ],
         "index": [0],
-        "data": [["2025-06-04","Wednesday","June",70.5,0.05]]
+        "data": [["Wednesday","June",70.5,0.05]]
      }
    }
     ```

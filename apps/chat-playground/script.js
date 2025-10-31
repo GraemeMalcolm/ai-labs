@@ -558,6 +558,296 @@ class ChatPlayground {
         this.setupSpeechToggleListeners();
     }
 
+    /**
+     * Detects GPU/CPU capabilities and logs device information for WebLLM
+     */
+    async detectAndLogDeviceCapabilities() {
+        console.log('🔍 Detecting device capabilities...');
+        
+        // Show device status indicator only if needed (with null checks and debugging)
+        const deviceStatus = document.getElementById('device-status');
+        const deviceIcon = document.getElementById('device-icon');
+        const deviceText = document.getElementById('device-text');
+        
+        console.log('Device status elements:', {
+            deviceStatus: !!deviceStatus,
+            deviceIcon: !!deviceIcon,
+            deviceText: !!deviceText
+        });
+        
+        // Don't show device status initially - only show when CPU fallback is needed
+        
+        // Check WebGPU availability
+        if (!navigator.gpu) {
+            console.warn('❌ WebGPU is not available in this browser');
+            console.log('🔄 WebLLM will fallback to WASM for CPU inference');
+            this.updateProgress(5, 'WebGPU not available - using WASM fallback');
+            this.updateDeviceStatus('cpu-only', '💻', 'WASM fallback - Phi-1.5 model will be used');
+            return { hasGPU: false, reason: 'WebGPU not supported, using WASM' };
+        }
+
+        try {
+            // Request GPU adapter
+            const adapter = await navigator.gpu.requestAdapter({
+                powerPreference: 'high-performance'
+            });
+
+            if (!adapter) {
+                console.warn('❌ No WebGPU adapter available');
+                console.log('🔄 WebLLM will fallback to WASM for CPU inference');
+                this.updateProgress(5, 'No GPU adapter available - using WASM fallback');
+                this.updateDeviceStatus('cpu-only', '💻', 'WASM fallback - Phi-1.5 model will be used');
+                return { hasGPU: false, reason: 'No adapter, using WASM' };
+            }
+
+            // Get adapter info
+            const adapterInfo = adapter.info || {};
+            console.log('🎮 GPU Adapter Info:', {
+                vendor: adapterInfo.vendor || 'Unknown',
+                architecture: adapterInfo.architecture || 'Unknown',
+                device: adapterInfo.device || 'Unknown',
+                description: adapterInfo.description || 'Unknown'
+            });
+
+            // Request device
+            const device = await adapter.requestDevice();
+            
+            if (!device) {
+                console.warn('❌ Could not create WebGPU device');
+                console.log('🔄 WebLLM will fallback to WASM for CPU inference');
+                this.updateProgress(5, 'Could not create GPU device - using WASM fallback');
+                this.updateDeviceStatus('cpu-only', '💻', 'WASM fallback - Phi-1.5 model will be used');
+                return { hasGPU: false, reason: 'Device creation failed, using WASM' };
+            }
+
+            // Check device limits for memory constraints
+            const limits = device.limits;
+            const maxBufferSize = limits.maxStorageBufferBindingSize;
+            const maxBufferMB = Math.floor(maxBufferSize / (1024 * 1024));
+            
+            console.log('💾 GPU Memory Limits:', {
+                maxStorageBufferMB: maxBufferMB,
+                maxBufferSize: maxBufferSize,
+                maxTextureDimension2D: limits.maxTextureDimension2D,
+                maxComputeWorkgroupsPerDimension: limits.maxComputeWorkgroupsPerDimension
+            });
+
+            // Determine if GPU is suitable for AI workloads
+            const isLowMemoryDevice = maxBufferMB < 1024; // Less than 1GB
+            const deviceClass = this.categorizeDevice(maxBufferMB, adapterInfo);
+            
+            console.log(`🏷️ Device Classification: ${deviceClass}`);
+            
+            // For GPU devices, hide the device status indicator (no fallback needed)
+            console.log(`✅ GPU available (${maxBufferMB}MB VRAM) - Phi-3 Mini will be used`);
+            this.updateProgress(5, `GPU available with ${maxBufferMB}MB VRAM`);
+            this.hideDeviceStatus(); // Hide status for normal GPU operation
+
+            return { 
+                hasGPU: true, 
+                adapterInfo, 
+                limits, 
+                maxBufferMB,
+                deviceClass,
+                isLowMemoryDevice: false // Simplified: treat all GPUs the same
+            };
+
+        } catch (error) {
+            console.error('❌ Error detecting GPU capabilities:', error);
+            console.log('🔄 WebLLM will fallback to WASM for CPU inference');
+            this.updateProgress(5, 'GPU detection failed - using WASM fallback');
+            this.updateDeviceStatus('cpu-only', '💻', 'WASM fallback - Phi-1.5 model will be used');
+            return { hasGPU: false, reason: `GPU error, using WASM: ${error.message}` };
+        }
+    }
+
+    /**
+     * Updates the device status indicator in the UI
+     */
+    updateDeviceStatus(statusClass, icon, text) {
+        const deviceStatus = document.getElementById('device-status');
+        const deviceIcon = document.getElementById('device-icon');
+        const deviceText = document.getElementById('device-text');
+        
+        if (deviceStatus && deviceIcon && deviceText) {
+            // Remove existing status classes
+            deviceStatus.classList.remove('gpu-available', 'gpu-limited', 'cpu-only');
+            // Add new status class
+            deviceStatus.classList.add(statusClass);
+            // Update content
+            deviceIcon.textContent = icon;
+            deviceText.textContent = text;
+            // Ensure it's visible
+            deviceStatus.style.display = 'flex';
+        } else {
+            // Fallback: log to console if UI elements aren't available
+            console.log(`Device Status: ${statusClass} - ${icon} ${text}`);
+        }
+    }
+
+    /**
+     * Hides the device status indicator (for normal GPU operation)
+     */
+    hideDeviceStatus() {
+        const deviceStatus = document.getElementById('device-status');
+        if (deviceStatus) {
+            deviceStatus.style.display = 'none';
+        }
+    }
+
+    /**
+     * Categorizes the device based on memory and vendor info
+     */
+    categorizeDevice(maxBufferMB, adapterInfo = {}) {
+        const vendor = (adapterInfo.vendor || '').toLowerCase();
+        const description = (adapterInfo.description || '').toLowerCase();
+        
+        if (maxBufferMB >= 8192) return 'High-end GPU';
+        if (maxBufferMB >= 4096) return 'Mid-range GPU';
+        if (maxBufferMB >= 2048) return 'Entry-level GPU';
+        if (maxBufferMB >= 1024) return 'Integrated GPU';
+        
+        // Check for specific mobile/integrated indicators
+        if (vendor.includes('qualcomm') || vendor.includes('arm') || 
+            description.includes('adreno') || description.includes('mali')) {
+            return 'Mobile GPU';
+        }
+        if (vendor.includes('intel') || description.includes('intel')) {
+            return 'Intel Integrated';
+        }
+        
+        return 'Limited GPU';
+    }
+
+    /**
+     * Selects appropriate models based on device capabilities
+     */
+    selectModelsForDevice(models, deviceInfo) {
+        console.log('🤖 Selecting Microsoft Phi models for device capabilities...');
+        console.log('Available models:', models.map(m => m.model_id));
+        
+        // Helper function to find specific Phi models
+        const findPhiModel = (modelPattern) => {
+            return models.find(model => {
+                const modelId = model.model_id.toLowerCase();
+                return modelId.includes(modelPattern.toLowerCase());
+            });
+        };
+        
+        if (!deviceInfo.hasGPU) {
+            // WASM fallback: Use Phi-1.5 for WebAssembly CPU inference
+            console.log('📱 No GPU detected, using WASM fallback with Phi-1.5');
+            
+            // Try to find Phi-1.5 models in order of preference
+            const phi15Models = [
+                'Phi-1_5-q4f16_1-MLC',
+                'phi-1_5-q4f16_1-MLC',
+                'Phi-1_5-q4f32_1-MLC', 
+                'phi-1_5-q4f32_1-MLC'
+            ];
+            
+            for (const modelName of phi15Models) {
+                const model = findPhiModel(modelName);
+                if (model) {
+                    console.log(`✅ Selected WASM model: ${model.model_id}`);
+                    return [model];
+                }
+            }
+            
+            // Fallback: any Phi-1.5 model
+            const anyPhi15 = models.filter(model => 
+                model.model_id.toLowerCase().includes('phi-1') || 
+                model.model_id.toLowerCase().includes('phi_1')
+            );
+            
+            if (anyPhi15.length > 0) {
+                console.log(`✅ Selected WASM fallback: ${anyPhi15[0].model_id}`);
+                return [anyPhi15[0]];
+            }
+            
+            console.error('❌ No Phi-1.5 models found for WASM fallback');
+            return [];
+        }
+        
+        // GPU available: Use Phi-3 Mini 4K (no fallback needed for different GPU types)
+        console.log('🚀 GPU device detected, selecting Phi-3 Mini 4K');
+        
+        // Use the specific Phi-3 Mini 4K model requested
+        const preferredModel = findPhiModel('Phi-3-mini-4k-instruct-q4f16_1-MLC');
+        if (preferredModel) {
+            console.log(`✅ Selected preferred GPU model: ${preferredModel.model_id}`);
+            return [preferredModel];
+        }
+        
+        // Fallback: try other Phi-3 Mini 4K models
+        const phi3Mini4KModels = [
+            'Phi-3-mini-4k-instruct-q4f32_1-MLC',
+            'Phi-3.5-mini-instruct-q4f32_1-MLC',
+            'Phi-3.5-mini-instruct-q4f16_1-MLC'
+        ];
+        
+        for (const modelName of phi3Mini4KModels) {
+            const model = findPhiModel(modelName);
+            if (model) {
+                console.log(`✅ Selected GPU fallback model: ${model.model_id}`);
+                return [model];
+            }
+        }
+        
+        // Fallback: any Phi-3 model
+        const anyPhi3 = models.filter(model => 
+            model.model_id.toLowerCase().includes('phi-3') || 
+            model.model_id.toLowerCase().includes('phi_3')
+        );
+        
+        if (anyPhi3.length > 0) {
+            console.log(`✅ Selected Phi-3 model: ${anyPhi3[0].model_id}`);
+            return [anyPhi3[0]];
+        }
+        
+        // Final fallback: any Phi model
+        const anyPhi = models.filter(model => 
+            model.model_id.toLowerCase().includes('phi')
+        );
+        
+        if (anyPhi.length > 0) {
+            console.log(`✅ Selected any Phi model: ${anyPhi[0].model_id}`);
+            return [anyPhi[0]];
+        }
+        
+        console.error('❌ No Microsoft Phi models found in available models');
+        return [];
+    }
+
+    /**
+     * Creates engine configuration optimized for device
+     */
+    createEngineConfigForDevice(deviceInfo) {
+        const config = {
+            logLevel: "INFO"
+        };
+        
+        if (!deviceInfo.hasGPU) {
+            console.log('⚙️ Configuring for WASM fallback (CPU inference)');
+            // WebLLM will automatically use WASM when WebGPU is not available
+            // No special configuration needed - WebLLM handles this internally
+        } else {
+            console.log('⚙️ Configuring for WebGPU acceleration');
+        }
+        
+        return config;
+    }
+
+    /**
+     * Provides reasoning for model selection
+     */
+    getModelSelectionReasoning(deviceInfo) {
+        if (!deviceInfo.hasGPU) {
+            return `No GPU available (${deviceInfo.reason}): Using Phi-1.5 with WASM for CPU inference`;
+        }
+        return `GPU device (${deviceInfo.maxBufferMB}MB): Using Phi-3-mini-4k-instruct-q4f16_1-MLC with GPU acceleration`;
+    }
+
     speakResponse(text) {
         // Check if text-to-speech is enabled
         if (!this.speechSettings || !this.speechSettings.textToSpeech) {
@@ -1135,31 +1425,28 @@ class ChatPlayground {
                 });
                 throw new Error('WebLLM not properly loaded');
             }
+
+            // Detect GPU/CPU capabilities and device information
+            const deviceInfo = await this.detectAndLogDeviceCapabilities();
             
             // Get available models from WebLLM
             const models = webllm.prebuiltAppConfig.model_list;
             console.log('All available models:', models.map(m => m.model_id));
             
-            // Filter for Phi models first
-            let availableModels = models.filter(model => 
-                model.model_id.toLowerCase().includes('phi')
-            );
-            
-            // If no Phi models, try other small models
-            if (availableModels.length === 0) {
-                availableModels = models.filter(model => 
-                    model.model_id.toLowerCase().includes('llama-3.2-1b') ||
-                    model.model_id.toLowerCase().includes('gemma-2-2b')
-                );
-            }
+            // Select models based on device capabilities
+            let availableModels = this.selectModelsForDevice(models, deviceInfo);
             
             if (availableModels.length === 0) {
-                throw new Error('No compatible models found');
+                throw new Error('No compatible models found for this device');
             }
             
             console.log('Available models for loading:', availableModels.map(m => m.model_id));
+            console.log('Device-specific model selection reasoning:', this.getModelSelectionReasoning(deviceInfo));
             
             this.updateProgress(10, 'Loading model...');
+            
+            // Configure engine for device capabilities
+            const engineConfig = this.createEngineConfigForDevice(deviceInfo);
             
             // Try to load the first available model
             let engineCreated = false;
@@ -1172,6 +1459,7 @@ class ChatPlayground {
                     this.engine = await webllm.CreateMLCEngine(
                         model.model_id,
                         {
+                            ...engineConfig,
                             initProgressCallback: (progress) => {
                                 console.log('Progress:', progress);
                                 const percentage = Math.max(15, Math.round(progress.progress * 85) + 15);
@@ -1204,13 +1492,65 @@ class ChatPlayground {
             
         } catch (error) {
             console.error('Failed to initialize WebLLM:', error);
-            this.updateProgress(0, `Error: ${error.message}`);
             
-            // Don't create mock engine - show error instead
+            // Analyze error to provide better user feedback
+            const errorAnalysis = this.analyzeWebLLMError(error);
+            this.updateProgress(0, `Error: ${errorAnalysis.userMessage}`);
+            
+            // Provide device-specific guidance
             setTimeout(() => {
-                this.updateProgress(0, 'Failed to load AI model. Please refresh the page and check your internet connection.');
+                if (errorAnalysis.isDeviceRelated) {
+                    this.updateProgress(0, errorAnalysis.guidance);
+                } else {
+                    this.updateProgress(0, 'Failed to load AI model. Please refresh the page and check your internet connection.');
+                }
             }, 3000);
         }
+    }
+
+    /**
+     * Analyzes WebLLM errors to provide better user feedback
+     */
+    analyzeWebLLMError(error) {
+        const errorMessage = error.message.toLowerCase();
+        
+        if (errorMessage.includes('webgpu') || errorMessage.includes('gpu')) {
+            return {
+                isDeviceRelated: true,
+                userMessage: 'GPU not available',
+                guidance: '🔄 Your device doesn\'t support GPU acceleration. WebLLM will use WASM for CPU inference. Try refreshing or use a different browser with WebGPU support for better performance.'
+            };
+        }
+        
+        if (errorMessage.includes('memory') || errorMessage.includes('out of memory')) {
+            return {
+                isDeviceRelated: true,
+                userMessage: 'Insufficient memory',
+                guidance: '💾 Not enough memory available. Try closing other browser tabs or applications, then refresh the page.'
+            };
+        }
+        
+        if (errorMessage.includes('adapter') || errorMessage.includes('device')) {
+            return {
+                isDeviceRelated: true,
+                userMessage: 'Hardware compatibility issue',
+                guidance: '⚠️ Your graphics hardware may not be compatible. Try using a different browser or updating your graphics drivers.'
+            };
+        }
+        
+        if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('download')) {
+            return {
+                isDeviceRelated: false,
+                userMessage: 'Network connection issue',
+                guidance: '🌐 Check your internet connection and try again. Large models require stable internet for initial download.'
+            };
+        }
+        
+        return {
+            isDeviceRelated: false,
+            userMessage: error.message,
+            guidance: 'Failed to load AI model. Please refresh the page and try again.'
+        };
     }
     
     updateProgress(percentage, text) {
@@ -1392,7 +1732,7 @@ class ChatPlayground {
                 // Get image analysis
                 const predictions = await this.classifyImage(this.pendingImage.img);
                 const formattedPredictions = this.formatPredictions(predictions);
-                imageAnalysis = `\n---\nAnswer concisely and base your response on the following image analysis as well as what you can infer from the previous question:\n${formattedPredictions}\nDo not include probability percentages or mention low probability options from the analysis in the response, just indicate what you think the image is based on your interpretation of the analysis and the user's prompt`;
+                imageAnalysis = `\n---\nAnswer concisely and base your response on the most likely object in this image analysis:\n${formattedPredictions}\nDo not include probability percentages or mention low probability options from the analysis in the response, just indicate what you think the image is based on your interpretation of the analysis and the user's message (${userMessage}) as if you've actually seen the image.`;
                 
                 // Create image element for message bubble
                 imageElement = document.createElement('img');
@@ -1636,7 +1976,7 @@ class ChatPlayground {
 
     async typeResponse(contentEl, text) {
         let currentIndex = 0;
-        const typingSpeed = 30; // milliseconds between characters
+        const typingSpeed = 5; // milliseconds between characters
         
         // Continue typing as long as we haven't been stopped and there's more text
         while (currentIndex < text.length && !this.stopRequested) {
@@ -1665,7 +2005,7 @@ class ChatPlayground {
             fullText: initialText,
             currentIndex: 0,
             isTyping: true,
-            typingSpeed: 30
+            typingSpeed:5
         };
         
         this.continueTyping();
