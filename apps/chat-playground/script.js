@@ -559,6 +559,84 @@ class ChatPlayground {
     }
 
     /**
+     * Checks if the browser environment supports WASM fallback requirements
+     */
+    async checkWasmCompatibility() {
+        console.log('🧪 Checking WASM compatibility...');
+        
+        // Check basic WebAssembly support
+        if (typeof WebAssembly !== 'object') {
+            return {
+                isCompatible: false,
+                reason: 'WebAssembly not supported in this browser'
+            };
+        }
+        
+        // Check SharedArrayBuffer support (required for WASM threading)
+        if (typeof SharedArrayBuffer === 'undefined') {
+            console.warn('⚠️ SharedArrayBuffer not available - may impact WASM performance');
+            
+            // Check if we're in a secure context
+            if (!window.isSecureContext) {
+                return {
+                    isCompatible: false,
+                    reason: 'Insecure context - HTTPS required for AI features'
+                };
+            }
+            
+            // Check cross-origin isolation headers
+            if (!window.crossOriginIsolated) {
+                console.warn('⚠️ Cross-origin isolation not enabled - WASM threading unavailable');
+                // Allow to continue but with degraded performance
+                return {
+                    isCompatible: true,
+                    reason: 'WASM available with limited threading support',
+                    warning: 'For better performance, enable Cross-Origin-Embedder-Policy and Cross-Origin-Opener-Policy headers'
+                };
+            }
+        }
+        
+        // Check WASM instantiation capability
+        try {
+            // Simple WASM test - try to instantiate a basic module
+            const wasmCode = new Uint8Array([
+                0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, // WASM header
+                0x01, 0x04, 0x01, 0x60, 0x00, 0x00,             // Type section
+                0x03, 0x02, 0x01, 0x00,                         // Function section
+                0x0a, 0x04, 0x01, 0x02, 0x00, 0x0b              // Code section
+            ]);
+            
+            await WebAssembly.instantiate(wasmCode);
+            console.log('✅ WASM instantiation test passed');
+            
+        } catch (error) {
+            console.error('❌ WASM instantiation failed:', error);
+            return {
+                isCompatible: false,
+                reason: 'WebAssembly instantiation failed - browser may not support required WASM features'
+            };
+        }
+        
+        // Check memory allocation capability
+        try {
+            // Try to allocate a reasonable amount of memory for AI models
+            const testMemory = new WebAssembly.Memory({ initial: 10 }); // 640KB
+            console.log('✅ WASM memory allocation test passed');
+        } catch (error) {
+            console.error('❌ WASM memory allocation failed:', error);
+            return {
+                isCompatible: false,
+                reason: 'Insufficient memory available for AI model execution'
+            };
+        }
+        
+        return {
+            isCompatible: true,
+            reason: 'WASM fully compatible'
+        };
+    }
+
+    /**
      * Detects GPU/CPU capabilities and logs device information for WebLLM
      */
     async detectAndLogDeviceCapabilities() {
@@ -581,6 +659,16 @@ class ChatPlayground {
         if (!navigator.gpu) {
             console.warn('❌ WebGPU is not available in this browser');
             console.log('🔄 WebLLM will fallback to WASM for CPU inference');
+            
+            // Check WASM compatibility before proceeding
+            const wasmSupport = await this.checkWasmCompatibility();
+            if (!wasmSupport.isCompatible) {
+                console.error('❌ WASM fallback not supported:', wasmSupport.reason);
+                this.updateProgress(5, 'Browser compatibility issue - WASM not supported');
+                this.updateDeviceStatus('error', '⚠️', wasmSupport.reason);
+                return { hasGPU: false, reason: wasmSupport.reason, wasmError: true };
+            }
+            
             this.updateProgress(5, 'WebGPU not available - using WASM fallback');
             this.updateDeviceStatus('cpu-only', '💻', 'WASM fallback - Phi-1.5 model will be used');
             return { hasGPU: false, reason: 'WebGPU not supported, using WASM' };
@@ -595,6 +683,16 @@ class ChatPlayground {
             if (!adapter) {
                 console.warn('❌ No WebGPU adapter available');
                 console.log('🔄 WebLLM will fallback to WASM for CPU inference');
+                
+                // Check WASM compatibility before proceeding
+                const wasmSupport = await this.checkWasmCompatibility();
+                if (!wasmSupport.isCompatible) {
+                    console.error('❌ WASM fallback not supported:', wasmSupport.reason);
+                    this.updateProgress(5, 'Browser compatibility issue - WASM not supported');
+                    this.updateDeviceStatus('error', '⚠️', wasmSupport.reason);
+                    return { hasGPU: false, reason: wasmSupport.reason, wasmError: true };
+                }
+                
                 this.updateProgress(5, 'No GPU adapter available - using WASM fallback');
                 this.updateDeviceStatus('cpu-only', '💻', 'WASM fallback - Phi-1.5 model will be used');
                 return { hasGPU: false, reason: 'No adapter, using WASM' };
@@ -615,6 +713,16 @@ class ChatPlayground {
             if (!device) {
                 console.warn('❌ Could not create WebGPU device');
                 console.log('🔄 WebLLM will fallback to WASM for CPU inference');
+                
+                // Check WASM compatibility before proceeding
+                const wasmSupport = await this.checkWasmCompatibility();
+                if (!wasmSupport.isCompatible) {
+                    console.error('❌ WASM fallback not supported:', wasmSupport.reason);
+                    this.updateProgress(5, 'Browser compatibility issue - WASM not supported');
+                    this.updateDeviceStatus('error', '⚠️', wasmSupport.reason);
+                    return { hasGPU: false, reason: wasmSupport.reason, wasmError: true };
+                }
+                
                 this.updateProgress(5, 'Could not create GPU device - using WASM fallback');
                 this.updateDeviceStatus('cpu-only', '💻', 'WASM fallback - Phi-1.5 model will be used');
                 return { hasGPU: false, reason: 'Device creation failed, using WASM' };
@@ -655,6 +763,16 @@ class ChatPlayground {
         } catch (error) {
             console.error('❌ Error detecting GPU capabilities:', error);
             console.log('🔄 WebLLM will fallback to WASM for CPU inference');
+            
+            // Check WASM compatibility before proceeding
+            const wasmSupport = await this.checkWasmCompatibility();
+            if (!wasmSupport.isCompatible) {
+                console.error('❌ WASM fallback not supported:', wasmSupport.reason);
+                this.updateProgress(5, 'Browser compatibility issue - WASM not supported');
+                this.updateDeviceStatus('error', '⚠️', wasmSupport.reason);
+                return { hasGPU: false, reason: wasmSupport.reason, wasmError: true };
+            }
+            
             this.updateProgress(5, 'GPU detection failed - using WASM fallback');
             this.updateDeviceStatus('cpu-only', '💻', 'WASM fallback - Phi-1.5 model will be used');
             return { hasGPU: false, reason: `GPU error, using WASM: ${error.message}` };
@@ -1429,6 +1547,11 @@ class ChatPlayground {
             // Detect GPU/CPU capabilities and device information
             const deviceInfo = await this.detectAndLogDeviceCapabilities();
             
+            // Check if we have a WASM compatibility error
+            if (deviceInfo.wasmError) {
+                throw new Error(deviceInfo.reason);
+            }
+            
             // Get available models from WebLLM
             const models = webllm.prebuiltAppConfig.model_list;
             console.log('All available models:', models.map(m => m.model_id));
@@ -1514,6 +1637,18 @@ class ChatPlayground {
     analyzeWebLLMError(error) {
         const errorMessage = error.message.toLowerCase();
         
+        // Check for WASM-specific compatibility issues
+        if (errorMessage.includes('sharedarraybuffer') || 
+            errorMessage.includes('cross-origin') ||
+            errorMessage.includes('webassembly') ||
+            errorMessage.includes('wasm')) {
+            return {
+                isDeviceRelated: true,
+                userMessage: 'Browser compatibility issue',
+                guidance: '🌐 This browser/environment doesn\'t support required features for AI models. Try using Chrome/Edge with HTTPS, or check if running in a virtual environment that blocks certain web features.'
+            };
+        }
+        
         if (errorMessage.includes('webgpu') || errorMessage.includes('gpu')) {
             return {
                 isDeviceRelated: true,
@@ -1543,6 +1678,14 @@ class ChatPlayground {
                 isDeviceRelated: false,
                 userMessage: 'Network connection issue',
                 guidance: '🌐 Check your internet connection and try again. Large models require stable internet for initial download.'
+            };
+        }
+        
+        if (errorMessage.includes('secure context') || errorMessage.includes('https required')) {
+            return {
+                isDeviceRelated: true,
+                userMessage: 'Security requirements not met',
+                guidance: '🔒 AI features require HTTPS. Please access this page via https:// or serve it from a secure context.'
             };
         }
         

@@ -196,6 +196,13 @@ header h1 {
     color: #721c24;
 }
 
+.device-status.error {
+    background: #ffe6e6;
+    border-color: #ff4757;
+    color: #8b0000;
+    font-weight: 500;
+}
+
 .device-icon {
     font-size: 14px;
 }
