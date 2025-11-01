@@ -1,3 +1,5 @@
+// WebLLM 0.2.46 requires WebGPU context even for WASM fallback
+// Virtual machines and environments without WebGPU support may not work
 import * as webllm from "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.46/+esm";
 
 class ChatPlayground {
@@ -1661,9 +1663,12 @@ class ChatPlayground {
                     
                     // Check if this is the specific WebGPU adapter error for WASM fallback
                     if (modelError.message.includes('Unable to find a compatible GPU') && !deviceInfo.hasGPU) {
-                        console.error('❌ WebLLM WASM fallback failed - this version may not support CPU-only mode on this environment');
-                        throw new Error('This browser environment does not support the required features for AI model execution. Virtual machines or restricted environments may have limitations. Try using a different browser or environment with full WebGPU or WASM support.');
+                        console.error('❌ WebLLM WASM fallback failed - this version requires WebGPU context even for CPU inference');
+                        // This specific error means WebLLM can't initialize WASM fallback in this environment
+                        throw new Error('This environment cannot run AI models. WebLLM requires WebGPU support even for CPU fallback in this version. Try using a newer browser with WebGPU support, or access from a physical machine instead of a virtual environment.');
                     }
+                    
+                    // For other errors, continue trying other models
                     continue;
                 }
             }
@@ -1673,7 +1678,7 @@ class ChatPlayground {
                 if (deviceInfo.wasmError) {
                     throw new Error(`WASM compatibility issue: ${deviceInfo.reason}`);
                 } else if (!deviceInfo.hasGPU) {
-                    throw new Error('WASM fallback failed: This environment may not support WebLLM\'s CPU inference mode. Virtual machines and restricted browsers often have limitations. Try accessing from a different environment with full browser support.');
+                    throw new Error('WebLLM version limitation: This version (0.2.46) requires WebGPU context initialization even for CPU/WASM inference. Virtual machines and environments without proper WebGPU support cannot run this version. Try using a physical machine with a WebGPU-capable browser (Chrome/Edge), or use a newer WebLLM version with better WASM-only support.');
                 } else {
                     throw new Error('Failed to load any available models. Please check your internet connection and try again.');
                 }
@@ -1715,8 +1720,8 @@ class ChatPlayground {
             errorMessage.includes('no available adapters')) {
             return {
                 isDeviceRelated: true,
-                userMessage: 'Environment incompatible with AI features',
-                guidance: '🚫 This environment (virtual machine, restricted browser, or limited hardware) cannot run AI models. Try using Chrome/Edge on a physical machine with GPU support, or access from a different environment.'
+                userMessage: 'WebLLM version limitation',
+                guidance: '🚫 This WebLLM version (0.2.46) requires WebGPU context even for CPU inference. Try using Chrome/Edge with WebGPU enabled, or use a newer WebLLM version that supports pure WASM mode. Virtual machines often lack proper WebGPU support.'
             };
         }
         

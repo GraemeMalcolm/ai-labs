@@ -13,11 +13,17 @@ The app should use to support the chat functionality. The model should be given 
 The app implements robust device detection and fallback mechanisms:
 
 1. **WebGPU Detection**: First attempts to use WebGPU for GPU acceleration with Phi-3 Mini models
-2. **WASM Fallback**: If WebGPU is unavailable, falls back to WebAssembly (WASM) for CPU inference with Phi-1.5 models
+2. **WASM Fallback**: If WebGPU is unavailable, attempts to fall back to WebAssembly (WASM) for CPU inference with Phi-1.5 models
 3. **Virtual PC Compatibility**: Includes comprehensive WASM compatibility checks to handle virtual environments that may not support:
    - SharedArrayBuffer (required for WASM threading)
    - Cross-origin isolation headers
    - Secure contexts (HTTPS requirements)
    - WebAssembly instantiation and memory allocation
+
+**Important Limitation**: WebLLM version 0.2.46 requires WebGPU context initialization even for WASM fallback. This means virtual machines and environments without proper WebGPU adapter support cannot run AI models, even in CPU-only mode. For virtual PC users, consider:
+
+- Using a physical machine with WebGPU-capable browser (Chrome/Edge)
+- Updating to a newer WebLLM version with better WASM-only support
+- Using alternative AI inference solutions for virtual environments
 
 The app provides clear error messages and device status indicators to help users understand whether GPU acceleration, WASM fallback, or compatibility issues are affecting their experience.

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Llama.cpp WASM Demo (Offline)</title>
+</head>
+<body>
+  <h1>Llama.cpp WASM Example (No WebGPU)</h1>
+  <p>Status: <span id="status">Initializing...</span></p>
+  <textarea id="input" rows="4" cols="50" placeholder="Type your prompt here..."></textarea><br/>
+  <button id="run">Run</button>
+  <pre id="output"></pre>
+
+  <script type="module">
+    import initWasm from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.6/+esm'
+    //import initWasm from "./assets/wllama.js"; // Local runtime
+
+    const statusEl = document.getElementById("status");
+    const outputEl = document.getElementById("output");
+    const runBtn = document.getElementById("run");
+    const inputEl = document.getElementById("input");
+
+    let llama;
+
+    async function init() {
+      try {
+        statusEl.textContent = "Loading model...";
+        llama = await initWasm({
+          model: "./assets/model-q4f32_1.bin", // Local model file
+          wasmPath: "./assets/wllama.wasm",    // WASM binary
+          threads: navigator.hardwareConcurrency || 4
+        });
+        statusEl.textContent = "Model loaded. Ready!";
+      } catch (err) {
+        statusEl.textContent = "Initialization failed.";
+        console.error(err);
+      }
+    }
+
+    runBtn.addEventListener("click", async () => {
+      const prompt = inputEl.value.trim();
+      if (!prompt) return;
+      outputEl.textContent = "Generating...";
+      try {
+        const result = await llama.generate(prompt, { max_tokens: 128 });
+        outputEl.textContent = result;
+      } catch (err) {
+        outputEl.textContent = "Error during generation.";
+        console.error(err);
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>
