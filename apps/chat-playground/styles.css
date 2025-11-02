@@ -164,53 +164,6 @@ header h1 {
     text-align: center;
 }
 
-/* Device Status Indicator */
-.device-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    margin: 10px 0;
-    background: #f8f9fa;
-    border: 1px solid #e1e4e8;
-    border-radius: 6px;
-    font-size: 12px;
-    color: #586069;
-}
-
-.device-status.gpu-available {
-    background: #e6f7e6;
-    border-color: #28a745;
-    color: #155724;
-}
-
-.device-status.gpu-limited {
-    background: #fff3cd;
-    border-color: #ffc107;
-    color: #856404;
-}
-
-.device-status.cpu-only {
-    background: #f8d7da;
-    border-color: #dc3545;
-    color: #721c24;
-}
-
-.device-status.error {
-    background: #ffe6e6;
-    border-color: #ff4757;
-    color: #8b0000;
-    font-weight: 500;
-}
-
-.device-icon {
-    font-size: 14px;
-}
-
-.device-text {
-    flex: 1;
-}
-
 .instructions-section {
     margin-bottom: 25px;
 }

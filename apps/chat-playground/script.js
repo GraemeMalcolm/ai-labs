@@ -1,5 +1,3 @@
-// WebLLM 0.2.46 requires WebGPU context even for WASM fallback
-// Virtual machines and environments without WebGPU support may not work
 import * as webllm from "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.46/+esm";
 
 class ChatPlayground {
@@ -7,6 +5,7 @@ class ChatPlayground {
         // Core state
         this.engine = null;
         this.isModelLoaded = false;
+        this.webllmAvailable = false; // Track if WebLLM model successfully loaded
         this.conversationHistory = [];
         this.isGenerating = false;
         this.isSpeaking = false;
@@ -489,6 +488,9 @@ class ChatPlayground {
             if (voiceSpeed) voiceSpeed.disabled = !isEnabled;
             if (playBtn) playBtn.disabled = !isEnabled;
             if (voiceSampleText) voiceSampleText.disabled = !isEnabled;
+            
+            // Initialize speech settings to match checkbox state
+            this.speechSettings.textToSpeech = isEnabled;
         }
 
         // Handle image analysis toggle
@@ -558,474 +560,6 @@ class ChatPlayground {
 
         // Update UI states
         this.setupSpeechToggleListeners();
-    }
-
-    /**
-     * Checks if the browser environment supports WASM fallback requirements
-     */
-    async checkWasmCompatibility() {
-        console.log('🧪 Checking WASM compatibility...');
-        
-        // Check basic WebAssembly support
-        if (typeof WebAssembly !== 'object') {
-            return {
-                isCompatible: false,
-                reason: 'WebAssembly not supported in this browser'
-            };
-        }
-        
-        // Detect potential virtual environment limitations
-        const virtualEnvIndicators = this.detectVirtualEnvironment();
-        if (virtualEnvIndicators.isVirtual) {
-            console.warn('⚠️ Virtual environment detected:', virtualEnvIndicators.indicators);
-        }
-        
-        // Check SharedArrayBuffer support (required for WASM threading)
-        if (typeof SharedArrayBuffer === 'undefined') {
-            console.warn('⚠️ SharedArrayBuffer not available - may impact WASM performance');
-            
-            // Check if we're in a secure context
-            if (!window.isSecureContext) {
-                return {
-                    isCompatible: false,
-                    reason: 'Insecure context - HTTPS required for AI features'
-                };
-            }
-            
-            // Check cross-origin isolation headers
-            if (!window.crossOriginIsolated) {
-                console.warn('⚠️ Cross-origin isolation not enabled - WASM threading unavailable');
-                
-                // In virtual environments, this combination is often problematic
-                if (virtualEnvIndicators.isVirtual) {
-                    return {
-                        isCompatible: false,
-                        reason: 'Virtual environment detected with insufficient browser feature support. Try accessing from a physical machine with full browser capabilities.'
-                    };
-                }
-                
-                // Allow to continue but with degraded performance
-                return {
-                    isCompatible: true,
-                    reason: 'WASM available with limited threading support',
-                    warning: 'For better performance, enable Cross-Origin-Embedder-Policy and Cross-Origin-Opener-Policy headers'
-                };
-            }
-        }
-        
-        // Check WASM instantiation capability
-        try {
-            // Simple WASM test - try to instantiate a basic module
-            const wasmCode = new Uint8Array([
-                0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, // WASM header
-                0x01, 0x04, 0x01, 0x60, 0x00, 0x00,             // Type section
-                0x03, 0x02, 0x01, 0x00,                         // Function section
-                0x0a, 0x04, 0x01, 0x02, 0x00, 0x0b              // Code section
-            ]);
-            
-            await WebAssembly.instantiate(wasmCode);
-            console.log('✅ WASM instantiation test passed');
-            
-        } catch (error) {
-            console.error('❌ WASM instantiation failed:', error);
-            return {
-                isCompatible: false,
-                reason: 'WebAssembly instantiation failed - browser may not support required WASM features'
-            };
-        }
-        
-        // Check memory allocation capability
-        try {
-            // Try to allocate a reasonable amount of memory for AI models
-            const testMemory = new WebAssembly.Memory({ initial: 10 }); // 640KB
-            console.log('✅ WASM memory allocation test passed');
-        } catch (error) {
-            console.error('❌ WASM memory allocation failed:', error);
-            return {
-                isCompatible: false,
-                reason: 'Insufficient memory available for AI model execution'
-            };
-        }
-        
-        return {
-            isCompatible: true,
-            reason: 'WASM fully compatible'
-        };
-    }
-
-    /**
-     * Detects indicators that suggest we're running in a virtual environment
-     */
-    detectVirtualEnvironment() {
-        const indicators = [];
-        
-        // Check user agent for VM indicators
-        const userAgent = navigator.userAgent.toLowerCase();
-        if (userAgent.includes('vmware') || userAgent.includes('virtualbox') || userAgent.includes('hyper-v')) {
-            indicators.push('VM-specific user agent');
-        }
-        
-        // Check for hardware concurrency (VMs often have fewer cores)
-        if (navigator.hardwareConcurrency <= 2) {
-            indicators.push('Limited CPU cores');
-        }
-        
-        // Check for WebGL renderer info (VMs often have software rendering)
-        try {
-            const canvas = document.createElement('canvas');
-            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-            if (gl) {
-                const renderer = gl.getParameter(gl.RENDERER);
-                if (renderer && (renderer.includes('Software') || renderer.includes('Microsoft') || renderer.includes('VMware'))) {
-                    indicators.push('Software/VM graphics renderer');
-                }
-            }
-        } catch (error) {
-            // Ignore WebGL detection errors
-        }
-        
-        // Check memory limitations (VMs often have less available memory)
-        if ('memory' in performance && performance.memory.jsHeapSizeLimit < 2000000000) { // Less than ~2GB
-            indicators.push('Limited memory allocation');
-        }
-        
-        return {
-            isVirtual: indicators.length >= 2, // Likely virtual if 2+ indicators
-            indicators: indicators,
-            confidence: indicators.length >= 3 ? 'high' : indicators.length >= 2 ? 'medium' : 'low'
-        };
-    }
-
-    /**
-     * Detects GPU/CPU capabilities and logs device information for WebLLM
-     */
-    async detectAndLogDeviceCapabilities() {
-        console.log('🔍 Detecting device capabilities...');
-        
-        // Show device status indicator only if needed (with null checks and debugging)
-        const deviceStatus = document.getElementById('device-status');
-        const deviceIcon = document.getElementById('device-icon');
-        const deviceText = document.getElementById('device-text');
-        
-        console.log('Device status elements:', {
-            deviceStatus: !!deviceStatus,
-            deviceIcon: !!deviceIcon,
-            deviceText: !!deviceText
-        });
-        
-        // Don't show device status initially - only show when CPU fallback is needed
-        
-        // Check WebGPU availability
-        if (!navigator.gpu) {
-            console.warn('❌ WebGPU is not available in this browser');
-            console.log('🔄 WebLLM will fallback to WASM for CPU inference');
-            
-            // Check WASM compatibility before proceeding
-            const wasmSupport = await this.checkWasmCompatibility();
-            if (!wasmSupport.isCompatible) {
-                console.error('❌ WASM fallback not supported:', wasmSupport.reason);
-                this.updateProgress(5, 'Browser compatibility issue - WASM not supported');
-                this.updateDeviceStatus('error', '⚠️', wasmSupport.reason);
-                return { hasGPU: false, reason: wasmSupport.reason, wasmError: true };
-            }
-            
-            this.updateProgress(5, 'WebGPU not available - using WASM fallback');
-            this.updateDeviceStatus('cpu-only', '💻', 'WASM fallback - Phi-1.5 model will be used');
-            return { hasGPU: false, reason: 'WebGPU not supported, using WASM' };
-        }
-
-        try {
-            // Request GPU adapter
-            const adapter = await navigator.gpu.requestAdapter({
-                powerPreference: 'high-performance'
-            });
-
-            if (!adapter) {
-                console.warn('❌ No WebGPU adapter available');
-                console.log('🔄 WebLLM will fallback to WASM for CPU inference');
-                
-                // Check WASM compatibility before proceeding
-                const wasmSupport = await this.checkWasmCompatibility();
-                if (!wasmSupport.isCompatible) {
-                    console.error('❌ WASM fallback not supported:', wasmSupport.reason);
-                    this.updateProgress(5, 'Browser compatibility issue - WASM not supported');
-                    this.updateDeviceStatus('error', '⚠️', wasmSupport.reason);
-                    return { hasGPU: false, reason: wasmSupport.reason, wasmError: true };
-                }
-                
-                this.updateProgress(5, 'No GPU adapter available - using WASM fallback');
-                this.updateDeviceStatus('cpu-only', '💻', 'WASM fallback - Phi-1.5 model will be used');
-                return { hasGPU: false, reason: 'No adapter, using WASM' };
-            }
-
-            // Get adapter info
-            const adapterInfo = adapter.info || {};
-            console.log('🎮 GPU Adapter Info:', {
-                vendor: adapterInfo.vendor || 'Unknown',
-                architecture: adapterInfo.architecture || 'Unknown',
-                device: adapterInfo.device || 'Unknown',
-                description: adapterInfo.description || 'Unknown'
-            });
-
-            // Request device
-            const device = await adapter.requestDevice();
-            
-            if (!device) {
-                console.warn('❌ Could not create WebGPU device');
-                console.log('🔄 WebLLM will fallback to WASM for CPU inference');
-                
-                // Check WASM compatibility before proceeding
-                const wasmSupport = await this.checkWasmCompatibility();
-                if (!wasmSupport.isCompatible) {
-                    console.error('❌ WASM fallback not supported:', wasmSupport.reason);
-                    this.updateProgress(5, 'Browser compatibility issue - WASM not supported');
-                    this.updateDeviceStatus('error', '⚠️', wasmSupport.reason);
-                    return { hasGPU: false, reason: wasmSupport.reason, wasmError: true };
-                }
-                
-                this.updateProgress(5, 'Could not create GPU device - using WASM fallback');
-                this.updateDeviceStatus('cpu-only', '💻', 'WASM fallback - Phi-1.5 model will be used');
-                return { hasGPU: false, reason: 'Device creation failed, using WASM' };
-            }
-
-            // Check device limits for memory constraints
-            const limits = device.limits;
-            const maxBufferSize = limits.maxStorageBufferBindingSize;
-            const maxBufferMB = Math.floor(maxBufferSize / (1024 * 1024));
-            
-            console.log('💾 GPU Memory Limits:', {
-                maxStorageBufferMB: maxBufferMB,
-                maxBufferSize: maxBufferSize,
-                maxTextureDimension2D: limits.maxTextureDimension2D,
-                maxComputeWorkgroupsPerDimension: limits.maxComputeWorkgroupsPerDimension
-            });
-
-            // Determine if GPU is suitable for AI workloads
-            const isLowMemoryDevice = maxBufferMB < 1024; // Less than 1GB
-            const deviceClass = this.categorizeDevice(maxBufferMB, adapterInfo);
-            
-            console.log(`🏷️ Device Classification: ${deviceClass}`);
-            
-            // For GPU devices, hide the device status indicator (no fallback needed)
-            console.log(`✅ GPU available (${maxBufferMB}MB VRAM) - Phi-3 Mini will be used`);
-            this.updateProgress(5, `GPU available with ${maxBufferMB}MB VRAM`);
-            this.hideDeviceStatus(); // Hide status for normal GPU operation
-
-            return { 
-                hasGPU: true, 
-                adapterInfo, 
-                limits, 
-                maxBufferMB,
-                deviceClass,
-                isLowMemoryDevice: false // Simplified: treat all GPUs the same
-            };
-
-        } catch (error) {
-            console.error('❌ Error detecting GPU capabilities:', error);
-            console.log('🔄 WebLLM will fallback to WASM for CPU inference');
-            
-            // Check WASM compatibility before proceeding
-            const wasmSupport = await this.checkWasmCompatibility();
-            if (!wasmSupport.isCompatible) {
-                console.error('❌ WASM fallback not supported:', wasmSupport.reason);
-                this.updateProgress(5, 'Browser compatibility issue - WASM not supported');
-                this.updateDeviceStatus('error', '⚠️', wasmSupport.reason);
-                return { hasGPU: false, reason: wasmSupport.reason, wasmError: true };
-            }
-            
-            this.updateProgress(5, 'GPU detection failed - using WASM fallback');
-            this.updateDeviceStatus('cpu-only', '💻', 'WASM fallback - Phi-1.5 model will be used');
-            return { hasGPU: false, reason: `GPU error, using WASM: ${error.message}` };
-        }
-    }
-
-    /**
-     * Updates the device status indicator in the UI
-     */
-    updateDeviceStatus(statusClass, icon, text) {
-        const deviceStatus = document.getElementById('device-status');
-        const deviceIcon = document.getElementById('device-icon');
-        const deviceText = document.getElementById('device-text');
-        
-        if (deviceStatus && deviceIcon && deviceText) {
-            // Remove existing status classes
-            deviceStatus.classList.remove('gpu-available', 'gpu-limited', 'cpu-only');
-            // Add new status class
-            deviceStatus.classList.add(statusClass);
-            // Update content
-            deviceIcon.textContent = icon;
-            deviceText.textContent = text;
-            // Ensure it's visible
-            deviceStatus.style.display = 'flex';
-        } else {
-            // Fallback: log to console if UI elements aren't available
-            console.log(`Device Status: ${statusClass} - ${icon} ${text}`);
-        }
-    }
-
-    /**
-     * Hides the device status indicator (for normal GPU operation)
-     */
-    hideDeviceStatus() {
-        const deviceStatus = document.getElementById('device-status');
-        if (deviceStatus) {
-            deviceStatus.style.display = 'none';
-        }
-    }
-
-    /**
-     * Categorizes the device based on memory and vendor info
-     */
-    categorizeDevice(maxBufferMB, adapterInfo = {}) {
-        const vendor = (adapterInfo.vendor || '').toLowerCase();
-        const description = (adapterInfo.description || '').toLowerCase();
-        
-        if (maxBufferMB >= 8192) return 'High-end GPU';
-        if (maxBufferMB >= 4096) return 'Mid-range GPU';
-        if (maxBufferMB >= 2048) return 'Entry-level GPU';
-        if (maxBufferMB >= 1024) return 'Integrated GPU';
-        
-        // Check for specific mobile/integrated indicators
-        if (vendor.includes('qualcomm') || vendor.includes('arm') || 
-            description.includes('adreno') || description.includes('mali')) {
-            return 'Mobile GPU';
-        }
-        if (vendor.includes('intel') || description.includes('intel')) {
-            return 'Intel Integrated';
-        }
-        
-        return 'Limited GPU';
-    }
-
-    /**
-     * Selects appropriate models based on device capabilities
-     */
-    selectModelsForDevice(models, deviceInfo) {
-        console.log('🤖 Selecting Microsoft Phi models for device capabilities...');
-        console.log('Available models:', models.map(m => m.model_id));
-        
-        // Helper function to find specific Phi models
-        const findPhiModel = (modelPattern) => {
-            return models.find(model => {
-                const modelId = model.model_id.toLowerCase();
-                return modelId.includes(modelPattern.toLowerCase());
-            });
-        };
-        
-        if (!deviceInfo.hasGPU) {
-            // WASM fallback: Use Phi-1.5 for WebAssembly CPU inference
-            console.log('📱 No GPU detected, using WASM fallback with Phi-1.5');
-            
-            // Try to find Phi-1.5 models in order of preference
-            const phi15Models = [
-                'Phi-1_5-q4f16_1-MLC',
-                'phi-1_5-q4f16_1-MLC',
-                'Phi-1_5-q4f32_1-MLC', 
-                'phi-1_5-q4f32_1-MLC'
-            ];
-            
-            for (const modelName of phi15Models) {
-                const model = findPhiModel(modelName);
-                if (model) {
-                    console.log(`✅ Selected WASM model: ${model.model_id}`);
-                    return [model];
-                }
-            }
-            
-            // Fallback: any Phi-1.5 model
-            const anyPhi15 = models.filter(model => 
-                model.model_id.toLowerCase().includes('phi-1') || 
-                model.model_id.toLowerCase().includes('phi_1')
-            );
-            
-            if (anyPhi15.length > 0) {
-                console.log(`✅ Selected WASM fallback: ${anyPhi15[0].model_id}`);
-                return [anyPhi15[0]];
-            }
-            
-            console.error('❌ No Phi-1.5 models found for WASM fallback');
-            return [];
-        }
-        
-        // GPU available: Use Phi-3 Mini 4K (no fallback needed for different GPU types)
-        console.log('🚀 GPU device detected, selecting Phi-3 Mini 4K');
-        
-        // Use the specific Phi-3 Mini 4K model requested
-        const preferredModel = findPhiModel('Phi-3-mini-4k-instruct-q4f16_1-MLC');
-        if (preferredModel) {
-            console.log(`✅ Selected preferred GPU model: ${preferredModel.model_id}`);
-            return [preferredModel];
-        }
-        
-        // Fallback: try other Phi-3 Mini 4K models
-        const phi3Mini4KModels = [
-            'Phi-3-mini-4k-instruct-q4f32_1-MLC',
-            'Phi-3.5-mini-instruct-q4f32_1-MLC',
-            'Phi-3.5-mini-instruct-q4f16_1-MLC'
-        ];
-        
-        for (const modelName of phi3Mini4KModels) {
-            const model = findPhiModel(modelName);
-            if (model) {
-                console.log(`✅ Selected GPU fallback model: ${model.model_id}`);
-                return [model];
-            }
-        }
-        
-        // Fallback: any Phi-3 model
-        const anyPhi3 = models.filter(model => 
-            model.model_id.toLowerCase().includes('phi-3') || 
-            model.model_id.toLowerCase().includes('phi_3')
-        );
-        
-        if (anyPhi3.length > 0) {
-            console.log(`✅ Selected Phi-3 model: ${anyPhi3[0].model_id}`);
-            return [anyPhi3[0]];
-        }
-        
-        // Final fallback: any Phi model
-        const anyPhi = models.filter(model => 
-            model.model_id.toLowerCase().includes('phi')
-        );
-        
-        if (anyPhi.length > 0) {
-            console.log(`✅ Selected any Phi model: ${anyPhi[0].model_id}`);
-            return [anyPhi[0]];
-        }
-        
-        console.error('❌ No Microsoft Phi models found in available models');
-        return [];
-    }
-
-    /**
-     * Creates engine configuration optimized for device
-     */
-    createEngineConfigForDevice(deviceInfo) {
-        const config = {
-            logLevel: "INFO"
-        };
-        
-        if (!deviceInfo.hasGPU) {
-            console.log('⚙️ Configuring for WASM fallback (CPU inference)');
-            // Try to force CPU-only mode for older WebLLM versions
-            // These options may help WebLLM skip GPU detection entirely
-            config.context_window_size = 1024; // Smaller context for CPU
-            config.prefill_chunk_size = 256;   // Smaller chunks for CPU
-        } else {
-            console.log('⚙️ Configuring for WebGPU acceleration');
-        }
-        
-        return config;
-    }
-
-    /**
-     * Provides reasoning for model selection
-     */
-    getModelSelectionReasoning(deviceInfo) {
-        if (!deviceInfo.hasGPU) {
-            return `No GPU available (${deviceInfo.reason}): Using Phi-1.5 with WASM for CPU inference`;
-        }
-        return `GPU device (${deviceInfo.maxBufferMB}MB): Using Phi-3-mini-4k-instruct-q4f16_1-MLC with GPU acceleration`;
     }
 
     speakResponse(text) {
@@ -1605,33 +1139,31 @@ class ChatPlayground {
                 });
                 throw new Error('WebLLM not properly loaded');
             }
-
-            // Detect GPU/CPU capabilities and device information
-            const deviceInfo = await this.detectAndLogDeviceCapabilities();
-            
-            // Check if we have a WASM compatibility error
-            if (deviceInfo.wasmError) {
-                throw new Error(deviceInfo.reason);
-            }
             
             // Get available models from WebLLM
             const models = webllm.prebuiltAppConfig.model_list;
             console.log('All available models:', models.map(m => m.model_id));
             
-            // Select models based on device capabilities
-            let availableModels = this.selectModelsForDevice(models, deviceInfo);
+            // Filter for Phi models first
+            let availableModels = models.filter(model => 
+                model.model_id.toLowerCase().includes('phi')
+            );
+            
+            // If no Phi models, try other small models
+            if (availableModels.length === 0) {
+                availableModels = models.filter(model => 
+                    model.model_id.toLowerCase().includes('llama-3.2-1b') ||
+                    model.model_id.toLowerCase().includes('gemma-2-2b')
+                );
+            }
             
             if (availableModels.length === 0) {
-                throw new Error('No compatible models found for this device');
+                throw new Error('No compatible models found');
             }
             
             console.log('Available models for loading:', availableModels.map(m => m.model_id));
-            console.log('Device-specific model selection reasoning:', this.getModelSelectionReasoning(deviceInfo));
             
             this.updateProgress(10, 'Loading model...');
-            
-            // Configure engine for device capabilities
-            const engineConfig = this.createEngineConfigForDevice(deviceInfo);
             
             // Try to load the first available model
             let engineCreated = false;
@@ -1644,7 +1176,6 @@ class ChatPlayground {
                     this.engine = await webllm.CreateMLCEngine(
                         model.model_id,
                         {
-                            ...engineConfig,
                             initProgressCallback: (progress) => {
                                 console.log('Progress:', progress);
                                 const percentage = Math.max(15, Math.round(progress.progress * 85) + 15);
@@ -1660,31 +1191,16 @@ class ChatPlayground {
                     
                 } catch (modelError) {
                     console.error(`Failed to load ${model.model_id}:`, modelError);
-                    
-                    // Check if this is the specific WebGPU adapter error for WASM fallback
-                    if (modelError.message.includes('Unable to find a compatible GPU') && !deviceInfo.hasGPU) {
-                        console.error('❌ WebLLM WASM fallback failed - this version requires WebGPU context even for CPU inference');
-                        // This specific error means WebLLM can't initialize WASM fallback in this environment
-                        throw new Error('This environment cannot run AI models. WebLLM requires WebGPU support even for CPU fallback in this version. Try using a newer browser with WebGPU support, or access from a physical machine instead of a virtual environment.');
-                    }
-                    
-                    // For other errors, continue trying other models
                     continue;
                 }
             }
             
             if (!engineCreated) {
-                // Provide more specific guidance based on device info
-                if (deviceInfo.wasmError) {
-                    throw new Error(`WASM compatibility issue: ${deviceInfo.reason}`);
-                } else if (!deviceInfo.hasGPU) {
-                    throw new Error('WebLLM version limitation: This version (0.2.46) requires WebGPU context initialization even for CPU/WASM inference. Virtual machines and environments without proper WebGPU support cannot run this version. Try using a physical machine with a WebGPU-capable browser (Chrome/Edge), or use a newer WebLLM version with better WASM-only support.');
-                } else {
-                    throw new Error('Failed to load any available models. Please check your internet connection and try again.');
-                }
+                throw new Error('Failed to load any available models. Please check your internet connection and try again.');
             }
             
             console.log('WebLLM engine created successfully');
+            this.webllmAvailable = true; // Mark WebLLM as successfully loaded
             this.updateProgress(100, 'Model ready!');
             setTimeout(() => {
                 this.progressContainer.style.display = 'none';
@@ -1693,95 +1209,15 @@ class ChatPlayground {
             
         } catch (error) {
             console.error('Failed to initialize WebLLM:', error);
+            this.webllmAvailable = false; // Mark WebLLM as unavailable
+            this.updateProgress(0, `Error: ${error.message}`);
             
-            // Analyze error to provide better user feedback
-            const errorAnalysis = this.analyzeWebLLMError(error);
-            this.updateProgress(0, `Error: ${errorAnalysis.userMessage}`);
-            
-            // Provide device-specific guidance
+            // Enable UI for Wikipedia fallback mode
             setTimeout(() => {
-                if (errorAnalysis.isDeviceRelated) {
-                    this.updateProgress(0, errorAnalysis.guidance);
-                } else {
-                    this.updateProgress(0, 'Failed to load AI model. Please refresh the page and check your internet connection.');
-                }
-            }, 3000);
+                this.updateProgress(0, 'AI model unavailable. Using Wikipedia search fallback mode.');
+                this.enableUI();
+            }, 2000);
         }
-    }
-
-    /**
-     * Analyzes WebLLM errors to provide better user feedback
-     */
-    analyzeWebLLMError(error) {
-        const errorMessage = error.message.toLowerCase();
-        
-        // Check for specific WebGPU adapter error in environments without GPU support
-        if (errorMessage.includes('unable to find a compatible gpu') || 
-            errorMessage.includes('no available adapters')) {
-            return {
-                isDeviceRelated: true,
-                userMessage: 'WebLLM version limitation',
-                guidance: '🚫 This WebLLM version (0.2.46) requires WebGPU context even for CPU inference. Try using Chrome/Edge with WebGPU enabled, or use a newer WebLLM version that supports pure WASM mode. Virtual machines often lack proper WebGPU support.'
-            };
-        }
-        
-        // Check for WASM-specific compatibility issues
-        if (errorMessage.includes('sharedarraybuffer') || 
-            errorMessage.includes('cross-origin') ||
-            errorMessage.includes('webassembly') ||
-            errorMessage.includes('wasm')) {
-            return {
-                isDeviceRelated: true,
-                userMessage: 'Browser compatibility issue',
-                guidance: '🌐 This browser/environment doesn\'t support required features for AI models. Try using Chrome/Edge with HTTPS, or check if running in a virtual environment that blocks certain web features.'
-            };
-        }
-        
-        if (errorMessage.includes('webgpu') || errorMessage.includes('gpu')) {
-            return {
-                isDeviceRelated: true,
-                userMessage: 'GPU not available',
-                guidance: '🔄 Your device doesn\'t support GPU acceleration. WebLLM will use WASM for CPU inference. Try refreshing or use a different browser with WebGPU support for better performance.'
-            };
-        }
-        
-        if (errorMessage.includes('memory') || errorMessage.includes('out of memory')) {
-            return {
-                isDeviceRelated: true,
-                userMessage: 'Insufficient memory',
-                guidance: '💾 Not enough memory available. Try closing other browser tabs or applications, then refresh the page.'
-            };
-        }
-        
-        if (errorMessage.includes('adapter') || errorMessage.includes('device')) {
-            return {
-                isDeviceRelated: true,
-                userMessage: 'Hardware compatibility issue',
-                guidance: '⚠️ Your graphics hardware may not be compatible. Try using a different browser or updating your graphics drivers.'
-            };
-        }
-        
-        if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('download')) {
-            return {
-                isDeviceRelated: false,
-                userMessage: 'Network connection issue',
-                guidance: '🌐 Check your internet connection and try again. Large models require stable internet for initial download.'
-            };
-        }
-        
-        if (errorMessage.includes('secure context') || errorMessage.includes('https required')) {
-            return {
-                isDeviceRelated: true,
-                userMessage: 'Security requirements not met',
-                guidance: '🔒 AI features require HTTPS. Please access this page via https:// or serve it from a secure context.'
-            };
-        }
-        
-        return {
-            isDeviceRelated: false,
-            userMessage: error.message,
-            guidance: 'Failed to load AI model. Please refresh the page and try again.'
-        };
     }
     
     updateProgress(percentage, text) {
@@ -2009,6 +1445,56 @@ class ChatPlayground {
         const typingIndicator = this.addTypingIndicator();
         
         try {
+            // Check if WebLLM is available, otherwise use Wikipedia fallback
+            if (!this.webllmAvailable) {
+                // Wikipedia fallback mode
+                console.log('Using Wikipedia fallback mode');
+                
+                // Remove typing indicator
+                typingIndicator.remove();
+                
+                // Add thinking indicator
+                const thinkingIndicator = this.addThinkingIndicator();
+                
+                // Extract image class name if image was uploaded
+                let imagePrediction = null;
+                if (this.pendingImage) {
+                    try {
+                        const predictions = await this.classifyImage(this.pendingImage.img);
+                        if (predictions && predictions.length > 0) {
+                            // Get the most probable class name
+                            imagePrediction = predictions[0].className;
+                            console.log('Image prediction for Wikipedia search:', imagePrediction);
+                        }
+                    } catch (error) {
+                        console.error('Error analyzing image for Wikipedia:', error);
+                    }
+                }
+                
+                // Get Wikipedia response with optional image prediction
+                const wikiResponse = await this.handleWikipediaFallback(userMessage, imagePrediction);
+                
+                // Remove thinking indicator
+                thinkingIndicator.remove();
+                
+                // Create message container and type response
+                const assistantMessageEl = this.addMessage('assistant', '');
+                const contentEl = assistantMessageEl.querySelector('.message-content');
+                await this.typeResponse(contentEl, wikiResponse);
+                
+                // Add to conversation history
+                this.conversationHistory.push({ role: "user", content: userMessage });
+                this.conversationHistory.push({ role: "assistant", content: wikiResponse });
+                
+                // Speak if TTS is enabled
+                if (this.speechSettings && this.speechSettings.textToSpeech) {
+                    this.speakResponse(wikiResponse);
+                }
+                
+                return;
+            }
+            
+            // WebLLM mode (original functionality)
             // Prepare conversation history
             const messages = [
                 { role: "system", content: this.getEffectiveSystemMessage() }
@@ -2469,6 +1955,112 @@ class ChatPlayground {
             toast.style.animation = 'slideOutRight 0.3s ease-in';
             setTimeout(() => toast.remove(), 300);
         }, 2000);
+    }
+
+    // Wikipedia fallback methods (used when WebLLM is unavailable)
+    async extractKeywords(text) {
+        console.log('Original prompt:', text);
+        
+        // Tokenize and extract important words
+        const tokens = text.toLowerCase().split(/\s+/);
+        console.log('Tokens:', tokens);
+        
+        // Remove common stop words only
+        const stopWords = new Set([
+            'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from',
+            'has', 'he', 'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the',
+            'to', 'was', 'will', 'with', 'what', 'when', 'where', 'who', 'why',
+            'how', 'can', 'could', 'should', 'would', 'i', 'you', 'me', 'my',
+            'your', 'about', 'tell', 'give', 'show', 'find', 'get', 'do', 'does'
+        ]);
+
+        // Keep all words that aren't stop words
+        const keywords = tokens.filter(word => 
+            word.length > 0 && !stopWords.has(word)
+        );
+        
+        console.log('Filtered keywords array:', keywords);
+
+        // Return all keywords joined together
+        const keywordString = keywords.join(' ') || text;
+        console.log('Final keyword string for search:', keywordString);
+        
+        return keywordString;
+    }
+
+    async searchWikipedia(keywords) {
+        try {
+            // Search Wikipedia API
+            const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(keywords)}&format=json&origin=*`;
+            const searchResponse = await fetch(searchUrl);
+            const searchData = await searchResponse.json();
+
+            if (!searchData.query || !searchData.query.search || searchData.query.search.length === 0) {
+                return "I couldn't find any relevant information on Wikipedia for your query.";
+            }
+
+            // Get the first result's page ID
+            const firstResult = searchData.query.search[0];
+            const pageId = firstResult.pageid;
+
+            // Fetch the full article content
+            const contentUrl = `https://en.wikipedia.org/w/api.php?action=query&pageids=${pageId}&prop=extracts&exintro=true&explaintext=true&format=json&origin=*`;
+            const contentResponse = await fetch(contentUrl);
+            const contentData = await contentResponse.json();
+
+            const pageContent = contentData.query.pages[pageId].extract;
+
+            // Get first paragraph (up to first double newline or max 500 chars)
+            const firstParagraph = pageContent.split('\n\n')[0] || pageContent.substring(0, 500);
+            
+            return firstParagraph;
+
+        } catch (error) {
+            console.error('Wikipedia search error:', error);
+            return "I encountered an error while searching Wikipedia. Please try again.";
+        }
+    }
+
+    async summarizeText(text) {
+        // Simple extractive summarization
+        // Split into sentences
+        const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+        
+        // If text is already short, return as is
+        if (text.length < 200 || sentences.length <= 2) {
+            return text;
+        }
+
+        // Return first 2-3 sentences as summary
+        const summaryLength = Math.min(3, sentences.length);
+        return sentences.slice(0, summaryLength).join(' ').trim();
+    }
+
+    async handleWikipediaFallback(userMessage, imagePrediction = null) {
+        // This method handles the complete Wikipedia fallback flow
+        try {
+            // Extract keywords from user input
+            let keywords = await this.extractKeywords(userMessage);
+            console.log('Extracted keywords:', keywords);
+
+            // Append image prediction to search keywords if available
+            if (imagePrediction) {
+                keywords = keywords + ' ' + imagePrediction;
+                console.log('Keywords with image prediction:', keywords);
+            }
+
+            // Search Wikipedia with keywords
+            const articleText = await this.searchWikipedia(keywords);
+
+            // Summarize the article
+            const summary = await this.summarizeText(articleText);
+
+            return summary;
+
+        } catch (error) {
+            console.error('Error in Wikipedia fallback:', error);
+            return 'Sorry, I encountered an error while processing your request. Please try again.';
+        }
     }
 }
 
