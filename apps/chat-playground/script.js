@@ -928,8 +928,9 @@ class ChatPlayground {
     }
 
     handleImageUpload() {
-        // Check if image analysis is enabled
+        // Check if image analysis is enabled (required for both modes)
         if (!this.visionSettings.imageAnalysis) {
+            this.showToast('Please enable image analysis in Chat Capabilities first');
             return;
         }
         
@@ -1397,7 +1398,7 @@ class ChatPlayground {
         
         if (this.pendingImage) {
             try {
-                // Get image analysis
+                // Get image analysis (requires MobileNet to be pre-loaded)
                 const predictions = await this.classifyImage(this.pendingImage.img);
                 const formattedPredictions = this.formatPredictions(predictions);
                 imageAnalysis = `\n---\nAnswer concisely and base your response on the most likely object in this image analysis:\n${formattedPredictions}\nDo not include probability percentages or mention low probability options from the analysis in the response, just indicate what you think the image is based on your interpretation of the analysis and the user's message (${userMessage}) as if you've actually seen the image.`;
@@ -2034,17 +2035,27 @@ class ChatPlayground {
     async handleWikipediaFallback(userMessage, imagePrediction = null) {
         // This method handles the complete Wikipedia fallback flow
         try {
+            console.log('=== Wikipedia Fallback Debug ===');
+            console.log('User message:', userMessage);
+            console.log('Image prediction received:', imagePrediction);
+            
             // Extract keywords from user input
             let keywords = await this.extractKeywords(userMessage);
-            console.log('Extracted keywords:', keywords);
+            console.log('Extracted keywords from message:', keywords);
 
             // Append image prediction to search keywords if available
             if (imagePrediction) {
-                keywords = keywords + ' ' + imagePrediction;
-                console.log('Keywords with image prediction:', keywords);
+                // Clean up the class name (remove underscores, etc)
+                const cleanedPrediction = imagePrediction.replace(/_/g, ' ');
+                keywords = keywords + ' ' + cleanedPrediction;
+                console.log('Image prediction cleaned:', cleanedPrediction);
+                console.log('Final keywords with image prediction:', keywords);
+            } else {
+                console.log('No image prediction to append');
             }
 
             // Search Wikipedia with keywords
+            console.log('Searching Wikipedia with:', keywords);
             const articleText = await this.searchWikipedia(keywords);
 
             // Summarize the article
