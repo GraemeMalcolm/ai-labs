@@ -807,7 +807,11 @@ class ChatPlayground {
         
         if (this.isListening) {
             // Stop listening
-            this.recognition.stop();
+            try {
+                this.recognition.stop();
+            } catch (error) {
+                console.error('Error stopping speech recognition:', error);
+            }
             return;
         }
         
@@ -817,10 +821,29 @@ class ChatPlayground {
         // Start speech recognition after a short delay to let the beep play
         setTimeout(() => {
             try {
-                this.recognition.start();
+                // Abort any existing recognition session before starting a new one
+                try {
+                    this.recognition.abort();
+                } catch (e) {
+                    // Ignore abort errors
+                }
+                
+                // Wait a moment before starting new session
+                setTimeout(() => {
+                    this.recognition.start();
+                }, 100);
             } catch (error) {
                 console.error('Error starting speech recognition:', error);
-                this.showToast('Could not start voice input. Please try again.');
+                
+                // If we get an error, try to recreate the recognition object
+                if (error.message && error.message.includes('already started')) {
+                    this.showToast('Speech recognition already in progress. Please wait.');
+                } else {
+                    this.showToast('Could not start voice input. Try again or check browser permissions.');
+                }
+                
+                this.isListening = false;
+                this.updateVoiceButtonState();
             }
         }, 300);
     }
