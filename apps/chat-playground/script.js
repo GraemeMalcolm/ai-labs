@@ -763,9 +763,13 @@ class ChatPlayground {
             if (event.error === 'no-speech') {
                 this.showToast('No speech detected. Please try again.');
             } else if (event.error === 'network') {
-                this.showToast('Network error. Please check your connection.');
+                this.showToast('Network error: Speech recognition requires internet connection to Google services.');
+            } else if (event.error === 'not-allowed') {
+                this.showToast('Microphone access denied. Please allow microphone access and try again.');
+            } else if (event.error === 'service-not-allowed') {
+                this.showToast('Speech recognition service not available. Please check your browser settings.');
             } else {
-                this.showToast('Speech recognition error. Please try again.');
+                this.showToast(`Speech recognition error: ${event.error}. Please try again.`);
             }
         };
     }
