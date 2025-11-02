@@ -1393,6 +1393,7 @@ class ChatPlayground {
         // Process pending image if exists
         let imageAnalysis = '';
         let imageElement = null;
+        let imagePredictionForWiki = null; // Store for Wikipedia fallback
         
         if (this.pendingImage) {
             try {
@@ -1400,6 +1401,12 @@ class ChatPlayground {
                 const predictions = await this.classifyImage(this.pendingImage.img);
                 const formattedPredictions = this.formatPredictions(predictions);
                 imageAnalysis = `\n---\nAnswer concisely and base your response on the most likely object in this image analysis:\n${formattedPredictions}\nDo not include probability percentages or mention low probability options from the analysis in the response, just indicate what you think the image is based on your interpretation of the analysis and the user's message (${userMessage}) as if you've actually seen the image.`;
+                
+                // Store the top prediction for Wikipedia fallback
+                if (predictions && predictions.length > 0) {
+                    imagePredictionForWiki = predictions[0].className;
+                    console.log('Stored image prediction for Wikipedia fallback:', imagePredictionForWiki);
+                }
                 
                 // Create image element for message bubble
                 imageElement = document.createElement('img');
@@ -1456,23 +1463,11 @@ class ChatPlayground {
                 // Add thinking indicator
                 const thinkingIndicator = this.addThinkingIndicator();
                 
-                // Extract image class name if image was uploaded
-                let imagePrediction = null;
-                if (this.pendingImage) {
-                    try {
-                        const predictions = await this.classifyImage(this.pendingImage.img);
-                        if (predictions && predictions.length > 0) {
-                            // Get the most probable class name
-                            imagePrediction = predictions[0].className;
-                            console.log('Image prediction for Wikipedia search:', imagePrediction);
-                        }
-                    } catch (error) {
-                        console.error('Error analyzing image for Wikipedia:', error);
-                    }
-                }
+                // Use the image prediction we stored earlier
+                console.log('Image prediction available for Wikipedia:', imagePredictionForWiki);
                 
                 // Get Wikipedia response with optional image prediction
-                const wikiResponse = await this.handleWikipediaFallback(userMessage, imagePrediction);
+                const wikiResponse = await this.handleWikipediaFallback(userMessage, imagePredictionForWiki);
                 
                 // Remove thinking indicator
                 thinkingIndicator.remove();
