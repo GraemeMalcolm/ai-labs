@@ -1901,6 +1901,8 @@ class ChatPlayground {
             }
         } else {
             this.sendBtn.textContent = '➤';
+            // Return focus to input after response is complete
+            this.userInput.focus();
         }
     }
     
@@ -2058,10 +2060,31 @@ class ChatPlayground {
 
             const pageContent = contentData.query.pages[pageId].extract;
 
-            // Get first paragraph (up to first double newline or max 500 chars)
-            const firstParagraph = pageContent.split('\n\n')[0] || pageContent.substring(0, 500);
+            console.log('Wikipedia page content received:', pageContent.substring(0, 500));
+            console.log('Total content length:', pageContent.length);
+
+            // Get intro section including any lists
+            // Split by double newlines but keep content until we hit a new section
+            const paragraphs = pageContent.split('\n');
+            let introContent = '';
+            let lineCount = 0;
+            const maxLines = 15; // Get more lines to capture lists
             
-            return firstParagraph;
+            for (let i = 0; i < paragraphs.length && lineCount < maxLines; i++) {
+                const line = paragraphs[i].trim();
+                if (line.length > 0) {
+                    introContent += (introContent ? '\n' : '') + line;
+                    lineCount++;
+                }
+                // Stop if we hit a section header (usually === or ==)
+                if (line.includes('==') && i > 0) {
+                    break;
+                }
+            }
+            
+            console.log('Intro content extracted:', introContent.substring(0, 500));
+            
+            return introContent;
 
         } catch (error) {
             console.error('Wikipedia search error:', error);
@@ -2070,16 +2093,38 @@ class ChatPlayground {
     }
 
     async summarizeText(text) {
-        // Simple extractive summarization
-        // Split into sentences
-        const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+        console.log('Summarizing text, length:', text.length);
+        console.log('Text to summarize:', text.substring(0, 300));
         
-        // If text is already short, return as is
-        if (text.length < 200 || sentences.length <= 2) {
+        // Since we're already limiting content in searchWikipedia,
+        // just add the reference and return
+        if (text.length < 800) {
             return text + '\n(Ref: Wikipedia)';
         }
 
-        // Return first 2-3 sentences as summary
+        // For longer content, check if it has list-like structure
+        const lines = text.split('\n');
+        const hasShortLines = lines.filter(l => l.length > 0 && l.length < 100).length > 3;
+        
+        if (hasShortLines) {
+            // Looks like a list - return first ~600 chars
+            let summary = '';
+            for (const line of lines) {
+                if (summary.length + line.length < 600) {
+                    summary += (summary ? '\n' : '') + line;
+                } else {
+                    break;
+                }
+            }
+            return summary + '\n(Ref: Wikipedia)';
+        }
+
+        // For regular narrative text, return first 2-3 sentences
+        const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+        if (sentences.length <= 2) {
+            return text + '\n(Ref: Wikipedia)';
+        }
+
         const summaryLength = Math.min(3, sentences.length);
         return sentences.slice(0, summaryLength).join(' ').trim() + '\n(Ref: Wikipedia)';
     }
