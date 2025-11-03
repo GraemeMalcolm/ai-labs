@@ -1170,21 +1170,14 @@ class ChatPlayground {
             const models = webllm.prebuiltAppConfig.model_list;
             console.log('All available models:', models.map(m => m.model_id));
             
-            // Filter for Phi models first
+            // Filter for the specific Phi-3 model only
+            const targetModelId = 'Phi-3-mini-4k-instruct-q4f16_1-MLC';
             let availableModels = models.filter(model => 
-                model.model_id.toLowerCase().includes('phi')
+                model.model_id === targetModelId
             );
             
-            // If no Phi models, try other small models
             if (availableModels.length === 0) {
-                availableModels = models.filter(model => 
-                    model.model_id.toLowerCase().includes('llama-3.2-1b') ||
-                    model.model_id.toLowerCase().includes('gemma-2-2b')
-                );
-            }
-            
-            if (availableModels.length === 0) {
-                throw new Error('No compatible models found');
+                throw new Error('Phi-3-mini-4k-instruct model not found');
             }
             
             console.log('Available models for loading:', availableModels.map(m => m.model_id));
@@ -1268,87 +1261,64 @@ class ChatPlayground {
         // Clear existing options
         this.modelSelect.innerHTML = '';
         
+        // Add "None" option for fallback mode
+        const noneOption = document.createElement('option');
+        noneOption.value = 'none';
+        noneOption.textContent = 'None';
+        if (!this.webllmAvailable || !this.currentModelId) {
+            noneOption.selected = true;
+        }
+        this.modelSelect.appendChild(noneOption);
+        
         if (!webllm || !webllm.prebuiltAppConfig) {
-            this.modelSelect.innerHTML = '<option value="">No models available</option>';
             return;
         }
         
         // Get all available models
         const allModels = webllm.prebuiltAppConfig.model_list;
         
-        // Filter for suitable models (smaller ones that work well)
-        const suitableModels = allModels.filter(model => {
-            const modelId = model.model_id.toLowerCase();
-            return modelId.includes('phi') || 
-                   modelId.includes('llama-3.2-1b') ||
-                   modelId.includes('llama-3.2-3b') ||
-                   modelId.includes('gemma-2-2b') ||
-                   modelId.includes('qwen2.5-0.5b') ||
-                   modelId.includes('qwen2.5-1.5b');
-        });
+        // Filter for the specific Phi-3 model only
+        const targetModelId = 'Phi-3-mini-4k-instruct-q4f16_1-MLC';
+        const phiModel = allModels.find(model => model.model_id === targetModelId);
         
-        // Sort models by preference (Phi first, then by size)
-        suitableModels.sort((a, b) => {
-            const aId = a.model_id.toLowerCase();
-            const bId = b.model_id.toLowerCase();
-            
-            // Phi models first
-            if (aId.includes('phi') && !bId.includes('phi')) return -1;
-            if (!aId.includes('phi') && bId.includes('phi')) return 1;
-            
-            // Then by model name
-            return aId.localeCompare(bId);
-        });
-        
-        // Add models to dropdown
-        suitableModels.forEach(model => {
+        if (phiModel) {
             const option = document.createElement('option');
-            option.value = model.model_id;
-            option.textContent = this.formatModelName(model.model_id);
+            option.value = phiModel.model_id;
+            option.textContent = 'Microsoft Phi-3-mini-4k-instruct';
             
             // Mark current model as selected
-            if (model.model_id === this.currentModelId) {
+            if (phiModel.model_id === this.currentModelId) {
                 option.selected = true;
-                option.textContent += ' (Current)';
+                //option.textContent += ' (Current)';
             }
             
             this.modelSelect.appendChild(option);
-        });
+        }
         
         // Add event listener for model changes
         this.modelSelect.addEventListener('change', (e) => {
-            if (e.target.value && e.target.value !== this.currentModelId) {
+            if (e.target.value === 'none') {
+                // Switch to fallback mode
+                this.webllmAvailable = false;
+                this.currentModelId = null;
+                this.clearChat();
+                this.showToast('Switched to fallback mode - Conversation restarted');
+            } else if (e.target.value && e.target.value !== this.currentModelId) {
                 this.switchModel(e.target.value);
             }
         });
     }
     
     formatModelName(modelId) {
-        // Convert model ID to friendly display name
-        let name = modelId.replace(/-/g, ' ').replace(/_/g, ' ');
-        
-        // Capitalize each word
-        name = name.replace(/\b\w/g, l => l.toUpperCase());
-        
-        // Clean up common patterns
-        name = name.replace(/Mlc$/i, '');
-        name = name.replace(/Q4f\d+/i, '');
-        name = name.replace(/Instruct/i, '');
-        name = name.replace(/\s+/g, ' ').trim();
-        
-        // Add specific formatting for known models
-        if (name.toLowerCase().includes('phi')) {
-            name = name.replace(/Phi\s*3/i, 'Microsoft Phi-3');
-        } else if (name.toLowerCase().includes('llama')) {
-            name = name.replace(/Llama/i, 'Meta Llama');
-        } else if (name.toLowerCase().includes('gemma')) {
-            name = name.replace(/Gemma/i, 'Google Gemma');
-        } else if (name.toLowerCase().includes('qwen')) {
-            name = name.replace(/Qwen/i, 'Alibaba Qwen');
+        // Simple formatter for our single Phi-3 model
+        if (modelId === 'Phi-3-mini-4k-instruct-q4f16_1-MLC') {
+            return 'Microsoft Phi-3-mini-4k-instruct';
         }
         
-        return name;
+        // Fallback for any unexpected model ID
+        return modelId;
     }
+
     
     async switchModel(newModelId) {
         if (this.isGenerating) {
