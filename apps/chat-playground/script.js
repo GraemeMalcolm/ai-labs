@@ -1604,15 +1604,21 @@ class ChatPlayground {
         thinkingIndicator.remove();
         
         if (fullResponse.trim()) {
+            // Append file attribution if a file is uploaded
+            let displayResponse = fullResponse;
+            if (this.config.fileUpload.fileName) {
+                displayResponse += `\n(Ref: ${this.config.fileUpload.fileName})`;
+            }
+            
             // Create message container
             const assistantMessageEl = this.addMessage('assistant', '');
             const contentEl = assistantMessageEl.querySelector('.message-content');
             
             // Start speaking and typing simultaneously
-            this.speakResponse(fullResponse);
-            await this.typeResponse(contentEl, fullResponse);
+            this.speakResponse(fullResponse); // Speak without attribution
+            await this.typeResponse(contentEl, displayResponse); // Type with attribution
             
-            // Add to conversation history
+            // Add to conversation history (without attribution)
             this.conversationHistory.push({ role: "user", content: userMessage });
             this.conversationHistory.push({ role: "assistant", content: fullResponse });
             
@@ -1669,18 +1675,32 @@ class ChatPlayground {
             }
         }
         
+        // Append file attribution if a file is uploaded (after streaming completes)
+        if (hasStartedOutput && this.config.fileUpload.fileName && fullResponse.trim()) {
+            const attribution = `\n(Ref: ${this.config.fileUpload.fileName})`;
+            fullResponse += attribution;
+            // Update the typing content to include attribution
+            this.updateTypingContent(fullResponse);
+        }
+        
         // Handle case where response is shorter than buffer size
         if (!hasStartedOutput) {
             // Remove thinking indicator
             thinkingIndicator.remove();
             
             if (fullResponse.trim()) {
+                // Append file attribution if a file is uploaded
+                let displayResponse = fullResponse;
+                if (this.config.fileUpload.fileName) {
+                    displayResponse += `\n(Ref: ${this.config.fileUpload.fileName})`;
+                }
+                
                 // Create message container
                 assistantMessageEl = this.addMessage('assistant', '');
                 contentEl = assistantMessageEl.querySelector('.message-content');
                 
                 // Type out the short response
-                await this.typeResponse(contentEl, fullResponse);
+                await this.typeResponse(contentEl, displayResponse);
             } else {
                 const fallbackMessage = "I apologize, but I couldn't generate a response. Please try again.";
                 assistantMessageEl = this.addMessage('assistant', '');
@@ -1985,8 +2005,12 @@ class ChatPlayground {
     async extractKeywords(text) {
         console.log('Original prompt:', text);
         
+        // Remove punctuation from the text
+        const textWithoutPunctuation = text.replace(/[.,!?;:'"()[\]{}]/g, ' ');
+        console.log('Text without punctuation:', textWithoutPunctuation);
+        
         // Tokenize and extract important words
-        const tokens = text.toLowerCase().split(/\s+/);
+        const tokens = textWithoutPunctuation.toLowerCase().split(/\s+/);
         console.log('Tokens:', tokens);
         
         // Remove common stop words only
@@ -1998,9 +2022,9 @@ class ChatPlayground {
             'your', 'about', 'tell', 'give', 'show', 'find', 'get', 'do', 'does'
         ]);
 
-        // Keep all words that aren't stop words
+        // Keep all words that aren't stop words and are longer than 1 character
         const keywords = tokens.filter(word => 
-            word.length > 0 && !stopWords.has(word)
+            word.length > 1 && !stopWords.has(word)
         );
         
         console.log('Filtered keywords array:', keywords);
@@ -2052,12 +2076,49 @@ class ChatPlayground {
         
         // If text is already short, return as is
         if (text.length < 200 || sentences.length <= 2) {
-            return text + '\n(From Wikipedia)';
+            return text + '\n(Ref: Wikipedia)';
         }
 
         // Return first 2-3 sentences as summary
         const summaryLength = Math.min(3, sentences.length);
-        return sentences.slice(0, summaryLength).join(' ').trim() + '\n(From Wikipedia)';
+        return sentences.slice(0, summaryLength).join(' ').trim() + '\n(Ref: Wikipedia)';
+    }
+
+    async searchUploadedFile(keywords) {
+        // Search for keywords in uploaded file content
+        if (!this.config.fileUpload.content) {
+            return null;
+        }
+
+        try {
+            // Split keywords into individual words
+            const keywordArray = keywords.toLowerCase().split(/\s+/);
+            console.log('Searching file for keywords:', keywordArray);
+
+            // Split file content into sentences
+            const sentences = this.config.fileUpload.content.match(/[^.!?]+[.!?]+/g) || [];
+            console.log(`Found ${sentences.length} sentences in file`);
+
+            // Find sentences that contain any of the keywords
+            const matchingSentences = sentences.filter(sentence => {
+                const lowerSentence = sentence.toLowerCase();
+                return keywordArray.some(keyword => lowerSentence.includes(keyword));
+            });
+
+            console.log(`Found ${matchingSentences.length} matching sentences`);
+
+            if (matchingSentences.length > 0) {
+                // Return matching sentences with filename attribution
+                const result = matchingSentences.join(' ').trim();
+                return result + `\n(Ref: ${this.config.fileUpload.fileName})`;
+            }
+
+            return null;
+
+        } catch (error) {
+            console.error('Error searching uploaded file:', error);
+            return null;
+        }
     }
 
     async handleWikipediaFallback(userMessage, imagePrediction = null) {
@@ -2080,6 +2141,17 @@ class ChatPlayground {
                 console.log('Final keywords with image prediction:', keywords);
             } else {
                 console.log('No image prediction to append');
+            }
+
+            // First, try searching the uploaded file if available
+            if (this.config.fileUpload.content) {
+                console.log('Uploaded file available, searching file first...');
+                const fileResult = await this.searchUploadedFile(keywords);
+                if (fileResult) {
+                    console.log('Found matching content in uploaded file');
+                    return fileResult;
+                }
+                console.log('No matches in uploaded file, falling back to Wikipedia');
             }
 
             // Search Wikipedia with keywords
