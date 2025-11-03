@@ -629,8 +629,6 @@ class ChatPlayground {
             const microsoftVoices = voices.filter(voice => 
                 voice && voice.name &&
                 (voice.name.includes('Microsoft') || 
-                voice.name.includes('Cortana') ||
-                voice.name.includes('Windows') ||
                 (voice.voiceURI && voice.voiceURI.includes('Microsoft')) ||
                 (voice.lang && voice.lang.startsWith('en')))
             );
@@ -763,7 +761,7 @@ class ChatPlayground {
             if (event.error === 'no-speech') {
                 this.showToast('No speech detected. Please try again.');
             } else if (event.error === 'network') {
-                this.showToast('Network error: Speech recognition requires internet connection to Google services.');
+                this.showToast('Network error: Speech recognition requires internet connection to speech services.');
             } else if (event.error === 'not-allowed') {
                 this.showToast('Microphone access denied. Please allow microphone access and try again.');
             } else if (event.error === 'service-not-allowed') {
@@ -1427,8 +1425,9 @@ class ChatPlayground {
             try {
                 // Get image analysis (requires MobileNet to be pre-loaded)
                 const predictions = await this.classifyImage(this.pendingImage.img);
-                const formattedPredictions = this.formatPredictions(predictions);
-                imageAnalysis = `\n---\nAnswer concisely and base your response on the most likely object in this image analysis:\n${formattedPredictions}\nDo not include probability percentages or mention low probability options from the analysis in the response, just indicate what you think the image is based on your interpretation of the analysis and the user's message (${userMessage}) as if you've actually seen the image.`;
+                imageAnalysis = predictions[0].className.replace(/_/g, ' ')
+                //const formattedPredictions = this.formatPredictions(predictions);
+                //imageAnalysis = `\n---\nAnswer concisely and base your response on the most likely object in this image analysis ${imagePrediction}\nDo not include probability percentages or mention low probability options from the analysis in the response, just indicate what you think the image is based on your interpretation of the analysis and the user's message (${userMessage}) as if you've actually seen the image.`;
                 
                 // Store the top prediction for Wikipedia fallback
                 if (predictions && predictions.length > 0) {
@@ -1993,7 +1992,7 @@ class ChatPlayground {
             'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from',
             'has', 'he', 'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the',
             'to', 'was', 'will', 'with', 'what', 'when', 'where', 'who', 'why',
-            'how', 'can', 'could', 'should', 'would', 'i', 'you', 'me', 'my',
+            'how', 'can', 'could', 'should', 'would', 'i', 'you', 'me', 'my', 'make',
             'your', 'about', 'tell', 'give', 'show', 'find', 'get', 'do', 'does'
         ]);
 
