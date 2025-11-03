@@ -1255,6 +1255,9 @@ class ChatPlayground {
         
         // Populate model dropdown with available models
         this.populateModelDropdown();
+        
+        // Set parameter controls based on whether WebLLM is available
+        this.setParameterControlsEnabled(this.webllmAvailable);
     }
     
     populateModelDropdown() {
@@ -1295,18 +1298,22 @@ class ChatPlayground {
             this.modelSelect.appendChild(option);
         }
         
-        // Add event listener for model changes
-        this.modelSelect.addEventListener('change', (e) => {
-            if (e.target.value === 'none') {
-                // Switch to fallback mode
-                this.webllmAvailable = false;
-                this.currentModelId = null;
-                this.clearChat();
-                this.showToast('Switched to fallback mode - Conversation restarted');
-            } else if (e.target.value && e.target.value !== this.currentModelId) {
-                this.switchModel(e.target.value);
-            }
-        });
+        // Setup event listener only once (on first call)
+        if (!this.modelSelectListenerAttached) {
+            this.modelSelect.addEventListener('change', (e) => {
+                if (e.target.value === 'none') {
+                    // Switch to fallback mode
+                    this.webllmAvailable = false;
+                    this.currentModelId = null;
+                    this.clearChat();
+                    this.setParameterControlsEnabled(false);
+                    this.showToast('Switched to fallback mode - Conversation restarted');
+                } else if (e.target.value && e.target.value !== this.currentModelId) {
+                    this.switchModel(e.target.value);
+                }
+            });
+            this.modelSelectListenerAttached = true;
+        }
     }
     
     formatModelName(modelId) {
@@ -1318,6 +1325,27 @@ class ChatPlayground {
         // Fallback for any unexpected model ID
         return modelId;
     }
+
+    setParameterControlsEnabled(enabled) {
+        // Enable or disable all parameter sliders
+        const parameterSliders = [
+            'temperature-slider',
+            'top-p-slider',
+            'max-tokens-slider',
+            'repetition-penalty-slider'
+        ];
+        
+        parameterSliders.forEach(sliderId => {
+            const slider = document.getElementById(sliderId);
+            if (slider) {
+                slider.disabled = !enabled;
+                // Update visual appearance
+                slider.style.opacity = enabled ? '1' : '0.5';
+                slider.style.cursor = enabled ? 'pointer' : 'not-allowed';
+            }
+        });
+    }
+
 
     
     async switchModel(newModelId) {
@@ -1352,10 +1380,14 @@ class ChatPlayground {
             );
             
             this.currentModelId = newModelId;
+            this.webllmAvailable = true; // Mark WebLLM as available when switching to a real model
             console.log(`Successfully switched to model: ${newModelId}`);
             
             // Clear conversation history when switching models
             this.clearChat();
+            
+            // Re-enable parameter controls when switching to a real model
+            this.setParameterControlsEnabled(true);
             
             this.updateProgress(100, 'Model switched successfully!');
             setTimeout(() => {
