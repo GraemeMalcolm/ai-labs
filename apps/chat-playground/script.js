@@ -2401,6 +2401,45 @@ window.saveChatCapabilities = function() {
     }
 };
 
+window.openAboutModal = function() {
+    const modal = document.getElementById('about-modal');
+    if (modal) {
+        // Store the currently focused element to restore later
+        window.lastFocusedElement = document.activeElement;
+        
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        
+        // Focus the modal for screen readers
+        setTimeout(() => {
+            const modalTitle = document.getElementById('about-modal-title');
+            if (modalTitle) {
+                modalTitle.focus();
+            }
+        }, 100);
+        
+        // Add keyboard trap for accessibility
+        window.trapFocus(modal);
+    }
+};
+
+window.closeAboutModal = function() {
+    const modal = document.getElementById('about-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto'; // Restore scrolling
+        
+        // Restore focus to the element that opened the modal
+        if (window.lastFocusedElement) {
+            window.lastFocusedElement.focus();
+            window.lastFocusedElement = null;
+        }
+        
+        // Remove keyboard trap
+        window.removeFocusTrap();
+    }
+};
+
 // Add CSS animations
 const style = document.createElement('style');
 style.textContent = `
