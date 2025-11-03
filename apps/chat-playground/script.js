@@ -2020,12 +2020,12 @@ class ChatPlayground {
         
         // If text is already short, return as is
         if (text.length < 200 || sentences.length <= 2) {
-            return text;
+            return text + '\n(From Wikipedia)';
         }
 
         // Return first 2-3 sentences as summary
         const summaryLength = Math.min(3, sentences.length);
-        return sentences.slice(0, summaryLength).join(' ').trim();
+        return sentences.slice(0, summaryLength).join(' ').trim() + '\n(From Wikipedia)';
     }
 
     async handleWikipediaFallback(userMessage, imagePrediction = null) {
