@@ -1,0 +1,4 @@
+Resource_name, Resource_type, Scope, Environment, Defender_for_Cloud, Recommendations
+WebApp1, Web Application, Production, Azure, Enabled, [Enable HTTPS, Configure Managed Identity]
+Database1, SQL Database, Development, AWS, Disabled, [Enable Encryption at Rest, Configure Backups]
+StorageAccount1, Blob Storage, Staging, GCP, Enabled, [Enable Versioning, Configure Access Controls]

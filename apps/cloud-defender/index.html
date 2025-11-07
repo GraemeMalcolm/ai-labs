@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microsoft Defender for Cloud | Overview</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <header class="top-bar" role="banner">
+        <div class="top-bar-content">
+            <h1 class="portal-title">Cloud Portal</h1>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Left Navigation Sidebar -->
+        <aside class="sidebar" role="navigation" aria-label="Main navigation">
+            <div class="nav-header">
+                <div class="nav-icon">🛡️</div>
+                <h2 class="nav-title">Cloud Defender | Overview</h2>
+            </div>
+
+            <!-- General Section -->
+            <nav class="nav-section">
+                <button class="nav-section-header" aria-expanded="true" aria-controls="general-nav">
+                    <span class="nav-section-icon">▼</span>
+                    <span>General</span>
+                </button>
+                <ul id="general-nav" class="nav-list">
+                    <li>
+                        <a href="#overview" class="nav-link active" data-page="overview" role="button" tabindex="0" aria-label="Navigate to Overview page">
+                            <span class="nav-icon">📊</span>
+                            <span>Overview</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#setup" class="nav-link" data-page="setup" role="button" tabindex="0" aria-label="Navigate to Setup page">
+                            <span class="nav-icon">⚙️</span>
+                            <span>Setup</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#recommendations" class="nav-link" data-page="recommendations" role="button" tabindex="0" aria-label="Navigate to Recommendations page">
+                            <span class="nav-icon">💡</span>
+                            <span>Recommendations</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#attack-path" class="nav-link" data-page="attack-path" role="button" tabindex="0" aria-label="Navigate to Attack path analysis page">
+                            <span class="nav-icon">🎯</span>
+                            <span>Attack path analysis</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#security-alerts" class="nav-link" data-page="security-alerts" role="button" tabindex="0" aria-label="Navigate to Security alerts page">
+                            <span class="nav-icon">🔔</span>
+                            <span>Security alerts</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#inventory" class="nav-link" data-page="inventory" role="button" tabindex="0" aria-label="Navigate to Inventory page">
+                            <span class="nav-icon">📦</span>
+                            <span>Inventory</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#cloud-security" class="nav-link" data-page="cloud-security" role="button" tabindex="0" aria-label="Navigate to Cloud Security Explorer page">
+                            <span class="nav-icon">🔍</span>
+                            <span>Cloud Security Explorer</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#workbooks" class="nav-link" data-page="workbooks" role="button" tabindex="0" aria-label="Navigate to Workbooks page">
+                            <span class="nav-icon">📈</span>
+                            <span>Workbooks</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#community" class="nav-link" data-page="community" role="button" tabindex="0" aria-label="Navigate to Community page">
+                            <span class="nav-icon">👥</span>
+                            <span>Community</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Cloud Security Section -->
+            <nav class="nav-section">
+                <button class="nav-section-header collapsed" aria-expanded="false" aria-controls="cloud-security-nav">
+                    <span class="nav-section-icon">▶</span>
+                    <span>Cloud Security</span>
+                </button>
+                <ul id="cloud-security-nav" class="nav-list hidden">
+                </ul>
+            </nav>
+
+            <!-- Management Section -->
+            <nav class="nav-section">
+                <button class="nav-section-header collapsed" aria-expanded="false" aria-controls="management-nav">
+                    <span class="nav-section-icon">▶</span>
+                    <span>Management</span>
+                </button>
+                <ul id="management-nav" class="nav-list hidden">
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="content-area" role="main">
+            <!-- Overview Page -->
+            <div id="overview-page" class="page active" role="region" aria-label="Overview page">
+                <!-- Top Metrics -->
+                <section class="metrics-bar" role="region" aria-label="Key metrics">
+                    <div class="metric-card">
+                        <div class="metric-icon">🔑</div>
+                        <div class="metric-value" id="subscription-count">1</div>
+                        <div class="metric-label">Azure subscriptions</div>
+                    </div>
+                    <div class="metric-card clickable" id="assessed-resources-card" role="button" tabindex="0" aria-label="View assessed resources">
+                        <div class="metric-icon">💎</div>
+                        <div class="metric-value" id="assessed-resources-count">0</div>
+                        <div class="metric-label">Assessed resources</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">🎯</div>
+                        <div class="metric-value" id="attack-paths-count">--</div>
+                        <div class="metric-label">Attack paths</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">🛡️</div>
+                        <div class="metric-value" id="security-alerts-count">--</div>
+                        <div class="metric-label">Security alerts</div>
+                    </div>
+                </section>
+
+                <!-- Main Content Grid -->
+                <div class="content-grid">
+                    <!-- Security Posture Card -->
+                    <section class="card large" role="region" aria-label="Security posture">
+                        <div class="card-header">
+                            <div class="card-icon">🛡️</div>
+                            <h3>Security posture</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="posture-metrics">
+                                <div class="posture-item">
+                                    <div class="posture-icon critical">⚠️</div>
+                                    <div class="posture-value">0</div>
+                                    <div class="posture-label">Critical recommendations</div>
+                                </div>
+                                <div class="posture-item">
+                                    <div class="posture-icon attack">🎯</div>
+                                    <div class="posture-value">0</div>
+                                    <div class="posture-label">Attack paths</div>
+                                </div>
+                                <div class="posture-item">
+                                    <div class="posture-icon overdue">📋</div>
+                                    <div class="posture-value">0/0</div>
+                                    <div class="posture-label">Overdue recommendations</div>
+                                </div>
+                            </div>
+
+                            <div class="risk-section">
+                                <h4>Environment risk and secure score</h4>
+                                <div class="risk-categories">
+                                    <div class="risk-badge critical">
+                                        <span class="risk-dot"></span>
+                                        <span>Critical 0</span>
+                                    </div>
+                                    <div class="risk-badge high">
+                                        <span class="risk-dot"></span>
+                                        <span>High 0</span>
+                                    </div>
+                                    <div class="risk-badge medium">
+                                        <span class="risk-dot"></span>
+                                        <span>Medium 0</span>
+                                    </div>
+                                    <div class="risk-badge low">
+                                        <span class="risk-dot"></span>
+                                        <span>Low 0</span>
+                                    </div>
+                                    <div class="risk-badge not-evaluated">
+                                        <span class="risk-dot"></span>
+                                        <span>Not evaluated 0</span>
+                                    </div>
+                                </div>
+
+                                <div class="secure-score">
+                                    <h5>Total secure score</h5>
+                                    <div class="score-value">0%</div>
+                                    <div class="score-breakdown">
+                                        <div class="score-item">
+                                            <span class="score-icon">☁️</span>
+                                            <span>Azure -</span>
+                                        </div>
+                                        <div class="score-item">
+                                            <span class="score-icon">🔶</span>
+                                            <span>AWS -</span>
+                                        </div>
+                                        <div class="score-item">
+                                            <span class="score-icon">☁️</span>
+                                            <span>GCP -</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Info Cards -->
+                    <aside class="info-panel" role="complementary" aria-label="Additional information">
+                        <section class="card info-card" role="region" aria-label="Permissions Management">
+                            <div class="card-header">
+                                <h4>Utilize the Permissions Management capability in Defender CSPM</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="info-icon">🔐</div>
+                                <p>CIEM empowers security admins to identify overprovisioned, unused and super identities to facilitate the implementation and enforcement of least privilege access across multi-cloud environments.</p>
+                                <p>Explore the <strong>CIEM dashboard</strong>, to get granular, contextual visibility into all identities, configurations, access policies, and permissions across your multi-cloud estate all at one place.</p>
+                            </div>
+                        </section>
+
+                        <section class="card info-card" role="region" aria-label="Upgrade to Defender CSPM">
+                            <div class="card-header">
+                                <h4>Upgrade to new Defender CSPM plan</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="info-icon">🛡️</div>
+                                <p>Defender Cloud Security Posture Management (CSPM) provides enhanced posture capabilities and a new intelligent cloud security graph to help identify, prioritize, and reduce risk. Defender CSPM is available in addition to the free foundational security posture capabilities turned on by Default in Defender for Cloud.</p>
+                            </div>
+                        </section>
+                    </aside>
+                </div>
+            </div>
+
+            <!-- Inventory Page -->
+            <div id="inventory-page" class="page" role="region" aria-label="Inventory page">
+                <div class="page-header">
+                    <h2>Inventory</h2>
+                    <button class="close-button" aria-label="Close inventory page">✕</button>
+                </div>
+
+                <!-- Filters Bar -->
+                <section class="filters-bar" role="search" aria-label="Resource filters">
+                    <div class="search-box">
+                        <input type="text" id="search-input" placeholder="Search" aria-label="Search resources">
+                    </div>
+                    <div class="filter-tags">
+                        <div class="filter-tag">
+                            <span>Subscription == All</span>
+                            <button class="filter-remove" aria-label="Remove subscription filter">✕</button>
+                        </div>
+                        <div class="filter-tag">
+                            <span>Resource type == All</span>
+                            <button class="filter-remove" aria-label="Remove resource type filter">✕</button>
+                        </div>
+                        <div class="filter-tag">
+                            <span>Resource group == All</span>
+                            <button class="filter-remove" aria-label="Remove resource group filter">✕</button>
+                        </div>
+                        <div class="filter-tag">
+                            <span>Environment == All</span>
+                            <button class="filter-remove" aria-label="Remove environment filter">✕</button>
+                        </div>
+                    </div>
+                    <button class="add-filter-button" aria-label="Add filter">🔽 Add filter</button>
+                </section>
+
+                <!-- Resource Summary -->
+                <section class="resource-summary" role="region" aria-label="Resource summary">
+                    <div class="summary-section">
+                        <h3>Total resources</h3>
+                        <div class="summary-value">
+                            <span class="summary-icon">💎</span>
+                            <span id="total-resources">4</span>
+                        </div>
+                    </div>
+                    <div class="summary-section">
+                        <h3>Unhealthy resources</h3>
+                        <div class="summary-value">
+                            <span class="summary-icon">⚠️</span>
+                            <span id="unhealthy-resources">0</span>
+                        </div>
+                    </div>
+                    <div class="summary-section">
+                        <h3>Resource count by environment</h3>
+                        <div class="env-counts">
+                            <div class="env-count">
+                                <span class="env-icon azure">☁️</span>
+                                <span id="azure-count">4</span>
+                                <span>Azure</span>
+                            </div>
+                            <div class="env-count">
+                                <span class="env-icon aws">🔶</span>
+                                <span id="aws-count">0</span>
+                                <span>AWS</span>
+                            </div>
+                            <div class="env-count">
+                                <span class="env-icon gcp">☁️</span>
+                                <span id="gcp-count">0</span>
+                                <span>GCP</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Resource Table -->
+                <section class="table-container" role="region" aria-label="Resources table">
+                    <table class="resource-table" role="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Resource name</th>
+                                <th scope="col">Resource type</th>
+                                <th scope="col">Scope</th>
+                                <th scope="col">Environment</th>
+                                <th scope="col">Defender for Cloud</th>
+                                <th scope="col">Recommendations</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resource-table-body">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </section>
+            </div>
+
+            <!-- Placeholder Pages -->
+            <div id="setup-page" class="page placeholder-page" role="region" aria-label="Setup page">
+                <h2>Setup</h2>
+                <p>This page is under construction.</p>
+            </div>
+
+            <div id="recommendations-page" class="page placeholder-page" role="region" aria-label="Recommendations page">
+                <h2>Recommendations</h2>
+                <p>This page is under construction.</p>
+            </div>
+
+            <div id="attack-path-page" class="page placeholder-page" role="region" aria-label="Attack path analysis page">
+                <h2>Attack Path Analysis</h2>
+                <p>This page is under construction.</p>
+            </div>
+
+            <div id="security-alerts-page" class="page placeholder-page" role="region" aria-label="Security alerts page">
+                <h2>Security Alerts</h2>
+                <p>This page is under construction.</p>
+            </div>
+
+            <div id="cloud-security-page" class="page placeholder-page" role="region" aria-label="Cloud Security Explorer page">
+                <h2>Cloud Security Explorer</h2>
+                <p>This page is under construction.</p>
+            </div>
+
+            <div id="workbooks-page" class="page placeholder-page" role="region" aria-label="Workbooks page">
+                <h2>Workbooks</h2>
+                <p>This page is under construction.</p>
+            </div>
+
+            <div id="community-page" class="page placeholder-page" role="region" aria-label="Community page">
+                <h2>Community</h2>
+                <p>This page is under construction.</p>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
