@@ -1,0 +1,254 @@
+{
+  "contacts": [
+    {
+      "id": 1,
+      "name": "Bob Smith",
+      "email": "bob.smith@example.com",
+      "phone": "555-0101"
+    },
+    {
+      "id": 2,
+      "name": "Mary Johnson",
+      "email": "mary.johnson@example.com",
+      "phone": "555-0102"
+    },
+    {
+      "id": 3,
+      "name": "John Davis",
+      "email": "john.davis@example.com",
+      "phone": "555-0103"
+    },
+    {
+      "id": 4,
+      "name": "Sarah Wilson",
+      "email": "sarah.wilson@example.com",
+      "phone": "555-0104"
+    }
+  ],
+  "documents": [
+    {
+      "id": 1,
+      "name": "Project Plan.docx",
+      "type": "document",
+      "content": "<h2>Project X Implementation Plan</h2><p><strong>Overview:</strong> This document outlines the comprehensive implementation strategy for Project X, a transformative initiative designed to modernize our core business processes.</p><h3>Timeline</h3><ul><li>Phase 1: Requirements Analysis - 2 weeks</li><li>Phase 2: Design and Architecture - 3 weeks</li><li>Phase 3: Development - 8 weeks</li><li>Phase 4: Testing and QA - 3 weeks</li><li>Phase 5: Deployment - 1 week</li></ul><h3>Key Objectives</h3><p>The primary goals of Project X include improving operational efficiency by 40%, reducing customer response time by 50%, and implementing real-time analytics across all departments. We will leverage cloud infrastructure and AI-powered automation to achieve these targets.</p><h3>Resource Allocation</h3><p>The project requires a dedicated team of 12 full-time employees including 5 developers, 2 designers, 2 QA engineers, 1 project manager, 1 business analyst, and 1 DevOps engineer. Budget allocation is $500,000 for development and $150,000 for infrastructure.</p>"
+    },
+    {
+      "id": 2,
+      "name": "Budget Report.xlsx",
+      "type": "spreadsheet",
+      "content": "<h2>Q4 Budget Analysis</h2><p><strong>Department Allocations:</strong></p><table border='1' cellpadding='5'><tr><th>Department</th><th>Budget</th><th>Spent</th><th>Remaining</th></tr><tr><td>Engineering</td><td>$500,000</td><td>$380,000</td><td>$120,000</td></tr><tr><td>Marketing</td><td>$200,000</td><td>$175,000</td><td>$25,000</td></tr><tr><td>Sales</td><td>$150,000</td><td>$142,000</td><td>$8,000</td></tr></table>"
+    },
+    {
+      "id": 3,
+      "name": "Meeting Notes.docx",
+      "type": "document",
+      "content": "<h2>Executive Meeting - November 3, 2025</h2><p><strong>Attendees:</strong> Bob Smith, Mary Johnson, John Davis, Sarah Wilson</p><h3>Discussion Points</h3><ol><li><strong>Project X Status:</strong> Currently 65% complete, on track for December delivery. Technical architecture is solid and all major milestones have been met.</li><li><strong>Budget Review:</strong> Q4 spending is within targets. Approved additional $50K for Project X acceleration.</li><li><strong>Client Feedback:</strong> Positive response from beta testers. NPS score of 72, up from 58 last quarter.</li><li><strong>Hiring Plans:</strong> Open positions for 2 senior developers and 1 UX designer to support Q1 initiatives.</li></ol><h3>Action Items</h3><ul><li>Bob to finalize Project X roadmap by Friday</li><li>Mary to schedule client presentation for next week</li><li>John to complete budget reallocation by end of month</li><li>Sarah to prepare product demo for investor meeting</li></ul>"
+    },
+    {
+      "id": 4,
+      "name": "Sales Report.docx",
+      "type": "document",
+      "content": "<h2>Q3 Sales Performance Report</h2><p><strong>Executive Summary:</strong> Q3 was a record-breaking quarter with total revenue of $2.3M, representing 28% growth year-over-year.</p><h3>Key Metrics</h3><ul><li><strong>New Customers:</strong> 47 enterprise clients, 213 SMB clients</li><li><strong>Customer Retention:</strong> 94% (up from 89% in Q2)</li><li><strong>Average Deal Size:</strong> $24,500 (18% increase)</li><li><strong>Sales Cycle:</strong> 42 days average (down from 56 days)</li></ul><h3>Top Performing Products</h3><ol><li>Enterprise Suite - $980K revenue</li><li>Professional Package - $720K revenue</li><li>Mobile Add-on - $340K revenue</li><li>Premium Support - $260K revenue</li></ol><h3>Regional Breakdown</h3><p><strong>North America:</strong> $1.4M (61% of total)<br><strong>Europe:</strong> $650K (28% of total)<br><strong>Asia-Pacific:</strong> $250K (11% of total)</p>"
+    },
+    {
+      "id": 5,
+      "name": "Product Roadmap.docx",
+      "type": "document",
+      "content": "<h2>2026 Product Roadmap</h2><p><strong>Vision:</strong> Deliver the most intuitive and powerful business productivity platform on the market.</p><h3>Q1 2026 Initiatives</h3><ul><li><strong>AI Assistant Enhancement:</strong> Natural language processing for complex queries, smart suggestions based on user behavior, automated workflow recommendations</li><li><strong>Mobile App Redesign:</strong> Native iOS and Android apps with offline sync, push notifications, and biometric authentication</li><li><strong>Integration Hub:</strong> Connect with 50+ popular business tools including Salesforce, Slack, Zoom, and Microsoft Teams</li></ul><h3>Q2 2026 Initiatives</h3><ul><li><strong>Advanced Analytics:</strong> Real-time dashboards, predictive insights, custom report builder</li><li><strong>Collaboration Tools:</strong> Real-time co-editing, video conferencing integration, team spaces</li><li><strong>Security Enhancements:</strong> SOC 2 compliance, SSO support, advanced encryption</li></ul><h3>Q3-Q4 2026</h3><p>Focus on enterprise features including multi-tenant architecture, advanced permissions, audit logging, and API expansion for custom integrations.</p>"
+    },
+    {
+      "id": 6,
+      "name": "Marketing Strategy.docx",
+      "type": "document",
+      "content": "<h2>Q4 2025 Marketing Strategy</h2><p><strong>Campaign Goals:</strong> Increase brand awareness by 50%, generate 500+ qualified leads, achieve 15% conversion rate on enterprise demos.</p><h3>Channel Strategy</h3><p><strong>Content Marketing:</strong> Publish 3 whitepapers, 8 blog posts, 12 case studies. Focus on thought leadership in AI and automation space.</p><p><strong>Digital Advertising:</strong> $75K budget across Google Ads, LinkedIn, and industry publications. Target CTOs and VPs of Engineering at mid-market companies ($50M-$500M revenue).</p><p><strong>Events & Webinars:</strong> Host 4 webinars on productivity automation, sponsor 2 industry conferences, participate in 3 virtual trade shows.</p><p><strong>Partner Marketing:</strong> Co-marketing campaigns with 3 strategic partners, joint webinars, shared content promotion.</p><h3>Messaging Framework</h3><p><em>Primary Message:</em> Transform your business operations with AI-powered automation that delivers measurable ROI in 90 days.</p><p><em>Key Differentiators:</em> Fastest implementation (2 weeks), highest customer satisfaction (NPS 72), most comprehensive integration ecosystem (50+ connectors).</p>"
+    },
+    {
+      "id": 7,
+      "name": "Technical Architecture.docx",
+      "type": "document",
+      "content": "<h2>System Architecture Documentation</h2><p><strong>Overview:</strong> Our platform is built on a modern microservices architecture deployed on Azure cloud infrastructure.</p><h3>Technology Stack</h3><ul><li><strong>Frontend:</strong> React 18, TypeScript, TailwindCSS, Redux Toolkit</li><li><strong>Backend:</strong> Node.js, Express, GraphQL, REST APIs</li><li><strong>Database:</strong> PostgreSQL (primary), Redis (caching), Elasticsearch (search)</li><li><strong>Infrastructure:</strong> Azure Kubernetes Service, Azure Functions, Azure Storage</li><li><strong>AI/ML:</strong> Azure OpenAI Service, Azure Cognitive Services, Python ML models</li></ul><h3>Security & Compliance</h3><p>Implementation includes JWT authentication, role-based access control (RBAC), data encryption at rest and in transit using AES-256, SOC 2 Type II compliance, GDPR compliance with data residency options, and comprehensive audit logging.</p><h3>Performance & Scalability</h3><p>The system is designed to handle 100K concurrent users with 99.9% uptime SLA. Auto-scaling policies ensure optimal resource utilization. Average API response time is under 200ms, and the CDN delivers static assets globally with sub-100ms latency.</p>"
+    },
+    {
+      "id": 8,
+      "name": "Customer Feedback Summary.docx",
+      "type": "document",
+      "content": "<h2>Customer Satisfaction Survey Results</h2><p><strong>Survey Period:</strong> October 1-31, 2025<br><strong>Responses:</strong> 324 customers (42% response rate)<br><strong>Overall NPS:</strong> 72 (Excellent)</p><h3>What Customers Love</h3><ul><li><strong>Ease of Use (mentioned by 89%):</strong> \"Most intuitive interface we've used\", \"Team was productive within days, not weeks\"</li><li><strong>AI Features (mentioned by 76%):</strong> \"Smart suggestions save us hours every week\", \"The AI assistant feels like having an extra team member\"</li><li><strong>Customer Support (mentioned by 84%):</strong> \"Response times are incredible\", \"Support team really understands our business needs\"</li><li><strong>Integration Capabilities (mentioned by 71%):</strong> \"Connects seamlessly with our existing tools\", \"API documentation is excellent\"</li></ul><h3>Areas for Improvement</h3><ul><li><strong>Mobile Experience (mentioned by 34%):</strong> Request for native apps, better offline support, faster sync</li><li><strong>Reporting (mentioned by 28%):</strong> Need more customization options, export to Excel, scheduled reports</li><li><strong>Pricing (mentioned by 22%):</strong> Some SMB customers find enterprise tier too expensive, request mid-tier option</li></ul><h3>Feature Requests</h3><p>Top requested features: Advanced calendar integration (67%), bulk import tools (54%), custom workflow automation (51%), white-label options (38%).</p>"
+    }
+  ],
+  "emails": [
+    {
+      "id": 1,
+      "from": "Bob Smith",
+      "fromEmail": "bob.smith@example.com",
+      "subject": "Project X Status Update",
+      "body": "Hi team, I wanted to give you a quick update on Project X. We have completed the initial phase and are moving forward with the implementation. The development team is making excellent progress and we're on track to meet our deadline.",
+      "relativeDays": 0,
+      "hours": 9,
+      "minutes": 30
+    },
+    {
+      "id": 2,
+      "from": "Mary Johnson",
+      "fromEmail": "mary.johnson@example.com",
+      "subject": "Tomorrow's Meeting Agenda",
+      "body": "Hi everyone, just sending the agenda for tomorrow's meeting at 2 PM. We'll be discussing quarterly results, budget planning, and the Project X roadmap. Please review the attached budget report beforehand. Looking forward to seeing everyone there.",
+      "relativeDays": 0,
+      "hours": 14,
+      "minutes": 15
+    },
+    {
+      "id": 3,
+      "from": "John Davis",
+      "fromEmail": "john.davis@example.com",
+      "subject": "Q4 Budget Approval",
+      "body": "Good news! The Q4 budget has been approved by senior management. We can now proceed with all the planned initiatives including the Project X expansion. Please keep me updated on spending and feel free to reach out if you need any clarification on the allocations.",
+      "relativeDays": -1,
+      "hours": 8,
+      "minutes": 45
+    },
+    {
+      "id": 4,
+      "from": "Sarah Wilson",
+      "fromEmail": "sarah.wilson@example.com",
+      "subject": "Team Celebration",
+      "body": "Hi everyone! I think we should celebrate our recent achievements with a team lunch next week. We've been working really hard and I'd love for us all to take a break together. What day works best for everyone? Let me know your preferences!",
+      "relativeDays": -1,
+      "hours": 12,
+      "minutes": 20
+    },
+    {
+      "id": 5,
+      "from": "Bob Smith",
+      "fromEmail": "bob.smith@example.com",
+      "subject": "Re: Project X Timeline",
+      "body": "Following up on our discussion about the Project X timeline. After reviewing the resource allocation, I think we can definitely meet the deadline if we bring in two additional developers for the next sprint. The architecture is solid and testing is going well.",
+      "relativeDays": -1,
+      "hours": 15,
+      "minutes": 30
+    },
+    {
+      "id": 6,
+      "from": "Mary Johnson",
+      "fromEmail": "mary.johnson@example.com",
+      "subject": "Weekly Status Report",
+      "body": "Here's the weekly status report for all active projects. Overall we're in good shape, with Project X at 65% completion and the mobile app beta testing underway. The team has resolved most of the critical bugs found in last week's testing cycle.",
+      "relativeDays": -2,
+      "hours": 10,
+      "minutes": 0
+    },
+    {
+      "id": 7,
+      "from": "John Davis",
+      "fromEmail": "john.davis@example.com",
+      "subject": "Financial Review",
+      "body": "I've completed the financial review for last quarter. Revenue is up 18% year-over-year and we're seeing strong growth in the enterprise segment. Customer retention is at 94% which is excellent. Detailed report attached for your review.",
+      "relativeDays": -3,
+      "hours": 11,
+      "minutes": 30
+    },
+    {
+      "id": 8,
+      "from": "Sarah Wilson",
+      "fromEmail": "sarah.wilson@example.com",
+      "subject": "Product Roadmap Update",
+      "body": "I've updated the product roadmap based on customer feedback from the recent survey. Key additions include enhanced email templates, bulk import tools, and advanced calendar integration. These align well with our Q1 objectives.",
+      "relativeDays": -4,
+      "hours": 14,
+      "minutes": 45
+    },
+    {
+      "id": 9,
+      "from": "Bob Smith",
+      "fromEmail": "bob.smith@example.com",
+      "subject": "Client Presentation Feedback",
+      "body": "The client presentation went really well! They were particularly impressed with the AI features and the mobile app demo. They've requested a follow-up meeting next week to discuss implementation timeline and training requirements.",
+      "relativeDays": -5,
+      "hours": 16,
+      "minutes": 0
+    },
+    {
+      "id": 10,
+      "from": "Mary Johnson",
+      "fromEmail": "mary.johnson@example.com",
+      "subject": "Security Audit Results",
+      "body": "The security audit has been completed and I'm happy to report no critical issues were found. There are a few minor recommendations for improvements which we'll address in the next sprint. Full report is available in the shared drive.",
+      "relativeDays": -7,
+      "hours": 12,
+      "minutes": 0
+    }
+  ],
+  "events": [
+    {
+      "id": 1,
+      "title": "Team Standup",
+      "attendees": ["Bob Smith", "Mary Johnson", "Sarah Wilson"],
+      "description": "Daily standup to sync on progress and identify blockers.",
+      "relativeDays": -1,
+      "time": "9:00 AM"
+    },
+    {
+      "id": 2,
+      "title": "Client Demo",
+      "attendees": ["Sarah Wilson", "John Davis"],
+      "description": "Product demo for prospective enterprise client.",
+      "relativeDays": -2,
+      "time": "3:00 PM"
+    },
+    {
+      "id": 3,
+      "title": "Project X Review",
+      "attendees": ["Bob Smith", "John Davis", "Mary Johnson"],
+      "description": "Review Project X implementation status, discuss progress on core modules, and address any technical blockers. Prepare for upcoming milestone delivery.",
+      "relativeDays": 0,
+      "time": "2:00 PM"
+    },
+    {
+      "id": 4,
+      "title": "Design Review",
+      "attendees": ["Sarah Wilson", "Mary Johnson"],
+      "description": "Review new UI designs for the mobile app and provide feedback.",
+      "relativeDays": 0,
+      "time": "4:30 PM"
+    },
+    {
+      "id": 5,
+      "title": "Budget Planning Session",
+      "attendees": ["Mary Johnson", "John Davis"],
+      "description": "Quarterly budget planning session for next fiscal period. Review spending forecasts and allocate resources across departments.",
+      "relativeDays": 1,
+      "time": "11:00 AM"
+    },
+    {
+      "id": 6,
+      "title": "All-Hands Meeting",
+      "attendees": ["Bob Smith", "Mary Johnson", "John Davis", "Sarah Wilson"],
+      "description": "Monthly company-wide meeting to share updates and celebrate achievements.",
+      "relativeDays": 1,
+      "time": "2:00 PM"
+    },
+    {
+      "id": 7,
+      "title": "Sprint Planning",
+      "attendees": ["Bob Smith", "Mary Johnson", "Sarah Wilson"],
+      "description": "Plan the next two-week sprint, review backlog items, and assign tasks to team members.",
+      "relativeDays": 2,
+      "time": "10:00 AM"
+    },
+    {
+      "id": 8,
+      "title": "Customer Presentation",
+      "attendees": ["Sarah Wilson", "John Davis"],
+      "description": "Present quarterly results and strategic initiatives to key enterprise clients.",
+      "relativeDays": 3,
+      "time": "3:00 PM"
+    },
+    {
+      "id": 9,
+      "title": "Training Session",
+      "attendees": ["Bob Smith", "Sarah Wilson", "Mary Johnson"],
+      "description": "New CRM system training for team members covering advanced features and best practices.",
+      "relativeDays": 5,
+      "time": "9:00 AM"
+    }
+  ]
+}

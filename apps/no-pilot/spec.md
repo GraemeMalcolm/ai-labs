@@ -1,0 +1,24 @@
+This is a specification for a web app named "No-Pilot" that provides a Copilot like AI Assistant experience in a sandboxed environment based on Windows and Office apps. The app should be a HTML 5 web site with a single HTML file supported by a single JavaScript file for code and a single CSS file for visual themes. It should run completely in the browser with no server requirements. It will be hosted in a GitHub Pages site.
+
+## Core Functionality
+
+The app should include the following features:
+
+- A simplified Windows-style interface with a taskbar containing a Start button and icons representing the available apps. Clicking an app icon should "maximize" it within the Windows UI. The Start button should appear vertically and list the available apps. The apps should also be displayed as icons horizontally along the taskbar.
+- An "AI Assistant" app that provides a chat interface for the user to engage with. The assistant should be able to answer questions about documents, emails, meetings. For example: "What meetings do I have today?", "When is my next meeting with Bob?", "Find emails that mention 'Project X'", "Find emails from Mary", "What is project X?". The answers to the questions should be based on the contents of emails, events, documents, and contacts; which should be stored in a searchable graph. These can be implemented as a JSON index file, but when the app starts, the dates for all emails and events should be updated to reflect a two week window (all emails received in the last week ,all calendar events either in the last week or in the next week). Under the chat interface, the AI Assistant app should have three suggested prompts that they can select to be copied into the chat box.
+- A "Files" app that displays a folder in which documents that can be opened in the other apps are visible. A default set of 6 documents should be available for the users to open. It's OK for all documents to be in a single folder. Double-clicking a document opens it in the relevant app.
+- A "Word Processor" app that includes a toolbar to create, open, and save word processing documents, a rich text editing area where the user can edit a document, and an AI Assistant toolbar button that expands a flyout pane on the right with a Word processing specific implementation of the AI Assistant chat UI. Under the chat box, the pane should have the suggested prompt "Summarize this document". If they select this, add it to the chat box. The user can enter prompts like the suggested one to summarize the document, which should generate a summarized version of the text in the document that they can copy and paste into the rich text area. They should also be able to enter a prompt like "Add a paragraph about 'Project X'", in which case the graph should be searched for text that describes 'Project X'; which should be summarized in the AI Assistant pane to be copied into the document.
+- A "Spreadsheet" app that includes a toolbar to create, open, and save spreadsheet documents, a "cell content" box that shows the contents of the selected cell, an AI Assistant button that opens a flyout AI Assistant pane on the right, and an editable table with 6 columns (A to F) and fifteen rows (1 to 15). Each cell in the table can be selected and edited (using the "cell content" box). Cells can contain text, numbers, and simple formulae to calculate values. Formulae start with a "=" character and can be used to add, subtract, divide, and multiply cell values using standard + - / * operators and cell references (like A1 or F2). In the AI Assistant pane, if a user enters a prompt such as "Create a bar chart" then the required chart type should be created as an image and added to the spreadsheet under the relevant cells (scrolling as necessary).
+- An "Email and Calendar" app in which users can view the emails they've received and their calendar events (both retrieved from the graph). They can also create and "send" emails, and they can add new events to the calendar. The app should include an AI Assistant button that opens a flyout pane on the right with the AI assistant chat. Here, the user can enter prompts such as "Summarize this email" (to generate a summary of the currently viewed email) or "Find relevant documents" (to search for documents that are relevant to the currently viewed email or meeting).
+
+## Technologies
+
+The app should be implemented in JavaScript. You can use the following libraries to implement the required functionality:
+
+- MiniSearch.js to search the graph.
+- Compromise.js to extract key terms and named entities such as people, places, organizations, and dates from prompts.
+- TextRank.js to summarize text.
+
+## Accessibility
+
+All user interface elements should include alt-text and Aria properties, and keyboard navigation must be supported.

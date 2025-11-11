@@ -35,4 +35,3 @@ The app should function as a tabbed wizard, with the following tabs arranged ver
     - For classification models, report accuracy, precision, recall, and F1 scores, and display a confusion matrix with shaded cells from white (low) to "Microsoft Blue" (high) to reflect the values.
     - For clustering models, report the number of clusters, the silhouette score, the mean distance between cluster centers and their points, and the mean distance between cluster centers. Display a color-coded scatter plot showing the cluster points "flattened" to 2 dimensions.
 - "Test": On this tab, the user can test the model by entering feature values and generating a prediction. The interface should provide appropriate input elements for the features pre-populated with suitable values based on the original training data.
-

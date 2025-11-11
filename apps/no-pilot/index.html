@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>No-Pilot - AI Assistant Desktop</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Desktop Background -->
+    <div id="desktop" role="application" aria-label="No-Pilot Desktop Environment">
+        
+        <!-- App Windows -->
+        <div id="ai-assistant-window" class="app-window" role="dialog" aria-label="AI Assistant" style="display: none;">
+            <div class="window-titlebar">
+                <span class="window-title">AI Assistant</span>
+                <div class="window-controls">
+                    <button class="window-maximize" aria-label="Maximize AI Assistant" onclick="toggleMaximize('ai-assistant')">□</button>
+                    <button class="window-close" aria-label="Close AI Assistant" onclick="closeApp('ai-assistant')">×</button>
+                </div>
+            </div>
+            <div class="window-content ai-assistant-content">
+                <div class="ai-assistant-welcome">
+                    <h1>Hi, what can I help you with?</h1>
+                </div>
+                <div class="chat-container">
+                    <div id="ai-chat-messages" class="chat-messages" role="log" aria-live="polite"></div>
+                    <div class="chat-input-container">
+                        <input type="text" id="ai-chat-input" class="chat-input" placeholder="Enter your message here" aria-label="Chat input">
+                        <button id="ai-chat-send" class="chat-send-btn" aria-label="Send message">
+                            <span>›</span>
+                        </button>
+                    </div>
+                    <div class="suggested-prompts">
+                        <div class="prompt-card">
+                            <div class="prompt-icon">💬</div>
+                            <button class="prompt-suggestion" data-prompt="What documents mention topic?">
+                                What documents mention <span class="prompt-variable">topic</span>?
+                            </button>
+                        </div>
+                        <div class="prompt-card">
+                            <div class="prompt-icon">📅</div>
+                            <button class="prompt-suggestion" data-prompt="What meetings do I have today?">
+                                What meetings do I have today?
+                            </button>
+                        </div>
+                        <div class="prompt-card">
+                            <div class="prompt-icon">💬</div>
+                            <button class="prompt-suggestion" data-prompt="What emails do I have from person?">
+                                What emails do I have from <span class="prompt-variable">person</span>?
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="files-window" class="app-window" role="dialog" aria-label="Files" style="display: none;">
+            <div class="window-titlebar">
+                <span class="window-title">📁 Files</span>
+                <div class="window-controls">
+                    <button class="window-maximize" aria-label="Maximize Files" onclick="toggleMaximize('files')">□</button>
+                    <button class="window-close" aria-label="Close Files" onclick="closeApp('files')">×</button>
+                </div>
+            </div>
+            <div class="window-content files-window-content">
+                <div class="files-main-layout">
+                    <div class="files-nav-pane">
+                        <div class="nav-section">
+                            <div class="nav-item active">
+                                <span class="nav-icon">📁</span>
+                                <span class="nav-label">Files</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="files-content-pane">
+                        <div class="files-toolbar">
+                            <button class="files-toolbar-btn" aria-label="New">
+                                <span class="btn-icon">+</span>
+                                <span>New</span>
+                                <span class="btn-dropdown">▼</span>
+                            </button>
+                            <div class="toolbar-separator"></div>
+                            <button class="files-toolbar-btn" aria-label="Cut"><span class="btn-icon">✂</span></button>
+                            <button class="files-toolbar-btn" aria-label="Copy"><span class="btn-icon">📋</span></button>
+                            <button class="files-toolbar-btn" aria-label="Paste"><span class="btn-icon">📄</span></button>
+                            <button class="files-toolbar-btn" aria-label="Rename"><span class="btn-icon">✏</span></button>
+                            <button class="files-toolbar-btn" aria-label="Share"><span class="btn-icon">↗</span></button>
+                            <button class="files-toolbar-btn" aria-label="Delete"><span class="btn-icon">🗑</span></button>
+                            <div class="toolbar-separator"></div>
+                            <button class="files-toolbar-btn" aria-label="Sort">
+                                <span class="btn-icon">↕</span>
+                                <span>Sort</span>
+                                <span class="btn-dropdown">▼</span>
+                            </button>
+                            <button class="files-toolbar-btn" aria-label="View">
+                                <span class="btn-icon">▦</span>
+                                <span>View</span>
+                                <span class="btn-dropdown">▼</span>
+                            </button>
+                            <button class="files-toolbar-btn" aria-label="More"><span class="btn-icon">⋯</span></button>
+                        </div>
+                        <div class="files-search-bar">
+                            <input type="text" placeholder="Search files" class="files-search-input">
+                            <span class="search-icon">🔍</span>
+                        </div>
+                        <div class="files-breadcrumb">
+                            <span class="breadcrumb-icon">📁</span>
+                            <span class="breadcrumb-text">Files</span>
+                        </div>
+                        <div id="files-container" class="files-list" role="list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="word-window" class="app-window" role="dialog" aria-label="Word Processor" style="display: none;">
+            <div class="window-titlebar">
+                <span class="window-title">📝 <span id="word-doc-title">Document</span></span>
+                <div class="window-controls">
+                    <button class="window-maximize" aria-label="Maximize Word Processor" onclick="toggleMaximize('word')">□</button>
+                    <button class="window-close" aria-label="Close Word Processor" onclick="closeApp('word')">×</button>
+                </div>
+            </div>
+            <div class="window-content word-content">
+                <div class="word-toolbar">
+                    <button id="word-new" class="word-toolbar-btn" aria-label="New document" title="New">
+                        <span class="btn-icon">📄</span>
+                    </button>
+                    <button id="word-open" class="word-toolbar-btn" aria-label="Open document" title="Open">
+                        <span class="btn-icon">📂</span>
+                    </button>
+                    <button id="word-save" class="word-toolbar-btn" aria-label="Save document" title="Save">
+                        <span class="btn-icon">💾</span>
+                    </button>
+                    <div class="toolbar-separator"></div>
+                    <button id="word-bold" class="word-toolbar-btn" aria-label="Bold" title="Bold">
+                        <span class="btn-icon"><strong>B</strong></span>
+                    </button>
+                    <button id="word-italic" class="word-toolbar-btn" aria-label="Italic" title="Italic">
+                        <span class="btn-icon"><em>I</em></span>
+                    </button>
+                    <button id="word-underline" class="word-toolbar-btn" aria-label="Underline" title="Underline">
+                        <span class="btn-icon"><u>U</u></span>
+                    </button>
+                    <div class="toolbar-separator"></div>
+                    <button id="word-align-left" class="word-toolbar-btn" aria-label="Align left" title="Align Left">
+                        <span class="btn-icon">≡</span>
+                    </button>
+                    <button id="word-align-center" class="word-toolbar-btn" aria-label="Align center" title="Align Center">
+                        <span class="btn-icon">≣</span>
+                    </button>
+                    <button id="word-align-right" class="word-toolbar-btn" aria-label="Align right" title="Align Right">
+                        <span class="btn-icon">≡</span>
+                    </button>
+                    <div class="toolbar-separator"></div>
+                    <button id="word-bullets" class="word-toolbar-btn" aria-label="Bullet list" title="Bullet List">
+                        <span class="btn-icon">•</span>
+                    </button>
+                    <button id="word-numbering" class="word-toolbar-btn" aria-label="Numbered list" title="Numbered List">
+                        <span class="btn-icon">1.</span>
+                    </button>
+                    <div class="toolbar-separator"></div>
+                    <button id="word-ai-toggle" class="word-toolbar-btn" aria-label="Toggle AI Assistant" title="AI Assistant">
+                        <span class="btn-icon">💬</span>
+                    </button>
+                </div>
+                <div class="word-main">
+                    <div id="word-editor" contenteditable="true" class="word-editor" role="textbox" aria-label="Document editor" aria-multiline="true"></div>
+                    <div id="word-ai-pane" class="ai-pane word-ai-pane" style="display: none;">
+                        <div class="word-ai-header">
+                            <div class="word-ai-header-left">
+                                <span class="word-ai-icon">💬</span>
+                                <span class="word-ai-title">AI Assistant</span>
+                            </div>
+                            <button class="word-ai-close" id="word-ai-close" aria-label="Close AI Assistant">✕</button>
+                        </div>
+                        <div class="word-ai-content">
+                            <h2 class="word-ai-heading">Let's organize your thoughts</h2>
+                            <div id="word-chat-messages" class="word-chat-messages" role="log" aria-live="polite"></div>
+                            <div class="word-ai-input-wrapper">
+                                <input type="text" id="word-chat-input" class="word-ai-input" placeholder="Enter your message here" aria-label="Enter your message">
+                                <button id="word-chat-send" class="word-ai-send-btn" aria-label="Send message">
+                                    <span>></span>
+                                </button>
+                            </div>
+                            <button class="word-ai-prompt-btn" id="word-summarize-btn">Summarize this document</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="spreadsheet-window" class="app-window" role="dialog" aria-label="Spreadsheet" style="display: none;">
+            <div class="window-titlebar">
+                <span class="window-title">Spreadsheet</span>
+                <div class="window-controls">
+                    <button class="window-maximize" aria-label="Maximize Spreadsheet" onclick="toggleMaximize('spreadsheet')">□</button>
+                    <button class="window-close" aria-label="Close Spreadsheet" onclick="closeApp('spreadsheet')">×</button>
+                </div>
+            </div>
+            <div class="window-content spreadsheet-content">
+                <div class="spreadsheet-toolbar">
+                    <button id="sheet-new" aria-label="New spreadsheet">New</button>
+                    <button id="sheet-open" aria-label="Open spreadsheet">Open</button>
+                    <button id="sheet-save" aria-label="Save spreadsheet">Save</button>
+                    <button id="sheet-ai-toggle" aria-label="Toggle AI Assistant">AI Assistant</button>
+                </div>
+                <div class="cell-content-bar">
+                    <span class="cell-label" id="current-cell-label">A1</span>
+                    <input type="text" id="cell-content-input" class="cell-content-input" aria-label="Cell content">
+                </div>
+                <div class="spreadsheet-main">
+                    <div id="spreadsheet-container" class="spreadsheet-container"></div>
+                    <div id="sheet-ai-pane" class="ai-pane" style="display: none;">
+                        <div class="ai-pane-header">AI Assistant</div>
+                        <div class="chat-container">
+                            <div id="sheet-chat-messages" class="chat-messages" role="log" aria-live="polite"></div>
+                            <div class="chat-input-container">
+                                <input type="text" id="sheet-chat-input" class="chat-input" placeholder="Ask about your spreadsheet..." aria-label="Chat input">
+                                <button id="sheet-chat-send" class="chat-send-btn" aria-label="Send message">Send</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="email-window" class="app-window" role="dialog" aria-label="Email and Calendar" style="display: none;">
+            <div class="window-titlebar">
+                <span class="window-title">Email and Calendar</span>
+                <div class="window-controls">
+                    <button class="window-maximize" aria-label="Maximize Email and Calendar" onclick="toggleMaximize('email')">□</button>
+                    <button class="window-close" aria-label="Close Email and Calendar" onclick="closeApp('email')">×</button>
+                </div>
+            </div>
+            <div class="window-content email-content">
+                <div class="email-main">
+                    <div class="email-sidebar">
+                        <div class="email-tabs">
+                            <button class="email-tab active" id="email-tab" aria-label="Email">
+                                <span class="tab-icon">📧</span>
+                                <span class="tab-label">Email</span>
+                            </button>
+                            <button class="email-tab" id="calendar-tab" aria-label="Calendar">
+                                <span class="tab-icon">📅</span>
+                                <span class="tab-label">Calendar</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="email-list-pane">
+                        <div id="email-list-container" class="email-list-container">
+                            <div id="email-list" class="email-list" role="list"></div>
+                        </div>
+                        <div id="calendar-container" class="calendar-container" style="display: none;">
+                            <div class="calendar-header">
+                                <button id="calendar-prev-month" aria-label="Previous month">‹</button>
+                                <span id="calendar-month-year"></span>
+                                <button id="calendar-next-month" aria-label="Next month">›</button>
+                            </div>
+                            <div id="calendar-grid" class="calendar-grid"></div>
+                        </div>
+                    </div>
+                    <div class="email-detail-pane">
+                        <div id="email-detail-view" class="email-detail-view"></div>
+                        <div id="calendar-events-view" class="calendar-events-view" style="display: none;">
+                            <h3 id="selected-date-header">Events</h3>
+                            <div id="calendar-events" class="calendar-events"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Taskbar -->
+    <div id="taskbar" role="navigation" aria-label="Taskbar">
+        <button id="start-button" class="start-button" aria-label="Start Menu" aria-expanded="false">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="white">
+                <rect x="2" y="2" width="7" height="7"/>
+                <rect x="11" y="2" width="7" height="7"/>
+                <rect x="2" y="11" width="7" height="7"/>
+                <rect x="11" y="11" width="7" height="7"/>
+            </svg>
+        </button>
+        <div class="taskbar-apps">
+            <button class="taskbar-icon" data-app="ai-assistant" aria-label="AI Assistant" title="AI Assistant">
+                <span style="font-size: 20px;">💬</span>
+            </button>
+            <button class="taskbar-icon" data-app="files" aria-label="Files" title="Files">
+                <span style="font-size: 20px;">📁</span>
+            </button>
+            <button class="taskbar-icon" data-app="word" aria-label="Word Processor" title="Word Processor">
+                <span style="font-size: 20px;">📝</span>
+            </button>
+            <button class="taskbar-icon" data-app="spreadsheet" aria-label="Spreadsheet" title="Spreadsheet">
+                <span style="font-size: 20px;">📊</span>
+            </button>
+            <button class="taskbar-icon" data-app="email" aria-label="Email and Calendar" title="Email and Calendar">
+                <span style="font-size: 20px;">📧</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Start Menu -->
+    <div id="start-menu" class="start-menu" style="display: none;" role="menu">
+        <button class="start-menu-item" data-app="ai-assistant" role="menuitem">
+            <span class="menu-icon">💬</span>
+            <span>AI Assistant</span>
+        </button>
+        <button class="start-menu-item" data-app="files" role="menuitem">
+            <span class="menu-icon">📁</span>
+            <span>Files</span>
+        </button>
+        <button class="start-menu-item" data-app="word" role="menuitem">
+            <span class="menu-icon">📝</span>
+            <span>Word Processor</span>
+        </button>
+        <button class="start-menu-item" data-app="spreadsheet" role="menuitem">
+            <span class="menu-icon">📊</span>
+            <span>Spreadsheet</span>
+        </button>
+        <button class="start-menu-item" data-app="email" role="menuitem">
+            <span class="menu-icon">📧</span>
+            <span>Email and Calendar</span>
+        </button>
+    </div>
+
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/minisearch@6.3.0/dist/umd/index.min.js"></script>
+    <script src="https://unpkg.com/compromise@14.10.0/builds/compromise.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/textrank@2.0.1/dist/textrank.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

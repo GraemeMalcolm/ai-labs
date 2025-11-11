@@ -1,0 +1,1672 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    background: linear-gradient(to bottom, #1a4d7a 0%, #3d7ba8 50%, #7bb8d8 100%);
+}
+
+#desktop {
+    position: relative;
+    height: calc(100vh - 50px);
+    width: 100vw;
+}
+
+/* Taskbar Styles */
+#taskbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 50px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 10px;
+    z-index: 10000;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.start-button {
+    width: 50px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.start-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.start-button:focus {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+.taskbar-apps {
+    display: flex;
+    gap: 5px;
+    margin-left: 5px;
+}
+
+.taskbar-icon {
+    width: 50px;
+    height: 40px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.taskbar-icon:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.taskbar-icon:focus {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+.taskbar-icon.active {
+    background: rgba(255, 255, 255, 0.2);
+    border-bottom: 3px solid #4a9eff;
+}
+
+/* Start Menu Styles */
+.start-menu {
+    position: fixed;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    background: rgba(30, 30, 30, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 8px;
+    padding: 10px;
+    z-index: 10001;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.start-menu-item {
+    width: 100%;
+    padding: 12px 15px;
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 14px;
+    border-radius: 4px;
+    transition: background 0.2s;
+    text-align: left;
+}
+
+.start-menu-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.start-menu-item:focus {
+    outline: 2px solid #4a9eff;
+    outline-offset: -2px;
+}
+
+.menu-icon {
+    font-size: 20px;
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    width: 500px;
+    max-height: 600px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.modal-body {
+    padding: 20px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.modal-body label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.modal-body input[type="text"] {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.modal-body input[type="text"]:focus {
+    outline: none;
+    border-color: #0066cc;
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+}
+
+.modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.btn-primary, .btn-secondary {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-primary {
+    background: #0066cc;
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #0052a3;
+}
+
+.btn-primary:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.btn-secondary:hover {
+    background: #e0e0e0;
+}
+
+/* File Open Dialog Styles */
+.file-open-list {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.file-open-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.file-open-item:last-child {
+    border-bottom: none;
+}
+
+.file-open-item:hover {
+    background: #f5f5f5;
+}
+
+.file-open-item.selected {
+    background: #e3f2fd;
+    border-left: 3px solid #0066cc;
+}
+
+.file-open-icon {
+    font-size: 24px;
+    margin-right: 12px;
+}
+
+.file-open-name {
+    font-size: 14px;
+    color: #333;
+}
+
+/* App Window Styles */
+.app-window {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    height: 80%;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 100;
+}
+
+.app-window.maximized {
+    width: 95%;
+    height: 90%;
+}
+
+.window-titlebar {
+    height: 40px;
+    background: linear-gradient(to bottom, #f0f0f0, #e0e0e0);
+    border-bottom: 1px solid #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 15px;
+    cursor: move;
+}
+
+.window-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: #333;
+}
+
+.window-controls {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.window-maximize,
+.window-close {
+    width: 30px;
+    height: 30px;
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.window-maximize {
+    font-size: 18px;
+}
+
+.window-maximize:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.window-close:hover {
+    background: #e81123;
+    color: white;
+}
+
+.window-maximize:focus,
+.window-close:focus {
+    outline: 2px solid #4a9eff;
+}
+
+.app-window.maximized {
+    width: 100% !important;
+    height: calc(100vh - 48px) !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 48px !important;
+    transform: none !important;
+    border-radius: 0 !important;
+}
+
+.window-content {
+    flex: 1;
+    overflow: auto;
+    background: white;
+    padding: 20px;
+}
+
+/* AI Assistant Specific Styles */
+.ai-assistant-content {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    background: #f8f8f8;
+}
+
+.ai-assistant-welcome {
+    text-align: center;
+    padding: 60px 40px 40px;
+    background: white;
+}
+
+.ai-assistant-welcome h1 {
+    font-size: 32px;
+    font-weight: 400;
+    color: #333;
+    margin: 0;
+}
+
+/* Chat Container Styles */
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 20px 40px;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+    background: transparent;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    min-height: 100px;
+    display: none; /* Hidden until messages exist */
+}
+
+.chat-messages:not(:empty) {
+    display: block;
+    background: white;
+    border: 1px solid #e0e0e0;
+}
+
+.chat-message {
+    margin-bottom: 15px;
+    padding: 10px 15px;
+    border-radius: 8px;
+    max-width: 80%;
+}
+
+.chat-message.user {
+    background: #0078d4;
+    color: black;
+    margin-left: auto;
+    text-align: right;
+}
+
+.chat-message.assistant {
+    background: #e8e8e8;
+    color: #333;
+}
+
+.chat-message a {
+    color: #0066cc;
+    text-decoration: underline;
+}
+
+.chat-message a:hover {
+    color: #0052a3;
+    text-decoration: underline;
+}
+
+.chat-input-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 24px;
+    padding: 8px 12px;
+    align-items: center;
+}
+
+.chat-input {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: transparent;
+    font-size: 15px;
+    color: #666;
+}
+
+.chat-input::placeholder {
+    color: #999;
+}
+
+.chat-input:focus {
+    outline: none;
+}
+
+.chat-send-btn {
+    width: 36px;
+    height: 36px;
+    background: #5b5fc7;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 24px;
+    font-weight: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    padding: 0;
+}
+
+.chat-send-btn:hover {
+    background: #4a4fb0;
+}
+
+.chat-send-btn:focus {
+    outline: 2px solid #5b5fc7;
+    outline-offset: 2px;
+}
+
+.suggested-prompts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.prompt-card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.prompt-card:hover {
+    border-color: #5b5fc7;
+    box-shadow: 0 2px 8px rgba(91, 95, 199, 0.15);
+}
+
+.prompt-icon {
+    font-size: 24px;
+    color: #5b5fc7;
+}
+
+.prompt-suggestion {
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: #333;
+    text-align: left;
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1.5;
+    font-weight: 400;
+    transition: all 0.2s;
+}
+
+.prompt-card:hover .prompt-suggestion {
+    color: #000;
+}
+
+.prompt-suggestion:focus {
+    outline: none;
+}
+
+.prompt-variable {
+    color: #5b5fc7;
+    font-style: italic;
+    font-weight: 500;
+}
+
+/* Files App Styles */
+.files-window-content {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.files-main-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.files-nav-pane {
+    width: 220px;
+    background: #f8f8f8;
+    border-right: 1px solid #e0e0e0;
+    overflow-y: auto;
+    padding: 8px 0;
+}
+
+.nav-section {
+    padding: 4px 8px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 13px;
+    color: #333;
+}
+
+.nav-item:hover {
+    background: #e8e8e8;
+}
+
+.nav-item.active {
+    background: #e0e0e0;
+    font-weight: 600;
+}
+
+.nav-icon {
+    font-size: 16px;
+    color: #f0b000;
+}
+
+.nav-label {
+    flex: 1;
+}
+
+.files-content-pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: white;
+    overflow: hidden;
+}
+
+.files-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 12px;
+    background: #f8f8f8;
+    border-bottom: 1px solid #e0e0e0;
+    min-height: 48px;
+}
+
+.files-toolbar-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #333;
+    transition: background 0.2s;
+}
+
+.files-toolbar-btn:hover {
+    background: #e8e8e8;
+}
+
+.files-toolbar-btn:focus {
+    outline: 2px solid #0078d4;
+    outline-offset: -2px;
+}
+
+.btn-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+.btn-dropdown {
+    font-size: 10px;
+    color: #666;
+}
+
+.toolbar-separator {
+    width: 1px;
+    height: 24px;
+    background: #d0d0d0;
+    margin: 0 4px;
+}
+
+.files-search-bar {
+    position: relative;
+    padding: 8px 12px;
+    background: white;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.files-search-input {
+    width: 100%;
+    padding: 8px 36px 8px 12px;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    font-size: 13px;
+    background: #f8f8f8;
+}
+
+.files-search-input:focus {
+    outline: 2px solid #0078d4;
+    border-color: #0078d4;
+    background: white;
+}
+
+.search-icon {
+    position: absolute;
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: #666;
+}
+
+.files-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: white;
+    border-bottom: 1px solid #e0e0e0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+}
+
+.breadcrumb-icon {
+    font-size: 16px;
+    color: #f0b000;
+}
+
+.files-list {
+    flex: 1;
+    overflow-y: auto;
+    background: white;
+    padding: 8px 0;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.file-item:hover {
+    background: #f8f8f8;
+}
+
+.file-item:focus {
+    outline: 2px solid #0078d4;
+    outline-offset: -2px;
+    background: #f0f6ff;
+}
+
+.file-item-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    flex-shrink: 0;
+}
+
+.file-item-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.file-item-name {
+    font-size: 13px;
+    color: #333;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-item-type {
+    font-size: 11px;
+    color: #666;
+}
+
+/* Word Processor Styles */
+.word-content {
+    padding: 0;
+}
+
+.word-toolbar {
+    height: 50px;
+    background: #f8f8f8;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    gap: 4px;
+}
+
+.word-toolbar-btn {
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.word-toolbar-btn:hover {
+    background: #e8e8e8;
+}
+
+.word-toolbar-btn:focus {
+    outline: 2px solid #0078d4;
+}
+
+.word-toolbar-btn .btn-icon {
+    font-size: 20px;
+}
+
+.word-main {
+    display: flex;
+    height: calc(100% - 50px);
+}
+
+.word-editor {
+    flex: 1;
+    padding: 40px;
+    overflow-y: auto;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 400px;
+}
+
+.word-editor:focus {
+    outline: none;
+}
+
+/* Word AI Pane */
+.word-ai-pane {
+    width: 350px;
+    border-left: 1px solid #e0e0e0;
+    background: white;
+    display: flex;
+    flex-direction: column;
+}
+
+.word-ai-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.word-ai-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.word-ai-icon {
+    font-size: 20px;
+}
+
+.word-ai-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.word-ai-close {
+    background: none;
+    border: none;
+    font-size: 16px;
+    color: #666;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.word-ai-close:hover {
+    background: #f0f0f0;
+}
+
+.word-ai-content {
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex: 1;
+    overflow: hidden;
+}
+
+.word-ai-heading {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+    line-height: 1.3;
+}
+
+.word-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 100px;
+}
+
+.chat-message {
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.chat-message.user {
+    background: #e3f2fd;
+    align-self: flex-end;
+    max-width: 85%;
+}
+
+.chat-message.assistant {
+    background: #f5f5f5;
+    align-self: flex-start;
+    max-width: 90%;
+}
+
+.word-ai-input-wrapper {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.word-ai-input {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #d0d0d0;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.word-ai-input:focus {
+    outline: none;
+    border-color: #0066cc;
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+}
+
+.word-ai-send-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: #0066cc;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.word-ai-send-btn:hover {
+    background: #0052a3;
+}
+
+.word-ai-prompt-btn {
+    padding: 12px 16px;
+    border: 1px solid #e0e0e0;
+    background: white;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    text-align: left;
+    color: #333;
+}
+
+.word-ai-prompt-btn:hover {
+    background: #f5f5f5;
+    border-color: #d0d0d0;
+}
+
+.ai-pane {
+    width: 350px;
+    border-left: 1px solid #ddd;
+    background: #f9f9f9;
+    display: flex;
+    flex-direction: column;
+}
+
+.ai-pane-header {
+    padding: 15px;
+    background: #0078d4;
+    color: white;
+    font-weight: 600;
+}
+
+.ai-pane .chat-container {
+    flex: 1;
+    padding: 15px;
+}
+
+.ai-pane .chat-messages {
+    background: white;
+}
+
+/* Spreadsheet Styles */
+.spreadsheet-content {
+    padding: 0;
+}
+
+.spreadsheet-toolbar {
+    height: 50px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    gap: 10px;
+}
+
+.spreadsheet-toolbar button {
+    padding: 8px 16px;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.spreadsheet-toolbar button:hover {
+    background: #e8e8e8;
+    border-color: #999;
+}
+
+.spreadsheet-toolbar button:focus {
+    outline: 2px solid #0078d4;
+}
+
+.cell-content-bar {
+    height: 40px;
+    background: white;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    gap: 10px;
+}
+
+.cell-label {
+    font-weight: 600;
+    min-width: 40px;
+}
+
+.cell-content-input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.cell-content-input:focus {
+    outline: 2px solid #0078d4;
+    border-color: #0078d4;
+}
+
+.spreadsheet-main {
+    display: flex;
+    height: calc(100% - 90px);
+}
+
+.spreadsheet-container {
+    flex: 1;
+    overflow: auto;
+    padding: 10px;
+}
+
+.spreadsheet-table {
+    border-collapse: collapse;
+}
+
+.spreadsheet-table th,
+.spreadsheet-table td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    min-width: 80px;
+    text-align: left;
+}
+
+.spreadsheet-table th {
+    background: #f0f0f0;
+    font-weight: 600;
+    text-align: center;
+}
+
+.spreadsheet-table td {
+    cursor: pointer;
+    background: white;
+}
+
+.spreadsheet-table td:hover {
+    background: #f9f9f9;
+}
+
+.spreadsheet-table td.selected {
+    background: #e8f4ff;
+    outline: 2px solid #0078d4;
+}
+
+.spreadsheet-table td input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    padding: 0;
+}
+
+.spreadsheet-table td input:focus {
+    outline: none;
+}
+
+/* Email and Calendar Styles */
+.email-content {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.email-main {
+    display: flex;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* Email Sidebar with Tabs */
+.email-sidebar {
+    width: 80px;
+    background: #f5f5f5;
+    border-right: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+}
+
+.email-tabs {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 0;
+}
+
+.email-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 15px 10px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: #666;
+    transition: all 0.2s;
+}
+
+.email-tab:hover {
+    background: #e8e8e8;
+}
+
+.email-tab.active {
+    background: white;
+    color: #0066cc;
+    border-left: 3px solid #0066cc;
+}
+
+.email-tab .tab-icon {
+    font-size: 24px;
+}
+
+.email-tab .tab-label {
+    font-size: 11px;
+    font-weight: 500;
+}
+
+/* Email List Pane */
+.email-list-pane {
+    width: 350px;
+    background: white;
+    border-right: 1px solid #e0e0e0;
+    overflow-y: auto;
+}
+
+.email-list-container,
+.calendar-container {
+    height: 100%;
+    overflow-y: auto;
+}
+
+.email-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.email-item {
+    padding: 15px;
+    border-bottom: 1px solid #e0e0e0;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.email-item:hover {
+    background: #f5f5f5;
+}
+
+.email-item:focus {
+    outline: 2px solid #0078d4;
+    background: #e8f4ff;
+}
+
+.email-item.selected {
+    background: #e8f4ff;
+    border-left: 3px solid #0066cc;
+}
+
+.email-item-subject {
+    font-weight: 600;
+    margin-bottom: 5px;
+    font-size: 14px;
+    color: #333;
+}
+
+.email-item-from {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.email-item-date {
+    font-size: 12px;
+    color: #999;
+}
+
+.email-item-preview {
+    font-size: 12px;
+    color: #888;
+    margin-top: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Email Detail Pane */
+.email-detail-pane {
+    flex: 1;
+    background: white;
+    overflow-y: auto;
+}
+
+.email-detail-view {
+    padding: 30px;
+    max-width: 800px;
+}
+
+.email-detail-header {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.email-detail-subject {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.email-detail-from {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.email-detail-date {
+    font-size: 13px;
+    color: #999;
+}
+
+.email-detail-body {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #333;
+}
+
+/* Calendar Styles */
+.calendar-container {
+    padding: 20px;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.calendar-header button {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 5px 10px;
+    color: #666;
+}
+
+.calendar-header button:hover {
+    background: #f0f0f0;
+    border-radius: 4px;
+}
+
+.calendar-header span {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    margin-bottom: 20px;
+}
+
+.calendar-day-header {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    padding: 10px 5px;
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.calendar-day:hover {
+    background: #f5f5f5;
+}
+
+.calendar-day.other-month {
+    color: #ccc;
+}
+
+.calendar-day.today {
+    background: #e3f2fd;
+    border-color: #0066cc;
+    font-weight: 600;
+}
+
+.calendar-day.selected {
+    background: #0066cc;
+    color: white;
+    border-color: #0066cc;
+}
+
+.calendar-day.has-events {
+    font-weight: 600;
+    position: relative;
+}
+
+.calendar-day.has-events::after {
+    content: '•';
+    position: absolute;
+    bottom: 2px;
+    color: #0066cc;
+    font-size: 16px;
+}
+
+.calendar-events-list {
+    border-top: 1px solid #e0e0e0;
+    padding-top: 20px;
+}
+
+.calendar-events-view {
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.calendar-events-view h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.calendar-events-list h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.calendar-events {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.calendar-event-item {
+    padding: 12px;
+    background: #f9f9f9;
+    border-left: 3px solid #0066cc;
+    border-radius: 4px;
+}
+
+.calendar-event-time {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.calendar-event-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.calendar-event-attendees {
+    font-size: 12px;
+    color: #888;
+}
+
+/* Remove old styles */
+.email-toolbar {
+    height: 50px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    gap: 10px;
+}
+
+.email-toolbar button {
+    padding: 8px 16px;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.email-toolbar button:hover {
+    background: #e8e8e8;
+    border-color: #999;
+}
+
+.email-toolbar button:focus {
+    outline: 2px solid #0078d4;
+}
+
+.email-main {
+    display: flex;
+    height: calc(100% - 50px);
+}
+
+.email-view-container {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+.email-list-view,
+.calendar-view {
+    width: 300px;
+    border-right: 1px solid #ddd;
+    overflow-y: auto;
+}
+
+.email-list,
+.calendar-list {
+    padding: 10px;
+}
+
+.email-item,
+.calendar-item {
+    padding: 15px;
+    border-bottom: 1px solid #e0e0e0;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.email-item:hover,
+.calendar-item:hover {
+    background: #f5f5f5;
+}
+
+.email-item:focus,
+.calendar-item:focus {
+    outline: 2px solid #0078d4;
+    background: #e8f4ff;
+}
+
+.email-item.selected,
+.calendar-item.selected {
+    background: #e8f4ff;
+}
+
+.email-item-subject {
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.email-item-from {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.email-item-date {
+    font-size: 11px;
+    color: #999;
+}
+
+.email-detail-view {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.email-detail-header {
+    border-bottom: 2px solid #0078d4;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.email-detail-subject {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.email-detail-meta {
+    font-size: 13px;
+    color: #666;
+}
+
+.email-detail-body {
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20000;
+}
+
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+.modal-body {
+    margin-bottom: 20px;
+}
+
+.modal-body label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.modal-body input,
+.modal-body textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.modal-body textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.modal-footer button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.modal-footer .btn-primary {
+    background: #0078d4;
+    color: white;
+}
+
+.modal-footer .btn-primary:hover {
+    background: #005a9e;
+}
+
+.modal-footer .btn-secondary {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.modal-footer .btn-secondary:hover {
+    background: #e0e0e0;
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
