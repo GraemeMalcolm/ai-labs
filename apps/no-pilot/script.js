@@ -222,7 +222,8 @@ function openApp(appName) {
         // Initialize app-specific content
         if (appName === 'email') {
             renderEmailList();
-            renderCalendar();
+            // Initialize calendar data in background (don't change visibility)
+            initializeCalendarData();
         }
         if (appName === 'files') {
             renderFiles();
@@ -282,6 +283,23 @@ function openEmailFromAI(emailId) {
         openApp('email');
         // Wait for app to render
         setTimeout(() => {
+            // Ensure email tab is active
+            const emailTab = document.getElementById('email-tab');
+            const calendarTab = document.getElementById('calendar-tab');
+            const emailListContainer = document.getElementById('email-list-container');
+            const calendarContainer = document.getElementById('calendar-container');
+            const emailDetailView = document.getElementById('email-detail-view');
+            const calendarEventsView = document.getElementById('calendar-events-view');
+            
+            if (emailTab && calendarTab && emailListContainer && calendarContainer) {
+                emailTab.classList.add('active');
+                calendarTab.classList.remove('active');
+                emailListContainer.style.display = 'block';
+                calendarContainer.style.display = 'none';
+                if (emailDetailView) emailDetailView.style.display = 'block';
+                if (calendarEventsView) calendarEventsView.style.display = 'none';
+            }
+            
             renderEmailList();
             showEmailDetail(email);
             // Highlight the email in the list
@@ -2094,6 +2112,7 @@ function setupEmailCalendar() {
         emailDetailView.style.display = 'none';
         calendarEventsView.style.display = 'block';
         renderCalendar();
+        calendarInitialized = true;
     });
 
     // Don't render on initial load - wait for app to open
@@ -2157,6 +2176,14 @@ function showEmailDetail(email) {
 // Calendar state
 let currentCalendarDate = new Date();
 let selectedCalendarDate = new Date();
+let calendarInitialized = false;
+
+// Initialize calendar data without rendering
+function initializeCalendarData() {
+    // Just mark that calendar should be initialized
+    // Actual rendering happens when calendar tab is clicked
+    calendarInitialized = false;
+}
 
 // Render calendar
 function renderCalendar() {
