@@ -222,6 +222,7 @@ function openApp(appName) {
         // Initialize app-specific content
         if (appName === 'email') {
             renderEmailList();
+            renderCalendar();
         }
         if (appName === 'files') {
             renderFiles();
@@ -322,19 +323,26 @@ function openEventFromAI(eventId) {
             const emailTab = document.getElementById('email-tab');
             const calendarContainer = document.getElementById('calendar-container');
             const emailListContainer = document.getElementById('email-list-container');
+            const emailDetailView = document.getElementById('email-detail-view');
+            const calendarEventsView = document.getElementById('calendar-events-view');
             
             if (calendarTab && emailTab && calendarContainer && emailListContainer) {
+                // Set the calendar to the event's date FIRST
+                selectedCalendarDate = new Date(event.date);
+                currentCalendarDate = new Date(event.date);
+                
+                // Then switch tabs
                 calendarTab.classList.add('active');
                 emailTab.classList.remove('active');
                 calendarContainer.style.display = 'block';
                 emailListContainer.style.display = 'none';
+                if (emailDetailView) emailDetailView.style.display = 'none';
+                if (calendarEventsView) calendarEventsView.style.display = 'block';
                 
-                // Set the calendar to the event's date
-                selectedCalendarDate = new Date(event.date);
-                currentCalendarDate = new Date(event.date);
+                // Finally render the calendar
                 renderCalendar();
             }
-        }, 100);
+        }, 150);
     }
 }
 
