@@ -1,0 +1,17 @@
+{
+  "categories": [
+    "Generative AI",
+    "Machine Learning",
+    "Speech",
+    "Computer Vision",
+    "Information Extraction"
+  ],
+  "totalDocuments": 118,
+  "folders": {
+    "01-generative-ai": "Generative AI",
+    "02-machine-learning": "Machine Learning",
+    "03-speech": "Speech",
+    "04-computer-vision": "Computer Vision",
+    "05-information-extraction": "Information Extraction"
+  }
+}

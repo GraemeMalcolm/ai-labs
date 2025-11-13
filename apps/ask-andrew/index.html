@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ask Andrew - AI Learning Assistant</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎓 Ask Andrew</h1>
+            <p class="subtitle">Your AI Learning Assistant</p>
+        </header>
+        
+        <div class="chat-wrapper">
+            <!-- Model Loading Progress -->
+            <div class="progress-section" id="progress-section">
+                <div class="progress-content">
+                    <div class="progress-icon">🤖</div>
+                    <h2>Loading AI Model</h2>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <p class="progress-text" id="progress-text">Initializing...</p>
+                    <p class="progress-info">This may take a minute on first load</p>
+                </div>
+            </div>
+
+            <!-- Chat Interface -->
+            <div class="chat-container" id="chat-container" style="display: none;">
+                <div class="chat-header">
+                    <div class="header-content">
+                        <h2>💬 Chat with Andrew</h2>
+                        <button class="restart-btn" id="restart-btn" title="Restart conversation">
+                            🔄 New Chat
+                        </button>
+                    </div>
+                    <p class="chat-description">Ask questions about AI, Machine Learning, Speech, Computer Vision, and Information Extraction</p>
+                </div>
+
+                <div class="chat-messages" id="chat-messages">
+                    <div class="welcome-message">
+                        <div class="avatar andrew-avatar">🎓</div>
+                        <div class="message-content">
+                            <p class="message-author">Andrew</p>
+                            <p>Hi! I'm Andrew, your AI learning assistant. I can help you understand concepts in:</p>
+                            <ul>
+                                <li>🤖 Generative AI & Language Models</li>
+                                <li>📊 Machine Learning</li>
+                                <li>🎤 Speech Recognition & Synthesis</li>
+                                <li>👁️ Computer Vision</li>
+                                <li>📄 Information Extraction</li>
+                            </ul>
+                            <p>What would you like to learn about today?</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-area">
+                    <div class="input-wrapper">
+                        <textarea 
+                            id="user-input" 
+                            placeholder="Ask a question about AI topics..."
+                            rows="1"
+                            aria-label="Your question"
+                        ></textarea>
+                        <button id="send-btn" class="send-btn" title="Send message" aria-label="Send message">
+                            <span class="send-icon">📤</span>
+                        </button>
+                    </div>
+                    <div class="input-info">
+                        <span id="search-status" class="search-status"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Powered by WebLLM (Phi-3-mini) • MiniSearch • Compromise.js</p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="script.js"></script>
+</body>
+</html>
