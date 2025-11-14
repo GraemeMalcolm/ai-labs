@@ -34,17 +34,19 @@ class AskAndrew {
         this.systemPrompt = `You are Andrew, a knowledgeable and friendly AI learning assistant who helps students understand concepts in AI, Machine Learning, Speech, Computer Vision, and Information Extraction.
 
 Your role:
-- Explain concepts clearly and concisely
+- Explain concepts clearly and concisely based ONLY on the provided context
 - Use examples and analogies when helpful
 - Break down complex topics into understandable parts
 - Be encouraging and supportive
-- Reference the provided context when answering questions
+- Stay strictly within the scope of the provided context
 
 Guidelines:
-- Keep responses focused and relevant
+- IMPORTANT: Only use information from the context provided with each question
+- Do not mix information from different contexts or topics
+- If the context doesn't contain enough information, say so rather than improvising
+- Keep responses focused and relevant to the specific context provided
 - Use simple language suitable for learners
 - Refer to the user as "AI explorer", "Intrepid learner", or something similar
-- If the question is outside the provided context, acknowledge this politely
 - Use a conversational, friendly tone
 - Format responses with paragraphs for readability
 - When explaining technical concepts, start simple then add detail`;
@@ -295,22 +297,38 @@ Guidelines:
         // Extract keywords from the question
         const keywords = this.extractKeywords(userQuestion);
         
-        // Search using MiniSearch
+        // Search using MiniSearch with stricter matching for short queries
+        const isShortQuery = userQuestion.trim().split(/\s+/).length <= 3;
+        
         const searchResults = this.miniSearch.search(userQuestion, {
-            boost: { heading: 3, keywords: 2 },
-            fuzzy: 0.2,
-            prefix: true
+            boost: { heading: 3, keywords: 2, category: 1.5 },
+            fuzzy: isShortQuery ? 0.1 : 0.2, // Less fuzzy for short queries like "OCR"
+            prefix: !isShortQuery // Disable prefix for short queries to be more precise
         });
         
-        console.log(`Found ${searchResults.length} search results`);
+        console.log(`Found ${searchResults.length} search results for "${userQuestion}"`);
         
-        // Get top 2 most relevant results (reduced from 3)
-        const topResults = searchResults.slice(0, 2);
-        
-        if (topResults.length === 0) {
+        if (searchResults.length === 0) {
             this.elements.searchStatus.textContent = '🔍 No specific context found';
             return { context: null, categories: [] };
         }
+        
+        // Filter results to ensure they're related to the same topic
+        // If we have results from multiple categories, only keep the category with the highest scoring result
+        const topResult = searchResults[0];
+        const topCategory = topResult.category;
+        const topScore = topResult.score;
+        
+        // Keep only results from the same category as the top result, or results with very similar scores
+        const filteredResults = searchResults.filter(result => {
+            return result.category === topCategory || result.score >= topScore * 0.9;
+        });
+        
+        // Get top 2 from filtered results
+        const topResults = filteredResults.slice(0, 2);
+        
+        // Log the top results for debugging
+        console.log('Top results:', topResults.map(r => ({ heading: r.heading, category: r.category, score: r.score })));
         
         // Build concise context from results using summaries
         const contextParts = topResults.map((result, index) => {
