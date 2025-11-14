@@ -25,7 +25,10 @@ class AskAndrew {
             sendBtn: document.getElementById('send-btn'),
             restartBtn: document.getElementById('restart-btn'),
             searchStatus: document.getElementById('search-status'),
-            modeToggle: document.getElementById('mode-toggle')
+            modeToggle: document.getElementById('mode-toggle'),
+            aiModeModal: document.getElementById('ai-mode-modal'),
+            modalClose: document.getElementById('modal-close'),
+            modalOk: document.getElementById('modal-ok')
         };
         
         this.systemPrompt = `You are Andrew, a knowledgeable and friendly AI learning assistant who helps students understand concepts in AI, Machine Learning, Speech, Computer Vision, and Information Extraction.
@@ -157,6 +160,13 @@ Guidelines:
     updateProgress(percentage, text) {
         this.elements.progressFill.style.width = `${percentage}%`;
         this.elements.progressText.textContent = text;
+        
+        // Update progress bar ARIA attributes
+        const progressBar = document.querySelector('.progress-bar');
+        if (progressBar) {
+            progressBar.setAttribute('aria-valuenow', percentage);
+            progressBar.setAttribute('aria-label', text);
+        }
     }
 
     showChatInterface() {
@@ -194,6 +204,35 @@ Guidelines:
             this.autoResizeTextarea();
         });
         
+        // Keyboard navigation
+        this.elements.userInput.addEventListener('keydown', (e) => {
+            // Enter to send (without Shift)
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (!this.isGenerating) {
+                    this.sendMessage();
+                }
+            }
+            // Escape to stop generation
+            if (e.key === 'Escape' && this.isGenerating) {
+                this.stopGeneration();
+            }
+        });
+        
+        // Global keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + K to focus input
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                this.elements.userInput.focus();
+            }
+            // Ctrl/Cmd + N for new chat
+            if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                e.preventDefault();
+                this.restartConversation();
+            }
+        });
+        
         // Restart button
         this.elements.restartBtn.addEventListener('click', () => {
             this.restartConversation();
@@ -202,6 +241,29 @@ Guidelines:
         // Mode toggle button
         this.elements.modeToggle.addEventListener('click', () => {
             this.toggleMode();
+        });
+        
+        // Modal handlers
+        this.elements.modalClose.addEventListener('click', () => {
+            this.hideAiModeModal();
+        });
+        
+        this.elements.modalOk.addEventListener('click', () => {
+            this.hideAiModeModal();
+        });
+        
+        // Close modal on overlay click
+        this.elements.aiModeModal.addEventListener('click', (e) => {
+            if (e.target === this.elements.aiModeModal || e.target.classList.contains('modal-overlay')) {
+                this.hideAiModeModal();
+            }
+        });
+        
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.elements.aiModeModal.style.display === 'flex') {
+                this.hideAiModeModal();
+            }
         });
     }
 
@@ -341,21 +403,30 @@ Guidelines:
         const modeTitle = this.simpleMode ? 
             'Currently in Simple mode (search only). Click to switch to AI mode.' : 
             'Currently in AI mode (uses WebGPU). Click to switch to Simple mode.';
+        const ariaLabel = this.simpleMode ?
+            'Toggle chat mode. Currently in Simple mode. Click to switch to AI mode.' :
+            'Toggle chat mode. Currently in AI mode. Click to switch to Simple mode.';
         
         this.elements.modeToggle.textContent = modeText;
         this.elements.modeToggle.title = modeTitle;
+        this.elements.modeToggle.setAttribute('aria-label', ariaLabel);
+        this.elements.modeToggle.setAttribute('aria-pressed', 'true');
         
         // Disable toggle if WebGPU not available
         if (!this.webGPUAvailable) {
             this.elements.modeToggle.textContent = '📝 Simple Mode: ON';
             this.elements.modeToggle.disabled = true;
             this.elements.modeToggle.title = 'WebGPU not available - Simple mode only';
+            this.elements.modeToggle.setAttribute('aria-label', 'Chat mode set to Simple mode only. WebGPU not available.');
+            this.elements.modeToggle.setAttribute('aria-disabled', 'true');
         }
     }
 
     addSystemMessage(message) {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'system-message';
+        messageDiv.setAttribute('role', 'status');
+        messageDiv.setAttribute('aria-live', 'polite');
         messageDiv.innerHTML = `<p>${message}</p>`;
         this.elements.chatMessages.appendChild(messageDiv);
         this.scrollToBottom();
@@ -364,24 +435,26 @@ Guidelines:
     addMessage(role, content, isTyping = false) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${role}-message`;
+        messageDiv.setAttribute('role', 'article');
+        messageDiv.setAttribute('aria-label', `Message from ${role === 'assistant' ? 'Andrew' : 'You'}`);
         
         if (role === 'assistant') {
             messageDiv.innerHTML = `
-                <div class="avatar andrew-avatar">
-                    <img src="images/andrew-icon.png" alt="Andrew" class="avatar-image">
+                <div class="avatar andrew-avatar" aria-hidden="true">
+                    <img src="images/andrew-icon.png" alt="Andrew the AI assistant avatar" class="avatar-image">
                 </div>
                 <div class="message-content">
-                    <p class="message-author">Andrew</p>
-                    <div class="message-text">${isTyping ? '<span class="typing-indicator">●●●</span>' : content}</div>
+                    <p class="message-author" aria-label="From Andrew">Andrew</p>
+                    <div class="message-text" ${isTyping ? 'aria-live="polite" aria-busy="true"' : ''}>${isTyping ? '<span class="typing-indicator" aria-label="Andrew is typing">●●●</span>' : content}</div>
                 </div>
             `;
         } else {
             messageDiv.innerHTML = `
                 <div class="message-content">
-                    <p class="message-author">You</p>
+                    <p class="message-author" aria-label="From You">You</p>
                     <div class="message-text">${this.escapeHtml(content)}</div>
                 </div>
-                <div class="avatar user-avatar">👤</div>
+                <div class="avatar user-avatar" aria-hidden="true">👤</div>
             `;
         }
         
@@ -487,12 +560,13 @@ Guidelines:
     }
 
     formatResponse(text) {
-        // Split out the learn more section if it exists
-        const learnMoreMatch = text.match(/([\s\S]*?)(---\s*\n\n\*\*Learn more:\*\*.*)/);
+        // Split out the learn more section and note if they exist
+        const learnMoreMatch = text.match(/([\s\S]*?)(---\s*\n\n\*\*Learn more:\*\*.*?)(\n\n\*Note:.*)?$/);
         
         if (learnMoreMatch) {
             const mainContent = learnMoreMatch[1];
             const learnMoreSection = learnMoreMatch[2];
+            const noteSection = learnMoreMatch[3] || '';
             
             // Format main content (escape HTML)
             let formatted = this.escapeHtml(mainContent);
@@ -511,7 +585,13 @@ Guidelines:
                 .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                 .replace(/---\s*\n\n/g, '<hr style="margin: 15px 0; border: none; border-top: 1px solid #e0e0e0;">\n\n');
             
-            return formatted + learnMoreFormatted;
+            // Format note section - preserve HTML links, convert markdown italics
+            const noteFormatted = noteSection
+                .replace(/\*([^*<>]+?)\*/g, '<em>$1</em>') // Only convert italics that don't contain HTML
+                .replace(/\n\n/g, '\n<p style="font-style: italic; color: #666; font-size: 0.9em;">') 
+                .replace(/^\n/, '<p style="font-style: italic; color: #666; font-size: 0.9em; margin-top: 10px;">') + '</p>';
+            
+            return formatted + learnMoreFormatted + (noteSection ? noteFormatted : '');
         }
         
         // No learn more section, process normally
@@ -567,7 +647,7 @@ Guidelines:
         const learnMoreText = this.buildLearnMoreLinks(resultCategories);
         response += learnMoreText + '\n\n';
         
-        response += "*Note: You're using Simple mode. Switch to AI mode for more detailed explanations.*";
+        response += "*Note: You're using Simple mode. Switch to <a href='#' class='ai-mode-link' onclick='window.askAndrew.showAiModeModal(); return false;'>AI mode</a> for more detailed explanations.*";
         
         this.addMessage('assistant', this.formatResponse(response));
         
@@ -616,13 +696,26 @@ Guidelines:
             console.log('Conversation restarted');
         }
     }
+    
+    showAiModeModal() {
+        this.elements.aiModeModal.style.display = 'flex';
+        this.elements.modalClose.focus();
+    }
+    
+    hideAiModeModal() {
+        this.elements.aiModeModal.style.display = 'none';
+        this.elements.userInput.focus();
+    }
 }
+
+// Make instance globally accessible for onclick handler
+window.askAndrew = null;
 
 // Initialize the app when DOM is loaded
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        new AskAndrew();
+        window.askAndrew = new AskAndrew();
     });
 } else {
-    new AskAndrew();
+    window.askAndrew = new AskAndrew();
 }
