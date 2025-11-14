@@ -121,12 +121,7 @@ def main():
         if folder_path.exists():
             print(f"Processing {category}...")
             index = create_index_for_folder(folder_path, category, start_id=current_id)
-            
-            # Save individual category index
-            output_file = base_path / f"{folder}-index.json"
-            with open(output_file, 'w', encoding='utf-8') as f:
-                json.dump(index, f, indent=2, ensure_ascii=False)
-            print(f"  Created {output_file.name} with {len(index)} entries")
+            print(f"  Added {len(index)} entries")
             
             all_docs.extend(index)
             current_id += len(index)  # Increment ID counter for next folder

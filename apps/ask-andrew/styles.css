@@ -147,7 +147,12 @@ header h1 {
     font-weight: 600;
 }
 
-.restart-btn {
+.header-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.restart-btn, .mode-toggle-btn {
     background: rgba(255,255,255,0.2);
     color: white;
     border: 1px solid rgba(255,255,255,0.3);
@@ -159,9 +164,19 @@ header h1 {
     font-weight: 500;
 }
 
-.restart-btn:hover {
+.restart-btn:hover, .mode-toggle-btn:hover {
     background: rgba(255,255,255,0.3);
     transform: translateY(-1px);
+}
+
+.mode-toggle-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.mode-toggle-btn:disabled:hover {
+    transform: none;
+    background: rgba(255,255,255,0.2);
 }
 
 .chat-description {
@@ -285,6 +300,25 @@ header h1 {
     font-style: italic;
 }
 
+.message-text a {
+    color: #0078d4;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.message-text a:hover {
+    text-decoration: underline;
+}
+
+.assistant-message .message-text a {
+    color: #0078d4;
+}
+
+.user-message .message-text a {
+    color: white;
+    text-decoration: underline;
+}
+
 /* Welcome Message */
 .welcome-message {
     background: white;
@@ -327,6 +361,18 @@ header h1 {
 @keyframes blink {
     0%, 100% { opacity: 0.3; }
     50% { opacity: 1; }
+}
+
+/* System Message */
+.system-message {
+    text-align: center;
+    margin: 15px 0;
+    padding: 8px 16px;
+    background: rgba(0, 120, 212, 0.1);
+    border-radius: 16px;
+    font-size: 0.9em;
+    color: #0078d4;
+    font-style: italic;
 }
 
 /* Chat Input Area */
@@ -473,7 +519,12 @@ footer {
         font-size: 1em;
     }
 
-    .restart-btn {
+    .header-buttons {
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .restart-btn, .mode-toggle-btn {
         padding: 6px 12px;
         font-size: 0.85em;
     }

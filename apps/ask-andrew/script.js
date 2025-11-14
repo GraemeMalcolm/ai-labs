@@ -9,8 +9,11 @@ class AskAndrew {
         this.conversationHistory = [];
         this.isGenerating = false;
         this.indexData = null;
+        this.metadata = null;
         this.stopRequested = false;
         this.currentStream = null;
+        this.webGPUAvailable = false;
+        this.simpleMode = false;
         
         this.elements = {
             progressSection: document.getElementById('progress-section'),
@@ -21,7 +24,8 @@ class AskAndrew {
             userInput: document.getElementById('user-input'),
             sendBtn: document.getElementById('send-btn'),
             restartBtn: document.getElementById('restart-btn'),
-            searchStatus: document.getElementById('search-status')
+            searchStatus: document.getElementById('search-status'),
+            modeToggle: document.getElementById('mode-toggle')
         };
         
         this.systemPrompt = `You are Andrew, a knowledgeable and friendly AI learning assistant who helps students understand concepts in AI, Machine Learning, Speech, Computer Vision, and Information Extraction.
@@ -35,6 +39,8 @@ Your role:
 
 Guidelines:
 - Keep responses focused and relevant
+- Use simple language suitable for learners
+- Refer to the user as "AI explorer", "Intrepid learner", or something similar
 - If the question is outside the provided context, acknowledge this politely
 - Use a conversational, friendly tone
 - Format responses with paragraphs for readability
@@ -45,8 +51,9 @@ Guidelines:
 
     async initialize() {
         try {
-            // Load the index
+            // Load the index and metadata
             await this.loadIndex();
+            await this.loadMetadata();
             
             // Initialize MiniSearch
             this.initializeMiniSearch();
@@ -72,6 +79,18 @@ Guidelines:
             console.log(`Loaded ${this.indexData.length} documents`);
         } catch (error) {
             console.error('Error loading index:', error);
+            throw error;
+        }
+    }
+
+    async loadMetadata() {
+        try {
+            const response = await fetch('index-metadata.json');
+            if (!response.ok) throw new Error('Failed to load metadata');
+            this.metadata = await response.json();
+            console.log('Loaded metadata with links:', this.metadata.links);
+        } catch (error) {
+            console.error('Error loading metadata:', error);
             throw error;
         }
     }
@@ -116,6 +135,7 @@ Guidelines:
             
             this.updateProgress(100, 'Ready to chat!');
             console.log('WebLLM engine initialized successfully');
+            this.webGPUAvailable = true;
             
             setTimeout(() => {
                 this.showChatInterface();
@@ -123,7 +143,14 @@ Guidelines:
             
         } catch (error) {
             console.error('Failed to initialize WebLLM:', error);
-            throw error;
+            console.log('Falling back to simple mode');
+            this.webGPUAvailable = false;
+            this.simpleMode = true;
+            this.updateProgress(100, 'Ready to chat! (Simple mode)');
+            
+            setTimeout(() => {
+                this.showChatInterface();
+            }, 500);
         }
     }
 
@@ -135,6 +162,7 @@ Guidelines:
     showChatInterface() {
         this.elements.progressSection.style.display = 'none';
         this.elements.chatContainer.style.display = 'flex';
+        this.updateModeToggle();
         this.elements.userInput.focus();
     }
 
@@ -169,6 +197,11 @@ Guidelines:
         // Restart button
         this.elements.restartBtn.addEventListener('click', () => {
             this.restartConversation();
+        });
+        
+        // Mode toggle button
+        this.elements.modeToggle.addEventListener('click', () => {
+            this.toggleMode();
         });
     }
 
@@ -214,7 +247,7 @@ Guidelines:
         
         if (topResults.length === 0) {
             this.elements.searchStatus.textContent = '🔍 No specific context found';
-            return null;
+            return { context: null, categories: [] };
         }
         
         // Build concise context from results using summaries
@@ -226,7 +259,10 @@ Guidelines:
         const categories = [...new Set(topResults.map(r => r.category))];
         this.elements.searchStatus.textContent = `🔍 Found context in: ${categories.join(', ')}`;
         
-        return contextParts.join('\n\n');
+        return { 
+            context: contextParts.join('\n\n'),
+            categories: categories
+        };
     }
 
     async sendMessage() {
@@ -242,10 +278,10 @@ Guidelines:
         this.addMessage('user', userMessage);
         
         // Search for relevant context
-        const context = this.searchContext(userMessage);
+        const searchResult = this.searchContext(userMessage);
         
         // Generate response
-        await this.generateResponse(userMessage, context);
+        await this.generateResponse(userMessage, searchResult);
         
         // Clear search status after a delay
         setTimeout(() => {
@@ -269,6 +305,48 @@ Guidelines:
     stopGeneration() {
         this.stopRequested = true;
         console.log('Stop requested');
+    }
+
+    toggleMode() {
+        if (!this.webGPUAvailable) {
+            alert('WebGPU mode is not available in this browser. Simple mode is the only option.');
+            return;
+        }
+        
+        this.simpleMode = !this.simpleMode;
+        this.updateModeToggle();
+        
+        const mode = this.simpleMode ? 'Simple' : 'AI';
+        console.log(`Switched to ${mode} mode`);
+        
+        // Add a system message to indicate mode change
+        this.addSystemMessage(`Switched to ${mode} mode`);
+    }
+
+    updateModeToggle() {
+        // Show current mode state, not the mode to switch to
+        const modeText = this.simpleMode ? '📝 Simple Mode: ON' : '🤖 AI Mode: ON';
+        const modeTitle = this.simpleMode ? 
+            'Currently in Simple mode (search only). Click to switch to AI mode.' : 
+            'Currently in AI mode (uses WebGPU). Click to switch to Simple mode.';
+        
+        this.elements.modeToggle.textContent = modeText;
+        this.elements.modeToggle.title = modeTitle;
+        
+        // Disable toggle if WebGPU not available
+        if (!this.webGPUAvailable) {
+            this.elements.modeToggle.textContent = '📝 Simple Mode: ON';
+            this.elements.modeToggle.disabled = true;
+            this.elements.modeToggle.title = 'WebGPU not available - Simple mode only';
+        }
+    }
+
+    addSystemMessage(message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'system-message';
+        messageDiv.innerHTML = `<p>${message}</p>`;
+        this.elements.chatMessages.appendChild(messageDiv);
+        this.scrollToBottom();
     }
 
     addMessage(role, content, isTyping = false) {
@@ -301,7 +379,15 @@ Guidelines:
         return messageDiv;
     }
 
-    async generateResponse(userMessage, context) {
+    async generateResponse(userMessage, searchResult) {
+        // Use simple mode if explicitly enabled or if WebGPU not available
+        if (this.simpleMode || !this.webGPUAvailable) {
+            this.generateSimpleResponse(userMessage, searchResult);
+            return;
+        }
+        
+        const { context, categories } = searchResult;
+        
         this.isGenerating = true;
         this.stopRequested = false;
         this.updateSendButton(true);
@@ -359,6 +445,13 @@ Guidelines:
                 }
             }
             
+            // Add learn more links
+            if (categories && categories.length > 0) {
+                const learnMoreText = this.buildLearnMoreLinks(categories);
+                assistantMessage += '\n\n' + learnMoreText;
+                messageTextDiv.innerHTML = this.formatResponse(assistantMessage);
+            }
+            
             // Add to full conversation history (keep complete history)
             this.conversationHistory.push({
                 role: 'user',
@@ -382,7 +475,34 @@ Guidelines:
     }
 
     formatResponse(text) {
-        // Convert markdown-like formatting to HTML
+        // Split out the learn more section if it exists
+        const learnMoreMatch = text.match(/([\s\S]*?)(---\s*\n\n\*\*Learn more:\*\*.*)/);
+        
+        if (learnMoreMatch) {
+            const mainContent = learnMoreMatch[1];
+            const learnMoreSection = learnMoreMatch[2];
+            
+            // Format main content (escape HTML)
+            let formatted = this.escapeHtml(mainContent);
+            
+            // Convert **bold** to <strong>
+            formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            
+            // Convert *italic* to <em>
+            formatted = formatted.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            
+            // Convert line breaks to paragraphs
+            formatted = formatted.split('\n\n').map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+            
+            // Add learn more section with actual HTML links (don't escape this part)
+            const learnMoreFormatted = learnMoreSection
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/---\s*\n\n/g, '<hr style="margin: 15px 0; border: none; border-top: 1px solid #e0e0e0;">\n\n');
+            
+            return formatted + learnMoreFormatted;
+        }
+        
+        // No learn more section, process normally
         let formatted = this.escapeHtml(text);
         
         // Convert **bold** to <strong>
@@ -401,6 +521,68 @@ Guidelines:
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    generateSimpleResponse(userMessage, searchResult) {
+        const { context, categories } = searchResult || { context: null, categories: [] };
+        
+        // Search for relevant results
+        const searchResults = this.miniSearch.search(userMessage, {
+            boost: { heading: 3, keywords: 2 },
+            fuzzy: 0.2,
+            prefix: true
+        });
+        
+        const topResults = searchResults.slice(0, 3);
+        
+        if (topResults.length === 0) {
+            this.addMessage('assistant', "I couldn't find any relevant information in my knowledge base for that question. Please try rephrasing or ask about AI, Machine Learning, Speech, Computer Vision, or Information Extraction topics.");
+            return;
+        }
+        
+        // Build response from summaries
+        let response = "Here's what I found:\n\n";
+        
+        topResults.forEach((result, index) => {
+            response += `**${index + 1}. ${result.heading}** (${result.category})\n`;
+            response += `${result.summary}\n\n`;
+        });
+        
+        // Get unique categories from results
+        const resultCategories = [...new Set(topResults.map(r => r.category))];
+        
+        // Add learn more links
+        const learnMoreText = this.buildLearnMoreLinks(resultCategories);
+        response += learnMoreText + '\n\n';
+        
+        response += "*Note: You're using Simple mode. Switch to AI mode for more detailed explanations.*";
+        
+        this.addMessage('assistant', this.formatResponse(response));
+        
+        // Update search status
+        this.elements.searchStatus.textContent = `🔍 Found in: ${resultCategories.join(', ')}`;
+        
+        setTimeout(() => {
+            this.elements.searchStatus.textContent = '';
+        }, 3000);
+    }
+
+    buildLearnMoreLinks(categories) {
+        if (!categories || categories.length === 0 || !this.metadata || !this.metadata.links) {
+            return '';
+        }
+        
+        const links = categories.map(category => {
+            const link = this.metadata.links[category];
+            if (link) {
+                return `<a href="${link}" target="_blank" rel="noopener noreferrer">${category}</a>`;
+            }
+            return null;
+        }).filter(link => link !== null);
+        
+        if (links.length === 0) return '';
+        
+        return `---\n\n**Learn more:** ${links.join(' • ')}`;
     }
 
     scrollToBottom() {

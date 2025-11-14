@@ -13,5 +13,12 @@
     "03-speech": "Speech",
     "04-computer-vision": "Computer Vision",
     "05-information-extraction": "Information Extraction"
+  },
+  "links": {
+    "Generative AI": "https://aka.ms/mslearn-intro-gen-ai",
+    "Machine Learning": "https://aka.ms/mslearn-ml-concepts",
+    "Speech": "https://aka.ms/mslearn-ai-speech",
+    "Computer Vision": "https://aka.ms/mslearn-vision",
+    "Information Extraction": "https://aka.ms/mslearn-ai-info"
   }
 }
