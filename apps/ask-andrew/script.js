@@ -9,6 +9,8 @@ class AskAndrew {
         this.conversationHistory = [];
         this.isGenerating = false;
         this.indexData = null;
+        this.stopRequested = false;
+        this.currentStream = null;
         
         this.elements = {
             progressSection: document.getElementById('progress-section'),
@@ -143,11 +145,17 @@ Guidelines:
 
     setupEventListeners() {
         // Send button click
-        this.elements.sendBtn.addEventListener('click', () => this.sendMessage());
+        this.elements.sendBtn.addEventListener('click', () => {
+            if (this.isGenerating) {
+                this.stopGeneration();
+            } else {
+                this.sendMessage();
+            }
+        });
         
         // Enter key to send (Shift+Enter for new line)
         this.elements.userInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            if (e.key === 'Enter' && !e.shiftKey && !this.isGenerating) {
                 e.preventDefault();
                 this.sendMessage();
             }
@@ -245,13 +253,33 @@ Guidelines:
         }, 3000);
     }
 
+    updateSendButton(isGenerating) {
+        const sendIcon = this.elements.sendBtn.querySelector('.send-icon');
+        if (isGenerating) {
+            sendIcon.textContent = '■';
+            this.elements.sendBtn.title = 'Stop generation';
+            this.elements.sendBtn.setAttribute('aria-label', 'Stop generation');
+        } else {
+            sendIcon.textContent = '▶';
+            this.elements.sendBtn.title = 'Send message';
+            this.elements.sendBtn.setAttribute('aria-label', 'Send message');
+        }
+    }
+
+    stopGeneration() {
+        this.stopRequested = true;
+        console.log('Stop requested');
+    }
+
     addMessage(role, content, isTyping = false) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${role}-message`;
         
         if (role === 'assistant') {
             messageDiv.innerHTML = `
-                <div class="avatar andrew-avatar">🎓</div>
+                <div class="avatar andrew-avatar">
+                    <img src="images/andrew-icon.png" alt="Andrew" class="avatar-image">
+                </div>
                 <div class="message-content">
                     <p class="message-author">Andrew</p>
                     <div class="message-text">${isTyping ? '<span class="typing-indicator">●●●</span>' : content}</div>
@@ -275,6 +303,8 @@ Guidelines:
 
     async generateResponse(userMessage, context) {
         this.isGenerating = true;
+        this.stopRequested = false;
+        this.updateSendButton(true);
         
         // Add empty message that we'll stream into
         const responseMessage = this.addMessage('assistant', '', false);
@@ -310,10 +340,16 @@ Guidelines:
                 stream: true // Enable streaming
             });
             
+            this.currentStream = completion;
             let assistantMessage = '';
             
             // Stream the response
             for await (const chunk of completion) {
+                if (this.stopRequested) {
+                    console.log('Generation stopped by user');
+                    break;
+                }
+                
                 const delta = chunk.choices[0]?.delta?.content;
                 if (delta) {
                     assistantMessage += delta;
@@ -339,6 +375,9 @@ Guidelines:
             this.addMessage('assistant', 'Sorry, I encountered an error. Please try again.');
         } finally {
             this.isGenerating = false;
+            this.stopRequested = false;
+            this.currentStream = null;
+            this.updateSendButton(false);
         }
     }
 
