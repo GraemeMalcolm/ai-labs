@@ -277,6 +277,18 @@ Guidelines:
         // Add user message to chat
         this.addMessage('user', userMessage);
         
+        // Check if this is an initial greeting (only if no messages yet)
+        const messageCount = this.elements.chatMessages.querySelectorAll('.message').length;
+        if (messageCount <= 1) { // Only user's message is in chat
+            const greetingPattern = /^(hi|hello|hey|greetings|good morning|good afternoon|good evening)[\s!?]*$/i;
+            if (greetingPattern.test(userMessage)) {
+                // Respond with greeting without searching
+                const greetingResponse = "Hello, I'm Andrew. I'm here to help you learn about AI concepts. What would you like to know?";
+                this.addMessage('assistant', this.formatResponse(greetingResponse));
+                return;
+            }
+        }
+        
         // Search for relevant context
         const searchResult = this.searchContext(userMessage);
         
