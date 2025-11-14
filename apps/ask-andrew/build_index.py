@@ -51,6 +51,10 @@ def extract_headings_and_content(markdown_file):
 
 def extract_keywords(text):
     """Extract important keywords from text using improved filtering."""
+    # Extract acronyms (2-5 uppercase letters) before lowercasing
+    acronyms = re.findall(r'\b[A-Z]{2,5}\b', text)
+    acronyms = [a.lower() for a in acronyms]
+    
     # Remove special characters and convert to lowercase
     text = re.sub(r'[^a-zA-Z0-9\s-]', ' ', text.lower())
     # Split into words
@@ -94,10 +98,18 @@ def extract_keywords(text):
     # Filter words: must be longer than 3 chars and not in stop words
     keywords = [w for w in words if len(w) > 3 and w not in stop_words]
     
+    # Add acronyms (already lowercased)
+    keywords.extend(acronyms)
+    
     # Count word frequency
     word_freq = {}
     for word in keywords:
         word_freq[word] = word_freq.get(word, 0) + 1
+    
+    # Boost acronyms - they're important identifiers (multiply frequency by 3)
+    for acronym in set(acronyms):
+        if acronym in word_freq:
+            word_freq[acronym] *= 3
     
     # Sort by frequency (descending) and return top keywords
     sorted_keywords = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)
@@ -146,13 +158,14 @@ def generate_semantic_keywords(category, heading, content):
         'object detection': ['localization', 'bounding-box', 'finding-objects', 'item-detection'],
         'image classification': ['categorization', 'labeling', 'tagging', 'image-recognition'],
         'segmentation': ['masking', 'pixel-classification', 'region-detection'],
+        'convolutional neural network': ['cnn', 'cnns', 'convolution', 'filter', 'feature-map', 'image-processing'],
         
         # ML topics
         'regression': ['prediction', 'continuous', 'forecasting', 'estimation'],
         'classification': ['categorization', 'labeling', 'prediction', 'sorting'],
         'clustering': ['grouping', 'segmentation', 'unsupervised', 'patterns'],
         'neural network': ['deep-learning', 'neurons', 'layers', 'backpropagation'],
-        'deep learning': ['neural-networks', 'cnn', 'rnn', 'transformer'],
+        'deep learning': ['neural-networks', 'rnn', 'transformer'],
         
         # Generative AI topics
         'large language model': ['llm', 'llms', 'large-language-model', 'foundation-model'],

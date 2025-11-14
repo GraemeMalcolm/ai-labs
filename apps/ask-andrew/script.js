@@ -106,7 +106,7 @@ Guidelines:
         // Create MiniSearch instance
         this.miniSearch = new MiniSearch({
             fields: ['heading', 'content', 'keywords', 'category'],
-            storeFields: ['id', 'category', 'file', 'heading', 'content', 'summary'],
+            storeFields: ['id', 'category', 'file', 'heading', 'content', 'summary', 'keywords'],
             searchOptions: {
                 boost: { heading: 3, keywords: 2, category: 1.5, content: 1 },
                 fuzzy: 0.2,
@@ -308,14 +308,33 @@ Guidelines:
         // Extract keywords from the question
         const keywords = this.extractKeywords(userQuestion);
         
+        // Detect acronyms in the question (2-5 uppercase letters)
+        const acronyms = (userQuestion.match(/\b[A-Z]{2,5}\b/g) || []).map(a => a.toLowerCase());
+        console.log('Detected acronyms:', acronyms);
+        
         // Search using MiniSearch with stricter matching for short queries
         const isShortQuery = userQuestion.trim().split(/\s+/).length <= 3;
         
-        const searchResults = this.miniSearch.search(userQuestion, {
+        let searchResults = this.miniSearch.search(userQuestion, {
             boost: { heading: 3, keywords: 2, category: 1.5 },
             fuzzy: isShortQuery ? 0.1 : 0.2, // Less fuzzy for short queries like "OCR"
             prefix: !isShortQuery // Disable prefix for short queries to be more precise
         });
+        
+        // If acronyms detected, prioritize results that contain those acronyms
+        if (acronyms.length > 0) {
+            searchResults = searchResults.map(result => {
+                let boostMultiplier = 1;
+                acronyms.forEach(acronym => {
+                    // Check if acronym appears in heading or keywords
+                    if (result.heading.toLowerCase().includes(acronym) || 
+                        result.keywords.some(k => k.toLowerCase() === acronym)) {
+                        boostMultiplier += 2; // Boost score by 2x for each matching acronym
+                    }
+                });
+                return { ...result, score: result.score * boostMultiplier };
+            }).sort((a, b) => b.score - a.score);
+        }
         
         console.log(`Found ${searchResults.length} search results for "${userQuestion}"`);
         
@@ -385,11 +404,6 @@ Guidelines:
         
         // Generate response
         await this.generateResponse(userMessage, searchResult);
-        
-        // Clear search status after a delay
-        setTimeout(() => {
-            this.elements.searchStatus.textContent = '';
-        }, 3000);
     }
 
     updateSendButton(isGenerating) {
@@ -602,6 +616,11 @@ Guidelines:
             this.stopRequested = false;
             this.currentStream = null;
             this.updateSendButton(false);
+            
+            // Clear search status after response is complete
+            setTimeout(() => {
+                this.elements.searchStatus.textContent = '';
+            }, 2000);
         }
     }
 

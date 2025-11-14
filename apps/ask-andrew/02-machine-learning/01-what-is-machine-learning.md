@@ -9,6 +9,8 @@
 
 ::: zone pivot="text"
 
+## What is machine learning?
+
 Because machine learning is based on mathematics and statistics, it's common to think about machine learning models in mathematical terms. Fundamentally, a machine learning model is a software application that encapsulates a *function* to calculate an output value based on one or more input values. The process of defining that function is known as *training*. After the function has been defined, you can use it to predict new values in a process called *inferencing*.
 
 Let's explore the steps involved in training and inferencing.
