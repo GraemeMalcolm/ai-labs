@@ -524,6 +524,19 @@ header h1 {
     font-style: italic;
 }
 
+.disclaimer {
+    text-align: center;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e9ecef;
+}
+
+.disclaimer p {
+    font-size: 0.75em;
+    color: #999;
+    margin: 0;
+}
+
 /* Footer */
 footer {
     text-align: center;
