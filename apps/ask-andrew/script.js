@@ -46,10 +46,10 @@ Guidelines:
 - If the context doesn't contain enough information, say so rather than improvising
 - Keep responses focused and relevant to the specific context provided
 - Use simple language suitable for learners
-- Refer to the user as "AI explorer", "Intrepid learner", or something similar
 - Use a conversational, friendly tone
 - Format responses with paragraphs for readability
-- When explaining technical concepts, start simple then add detail`;
+- When explaining technical concepts, start simple then add detail
+- Do NOT provide links for more information (these will be added automatically later).`;
 
         this.initialize();
     }
@@ -266,6 +266,17 @@ Guidelines:
             if (e.key === 'Escape' && this.elements.aiModeModal.style.display === 'flex') {
                 this.hideAiModeModal();
             }
+        });
+        
+        // Example question buttons
+        const exampleBtns = document.querySelectorAll('.example-btn');
+        exampleBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const question = btn.getAttribute('data-question');
+                this.elements.userInput.value = question;
+                this.elements.userInput.focus();
+                this.autoResizeTextarea();
+            });
         });
     }
 
