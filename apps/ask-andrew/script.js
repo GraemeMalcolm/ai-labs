@@ -561,18 +561,26 @@ Guidelines:
             
             // Add learn more links
             if (categories && categories.length > 0) {
-                const learnMoreHtml = this.buildLearnMoreLinks(categories);
-                // Add placeholder
+                // Store original message without learn more for conversation history
+                const originalMessage = assistantMessage;
+                
+                // Add placeholder for learn more section for display only
                 assistantMessage += '\n\n---\n\n**Learn more:** [[LEARN_MORE_LINKS]]';
                 
                 // Format the message
                 let formattedMessage = this.formatResponse(assistantMessage);
                 
-                // Replace placeholder with actual HTML
-                const linksOnly = learnMoreHtml.replace(/---\s*\n\n\*\*Learn more:\*\*\s*/, '');
-                formattedMessage = formattedMessage.replace('[[LEARN_MORE_LINKS]]', linksOnly);
+                // Replace placeholder with actual HTML links
+                const learnMoreHtml = this.buildLearnMoreLinks(categories);
+                if (learnMoreHtml) {
+                    const linksOnly = learnMoreHtml.replace(/---\s*\n\n\*\*Learn more:\*\*\s*/, '');
+                    formattedMessage = formattedMessage.replace(/\[\[LEARN_MORE_LINKS\]\]/g, linksOnly);
+                }
                 
                 messageTextDiv.innerHTML = formattedMessage;
+                
+                // Reset assistantMessage to original for conversation history
+                assistantMessage = originalMessage;
             }
             
             // Add to full conversation history (keep complete history)
