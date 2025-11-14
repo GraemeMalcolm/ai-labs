@@ -561,9 +561,18 @@ Guidelines:
             
             // Add learn more links
             if (categories && categories.length > 0) {
-                const learnMoreText = this.buildLearnMoreLinks(categories);
-                assistantMessage += '\n\n' + learnMoreText;
-                messageTextDiv.innerHTML = this.formatResponse(assistantMessage);
+                const learnMoreHtml = this.buildLearnMoreLinks(categories);
+                // Add placeholder
+                assistantMessage += '\n\n---\n\n**Learn more:** [[LEARN_MORE_LINKS]]';
+                
+                // Format the message
+                let formattedMessage = this.formatResponse(assistantMessage);
+                
+                // Replace placeholder with actual HTML
+                const linksOnly = learnMoreHtml.replace(/---\s*\n\n\*\*Learn more:\*\*\s*/, '');
+                formattedMessage = formattedMessage.replace('[[LEARN_MORE_LINKS]]', linksOnly);
+                
+                messageTextDiv.innerHTML = formattedMessage;
             }
             
             // Add to full conversation history (keep complete history)
@@ -609,18 +618,21 @@ Guidelines:
             // Convert line breaks to paragraphs
             formatted = formatted.split('\n\n').map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
             
-            // Add learn more section with actual HTML links (don't escape this part)
+            // Add learn more section - preserve placeholders and HTML structure
             const learnMoreFormatted = learnMoreSection
                 .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                 .replace(/---\s*\n\n/g, '<hr style="margin: 15px 0; border: none; border-top: 1px solid #e0e0e0;">\n\n');
             
-            // Format note section - preserve HTML links, convert markdown italics
-            const noteFormatted = noteSection
-                .replace(/\*([^*<>]+?)\*/g, '<em>$1</em>') // Only convert italics that don't contain HTML
-                .replace(/\n\n/g, '\n<p style="font-style: italic; color: #666; font-size: 0.9em;">') 
-                .replace(/^\n/, '<p style="font-style: italic; color: #666; font-size: 0.9em; margin-top: 10px;">') + '</p>';
+            // Format note section - preserve placeholders
+            let noteFormatted = '';
+            if (noteSection) {
+                // Extract the note text (remove leading \n\n*Note: and trailing *)
+                let noteText = noteSection.replace(/^\n\n\*Note:\s*/g, '').replace(/\*$/g, '');
+                // Wrap in styled paragraph - placeholders will be replaced by caller
+                noteFormatted = `<p style="font-style: italic; color: #666; font-size: 0.9em; margin-top: 10px;">Note: ${noteText}</p>`;
+            }
             
-            return formatted + learnMoreFormatted + (noteSection ? noteFormatted : '');
+            return formatted + learnMoreFormatted + noteFormatted;
         }
         
         // No learn more section, process normally
@@ -672,13 +684,33 @@ Guidelines:
         // Get unique categories from results
         const resultCategories = [...new Set(topResults.map(r => r.category))];
         
-        // Add learn more links
-        const learnMoreText = this.buildLearnMoreLinks(resultCategories);
-        response += learnMoreText + '\n\n';
+        // Build learn more links (will be injected after formatting)
+        const learnMoreHtml = this.buildLearnMoreLinks(resultCategories);
         
-        response += "*Note: You're using Simple mode. Switch to <a href='#' class='ai-mode-link' onclick='window.askAndrew.showAiModeModal(); return false;'>AI mode</a> for more detailed explanations.*";
+        // Add learn more placeholder
+        if (learnMoreHtml) {
+            response += '---\n\n**Learn more:** [[LEARN_MORE_LINKS]]\n\n';
+        }
         
-        this.addMessage('assistant', this.formatResponse(response));
+        // Add note with placeholder for AI mode link
+        response += "*Note: You're using Simple mode. Switch to [[AI_MODE_LINK]] for more detailed explanations.*";
+        
+        // Format and add the message
+        let formattedResponse = this.formatResponse(response);
+        
+        // Replace placeholders with actual HTML
+        if (learnMoreHtml) {
+            // Extract just the links part from the buildLearnMoreLinks output
+            const linksOnly = learnMoreHtml.replace(/---\s*\n\n\*\*Learn more:\*\*\s*/, '');
+            formattedResponse = formattedResponse.replace('[[LEARN_MORE_LINKS]]', linksOnly);
+        }
+        
+        formattedResponse = formattedResponse.replace(
+            '[[AI_MODE_LINK]]',
+            '<a href="#" class="ai-mode-link" onclick="window.askAndrew.showAiModeModal(); return false;">AI mode</a>'
+        );
+        
+        this.addMessage('assistant', formattedResponse);
         
         // Update search status
         this.elements.searchStatus.textContent = `🔍 Found in: ${resultCategories.join(', ')}`;
