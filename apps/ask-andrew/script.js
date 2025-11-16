@@ -610,7 +610,7 @@ Guidelines:
         } catch (error) {
             console.error('Error generating response:', error);
             responseMessage.remove();
-            this.addMessage('assistant', 'Sorry, I encountered an error. Please try again.');
+            this.addMessage('assistant', 'Sorry, I encountered an error. Please try again or switch to Simple mode.');
         } finally {
             this.isGenerating = false;
             this.stopRequested = false;

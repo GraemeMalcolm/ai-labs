@@ -144,7 +144,7 @@ header h1 {
 .chat-header {
     background: linear-gradient(135deg, #787878 0%, #5a5a5a 100%);
     color: white;
-    padding: 20px 25px;
+    padding: 12px 25px;
     border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
@@ -152,7 +152,7 @@ header h1 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 0;
 }
 
 .chat-header h2 {
@@ -397,7 +397,7 @@ header h1 {
 /* Chat Input Area */
 .chat-input-area {
     background: white;
-    padding: 20px 25px;
+    padding: 12px 25px 8px 25px;
     border-top: 1px solid #e9ecef;
 }
 
@@ -526,15 +526,17 @@ header h1 {
 
 .disclaimer {
     text-align: center;
-    margin-top: 12px;
-    padding-top: 12px;
+    margin-top: 4px;
+    padding-top: 4px;
+    padding-bottom: 2px;
     border-top: 1px solid #e9ecef;
 }
 
 .disclaimer p {
-    font-size: 0.75em;
+    font-size: 0.7em;
     color: #999;
     margin: 0;
+    line-height: 1;
 }
 
 /* Footer */
