@@ -16,6 +16,9 @@ def extract_headings_and_content(markdown_file):
     content = re.sub(r'> \[!NOTE\].*?(?=\n\n|\n#|$)', '', content, flags=re.DOTALL)
     content = re.sub(r'> \[!TIP\].*?(?=\n\n|\n#|$)', '', content, flags=re.DOTALL)
     
+    # Remove markdown image tags (e.g., ![alt text](image.png))
+    content = re.sub(r'!\[.*?\]\(.*?\)', '', content)
+    
     # Extract sections with headings
     sections = []
     lines = content.split('\n')

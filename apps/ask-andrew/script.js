@@ -34,21 +34,19 @@ class AskAndrew {
         this.systemPrompt = `You are Andrew, a knowledgeable and friendly AI learning assistant who helps students understand concepts in AI, Machine Learning, Speech, Computer Vision, and Information Extraction.
 
 Your role:
-- Explain concepts clearly and concisely based ONLY on the provided context
+- Explain concepts clearly and concisely based on the provided context
 - Use examples and analogies when helpful
 - Break down complex topics into understandable parts
 - Be encouraging and supportive
 - Use simple language suitable for learners in a conversational, friendly tone
-- Stay strictly within the scope of the provided context
 
 Guidelines:
 - IMPORTANT: Only use information from the context provided with each question
-- Do not mix information from different contexts or topics
 - If the context doesn't contain enough information, say so rather than improvising
 - Do not start responses with "A:"
 - Do not call the user "Andrew" (that's you!)
 - Format responses with paragraphs for readability
-- When explaining technical concepts, start simple then add detail
+- Keep your responses short and to the the point to minimize unnecessary tokens
 - Do NOT provide links for more information (these will be added automatically later).`;
 
         this.initialize();
@@ -302,6 +300,54 @@ Guidelines:
         
         console.log('Extracted keywords:', keywords);
         return keywords;
+    }
+
+    summarizeWithTextRank(text, maxSentences = 3) {
+        // Use Compromise.js to split text into sentences
+        const doc = nlp(text);
+        const sentences = doc.sentences().out('array');
+        
+        if (sentences.length <= maxSentences) {
+            return text; // Already short enough
+        }
+        
+        // Calculate sentence scores based on word frequency (simplified TextRank)
+        const words = text.toLowerCase()
+            .replace(/[^\w\s]/g, ' ')
+            .split(/\s+/)
+            .filter(w => w.length > 3); // Filter short words
+        
+        const wordFreq = {};
+        words.forEach(word => {
+            wordFreq[word] = (wordFreq[word] || 0) + 1;
+        });
+        
+        // Score each sentence by sum of word frequencies
+        const sentenceScores = sentences.map(sentence => {
+            const sentenceWords = sentence.toLowerCase()
+                .replace(/[^\w\s]/g, ' ')
+                .split(/\s+/)
+                .filter(w => w.length > 3);
+            
+            const score = sentenceWords.reduce((sum, word) => {
+                return sum + (wordFreq[word] || 0);
+            }, 0) / (sentenceWords.length || 1); // Average score
+            
+            return { sentence, score };
+        });
+        
+        // Sort by score and take top sentences
+        const topSentences = sentenceScores
+            .sort((a, b) => b.score - a.score)
+            .slice(0, maxSentences)
+            .map(s => s.sentence);
+        
+        // Return sentences in original order
+        const result = sentences
+            .filter(s => topSentences.includes(s))
+            .join(' ');
+        
+        return result;
     }
 
     searchContext(userQuestion) {
@@ -700,12 +746,19 @@ Guidelines:
             return;
         }
         
-        // Build response from summaries
+        // Build response from TextRank summaries of content
         let response = "Here's what I found:\n\n";
         
         topResults.forEach((result, index) => {
+            // Get the full content from the original indexData
+            const fullEntry = this.indexData.find(item => item.id === result.id);
+            const content = fullEntry ? fullEntry.content : result.content;
+            
+            // Use TextRank to summarize the content (2-3 sentences)
+            const summary = this.summarizeWithTextRank(content, 2);
+            
             response += `**${index + 1}. ${result.heading}** (${result.category})\n`;
-            response += `${result.summary}\n\n`;
+            response += `${summary}\n\n`;
         });
         
         // Get unique categories from results
