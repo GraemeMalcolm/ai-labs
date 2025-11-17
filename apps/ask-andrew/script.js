@@ -11,6 +11,7 @@ class AskAndrew {
         this.indexData = null;
         this.metadata = null;
         this.categoryLinks = null; // Separate category links file
+        this.technicalTerms = null; // Multi-word technical terms
         this.stopRequested = false;
         this.currentStream = null;
         this.webGPUAvailable = false;
@@ -32,14 +33,12 @@ class AskAndrew {
             modalOk: document.getElementById('modal-ok')
         };
         
-        this.systemPrompt = `You are Andrew, a knowledgeable and friendly AI learning assistant who helps students understand concepts in AI, Machine Learning, Speech, Computer Vision, and Information Extraction.
+        this.systemPrompt = `You are Andrew, a knowledgeable and friendly AI learning assistant who helps students understand AI concepts.
 
 Your role:
 - Explain concepts clearly and concisely based on the provided context
 - Keep responses short and focused on the question
 - Use examples and analogies when helpful
-- Break down complex topics into understandable parts
-- Be encouraging and supportive
 - Use simple language suitable for learners in a conversational, friendly tone
 
 Guidelines:
@@ -60,6 +59,7 @@ Guidelines:
             await this.loadIndex();
             await this.loadMetadata();
             await this.loadCategoryLinks();
+            await this.loadTechnicalTerms();
             
             // Initialize MiniSearch
             this.initializeMiniSearch();
@@ -110,6 +110,25 @@ Guidelines:
         } catch (error) {
             console.error('Error loading category links:', error);
             throw error;
+        }
+    }
+
+    async loadTechnicalTerms() {
+        try {
+            const response = await fetch('technical-terms.json');
+            if (!response.ok) throw new Error('Failed to load technical terms');
+            this.technicalTerms = await response.json();
+            // Sort by word count (descending) to prioritize longer phrases
+            this.technicalTerms.multiWordTerms.sort((a, b) => {
+                const aWords = a.split(/\s+/).length;
+                const bWords = b.split(/\s+/).length;
+                return bWords - aWords;
+            });
+            console.log(`Loaded ${this.technicalTerms.multiWordTerms.length} technical terms`);
+        } catch (error) {
+            console.error('Error loading technical terms:', error);
+            // Continue without technical terms if file not found
+            this.technicalTerms = { multiWordTerms: [] };
         }
     }
 
@@ -399,88 +418,90 @@ Guidelines:
         return result;
     }
 
-    searchContext(userQuestion) {
-        // Extract keywords from the question
-        const keywords = this.extractKeywords(userQuestion);
-        
-        // Detect acronyms in the question (2-5 uppercase letters)
-        const acronyms = (userQuestion.match(/\b[A-Z]{2,5}\b/g) || []).map(a => a.toLowerCase());
-        console.log('Detected acronyms:', acronyms);
-        
-        // Detect generic AI queries (searches without specific technical terms)
+    performSearch(userQuestion) {
         const lowerQuestion = userQuestion.toLowerCase();
-        const genericAITerms = ['what is ai', 'what is artificial intelligence', 'explain ai', 
-                                'tell me about ai', 'artificial intelligence', 'introduction to ai',
-                                'ai concepts', 'ai basics', 'ai fundamentals'];
-        const isGenericAIQuery = genericAITerms.some(term => lowerQuestion.includes(term)) ||
-                                 (lowerQuestion.match(/\bai\b/) && lowerQuestion.split(/\s+/).length <= 5);
         
-        // Check if query has specific technical terms that indicate other categories
-        const specificTerms = ['neural network', 'cnn', 'rnn', 'machine learning', 'regression', 
-                              'classification', 'clustering', 'speech', 'vision', 'ocr', 'nlp',
-                              'prompt', 'llm', 'token', 'embedding', 'generative', 'sentiment',
-                              'entity', 'mfcc', 'tts', 'stt', 'image', 'document'];
-        const hasSpecificTerms = specificTerms.some(term => lowerQuestion.includes(term));
+        // Detect multi-word technical phrases, prioritizing longer phrases
+        // If "large language model" is found, don't also include "language model"
+        const detectedPhrases = [];
+        const coveredPositions = new Set();
         
-        console.log('Generic AI query:', isGenericAIQuery, 'Has specific terms:', hasSpecificTerms);
+        if (this.technicalTerms && this.technicalTerms.multiWordTerms) {
+            // Terms are already sorted by word count (descending)
+            for (const phrase of this.technicalTerms.multiWordTerms) {
+                let searchPos = 0;
+                while (true) {
+                    const pos = lowerQuestion.indexOf(phrase, searchPos);
+                    if (pos === -1) break;
+                    
+                    // Check if this position overlaps with an already-detected phrase
+                    const phraseEnd = pos + phrase.length;
+                    let overlaps = false;
+                    for (let i = pos; i < phraseEnd; i++) {
+                        if (coveredPositions.has(i)) {
+                            overlaps = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!overlaps) {
+                        // Mark these positions as covered
+                        for (let i = pos; i < phraseEnd; i++) {
+                            coveredPositions.add(i);
+                        }
+                        detectedPhrases.push(phrase);
+                    }
+                    
+                    searchPos = pos + 1;
+                }
+            }
+        }
         
-        // Detect important multi-word technical phrases in the query
-        const technicalPhrases = [
-            'large language model', 'neural network', 'machine learning', 
-            'deep learning', 'computer vision', 'speech recognition', 'natural language',
-            'object detection', 'image classification', 'sentiment analysis', 'named entity',
-            'generative ai', 'information extraction'
-        ];
-        const detectedPhrases = technicalPhrases.filter(phrase => lowerQuestion.includes(phrase));
-        console.log('Detected technical phrases:', detectedPhrases);
+        // Extract significant terms from the query (ignore stop words)
+        let queryTerms = userQuestion.toLowerCase()
+            .replace(/[^a-z0-9\s]/g, ' ')  // Remove punctuation
+            .split(/\s+/)
+            .filter(term => term.length > 3 && !['what', 'when', 'where', 'which', 'who', 'how', 'does', 'between', 'difference', 'explain', 'tell', 'about', 'work'].includes(term));
         
-        // Search using MiniSearch with stricter matching for short queries
+        // Remove individual words that are part of detected phrases
+        // This prevents "language" and "model" from being included when "large language model" is detected
+        if (detectedPhrases.length > 0) {
+            const phraseWords = new Set();
+            detectedPhrases.forEach(phrase => {
+                phrase.split(/\s+/).forEach(word => {
+                    if (word.length > 3) phraseWords.add(word);
+                });
+            });
+            
+            // Filter out words that are part of detected phrases
+            queryTerms = queryTerms.filter(term => !phraseWords.has(term));
+        }
+        
+        // Add hyphenated versions of detected phrases to query terms
+        detectedPhrases.forEach(phrase => {
+            const hyphenated = phrase.replace(/\s+/g, '-');
+            queryTerms.push(hyphenated);
+        });
+        
+        console.log('Query terms:', queryTerms);
+        if (detectedPhrases.length > 0) {
+            console.log('Detected multi-word phrases:', detectedPhrases);
+        }
+        
+        // Detect acronyms (2-5 uppercase letters or known lowercase acronyms)
+        const acronyms = userQuestion.match(/\b[A-Z]{2,5}\b/g) || [];
+        const isAcronymQuery = acronyms.length > 0 && userQuestion.trim().split(/\s+/).length <= 3;
+        
+        // Search using MiniSearch with adjusted fuzzy matching for short queries
         const isShortQuery = userQuestion.trim().split(/\s+/).length <= 3;
         
         let searchResults = this.miniSearch.search(userQuestion, {
             boost: { heading: 3, keywords: 2, category: 1.5 },
-            fuzzy: isShortQuery ? 0.1 : 0.2, // Less fuzzy for short queries like "OCR"
-            prefix: !isShortQuery // Disable prefix for short queries to be more precise
+            fuzzy: isAcronymQuery ? 0 : (isShortQuery ? 0.1 : 0.2), // No fuzzy for acronyms
+            prefix: !isShortQuery && !isAcronymQuery // No prefix for acronyms
         });
         
-        // If technical phrases detected, boost documents in relevant categories
-        if (detectedPhrases.length > 0) {
-            searchResults = searchResults.map(result => {
-                let phraseBoost = 1;
-                const resultCategory = result.category.toLowerCase();
-                const resultHeading = result.heading.toLowerCase();
-                const resultContent = result.content.toLowerCase();
-                
-                detectedPhrases.forEach(phrase => {
-                    // Check if phrase appears in heading or content
-                    if (resultHeading.includes(phrase) || resultContent.includes(phrase)) {
-                        phraseBoost *= 3; // Strong boost for matching the technical phrase
-                    }
-                    
-                    // Also boost by category relevance
-                    if ((phrase.includes('language model') || phrase === 'generative ai') && resultCategory.includes('generative')) {
-                        phraseBoost *= 2;
-                    } else if (phrase.includes('vision') && resultCategory.includes('vision')) {
-                        phraseBoost *= 2;
-                    } else if (phrase.includes('speech') && resultCategory.includes('speech')) {
-                        phraseBoost *= 2;
-                    } else if ((phrase.includes('machine learning') || phrase.includes('neural network')) && resultCategory.includes('machine learning')) {
-                        phraseBoost *= 2;
-                    }
-                });
-                
-                return { ...result, score: result.score * phraseBoost };
-            });
-            console.log('Applied technical phrase boosting');
-        }
-        
-        // Extract significant terms from the query (ignore stop words)
-        const queryTerms = userQuestion.toLowerCase()
-            .replace(/[^a-z0-9\s]/g, ' ')  // Remove punctuation
-            .split(/\s+/)
-            .filter(term => term.length > 3 && !['what', 'when', 'where', 'which', 'who', 'how', 'does', 'between', 'difference', 'explain', 'tell', 'about'].includes(term));
-        
-        // Boost documents based on query term matches
+        // Apply simplified boosting: heading matches and multi-term matches
         if (queryTerms.length >= 1) {
             searchResults = searchResults.map(result => {
                 let termMatchCount = 0;
@@ -490,7 +511,7 @@ Guidelines:
                 const resultContent = result.content.toLowerCase();
                 
                 queryTerms.forEach(term => {
-                    // Check for flexible matching - term can be contained in keywords or vice versa
+                    // Check for flexible matching in keywords, heading, and content
                     const foundInKeywords = resultKeywords.some(k => k.includes(term) || term.includes(k));
                     const foundInHeading = resultHeading.includes(term);
                     const foundInContent = resultContent.includes(term);
@@ -499,124 +520,73 @@ Guidelines:
                         termMatchCount++;
                     }
                     
-                    // Track heading matches separately for additional boost
                     if (foundInHeading) {
                         headingMatchCount++;
                     }
                 });
                 
-                // Apply multiplicative boost based on how many terms matched
-                let multiTermBoost = 1;
-                if (termMatchCount >= 2) {
-                    multiTermBoost = 1 + (termMatchCount * 0.5); // +50% per matching term
-                }
-                
-                // Extra boost if terms appear in heading (3x boost per term in heading)
-                if (headingMatchCount > 0) {
-                    multiTermBoost *= (1 + headingMatchCount * 2); // 3x for 1 term in heading, 5x for 2 terms, etc.
-                }
-                
-                return { ...result, score: result.score * multiTermBoost, matchedTerms: termMatchCount, headingMatches: headingMatchCount };
-            }).sort((a, b) => {
-                // Sort by score, then by matched terms, then by heading matches, then by ID
-                if (Math.abs(b.score - a.score) > 0.01) return b.score - a.score;
-                if (b.matchedTerms !== a.matchedTerms) return b.matchedTerms - a.matchedTerms;
-                if (b.headingMatches !== a.headingMatches) return b.headingMatches - a.headingMatches;
-                return a.id - b.id;
-            });
-        }
-        
-        // If this is a generic AI query without specific terms, heavily boost AI Overview results
-        if (isGenericAIQuery && !hasSpecificTerms) {
-            searchResults = searchResults.map(result => {
-                let boostMultiplier = 1;
-                if (result.category === 'AI Overview') {
-                    boostMultiplier = 5; // Strong boost for AI Overview on generic queries
-                    
-                    // Extra boost for introductory/foundational content
-                    const heading = result.heading.toLowerCase();
-                    if (heading.includes('introduction') || heading.includes('what is')) {
-                        boostMultiplier *= 1.5; // Additional boost for intro content
-                    }
-                }
-                return { ...result, score: result.score * boostMultiplier };
-            }).sort((a, b) => {
-                // Primary sort by score (descending)
-                if (Math.abs(b.score - a.score) > 0.01) return b.score - a.score;
-                // Secondary sort by document ID (ascending) for consistent ordering
-                return a.id - b.id;
-            });
-            console.log('Applied AI Overview category boost for generic query');
-        }
-        
-        // If acronyms detected, prioritize results that contain those acronyms
-        if (acronyms.length > 0) {
-            searchResults = searchResults.map(result => {
-                let boostMultiplier = 1;
-                acronyms.forEach(acronym => {
-                    // Check if acronym appears in heading or keywords
-                    if (result.heading.toLowerCase().includes(acronym) || 
-                        result.keywords.some(k => k.toLowerCase() === acronym)) {
-                        boostMultiplier += 2; // Boost score by 2x for each matching acronym
+                // Check if any multi-word phrases appear in heading or content
+                let phraseBoost = 1;
+                detectedPhrases.forEach(phrase => {
+                    if (resultHeading.includes(phrase) || resultContent.includes(phrase)) {
+                        phraseBoost *= 2; // 2x boost for exact phrase match
                     }
                 });
-                return { ...result, score: result.score * boostMultiplier };
-            }).sort((a, b) => {
-                // Primary sort by score (descending)
-                if (Math.abs(b.score - a.score) > 0.01) return b.score - a.score;
-                // Secondary sort by document ID (ascending)
-                return a.id - b.id;
+                
+                // Simple boosting: multi-term match bonus and heading match bonus
+                let boost = phraseBoost;
+                
+                // Multi-term match: +50% per matching term beyond the first
+                if (termMatchCount >= 2) {
+                    boost *= (1 + (termMatchCount - 1) * 0.5);
+                }
+                
+                // Heading match: 2x per term in heading
+                if (headingMatchCount > 0) {
+                    boost *= (1 + headingMatchCount);
+                }
+                
+                return { ...result, score: result.score * boost, matchedTerms: termMatchCount, headingMatches: headingMatchCount };
             });
         }
         
-        console.log(`Found ${searchResults.length} search results for "${userQuestion}"`);
+        // Sort by score, then by heading matches, then by document ID
+        searchResults.sort((a, b) => {
+            if (Math.abs(b.score - a.score) > 0.1) return b.score - a.score;
+            if (b.headingMatches !== a.headingMatches) return (b.headingMatches || 0) - (a.headingMatches || 0);
+            return a.id - b.id;
+        });
+        
+        console.log(`Found ${searchResults.length} results`);
         
         if (searchResults.length === 0) {
-            this.elements.searchStatus.textContent = '🔍 No specific context found';
-            return { context: null, categories: [] };
+            return { context: null, categories: [], results: [] };
         }
         
-        // Log top search results before filtering
-        console.log('Top 5 search results before filtering:', searchResults.slice(0, 5).map(r => ({ 
+        // Log top results
+        console.log('Top 3 results:', searchResults.slice(0, 3).map(r => ({ 
             id: r.id, 
             heading: r.heading, 
             category: r.category, 
             score: r.score.toFixed(2) 
         })));
         
-        // Filter results to ensure they're related to the same topic
-        // If we have results from multiple categories, only keep the category with the highest scoring result
-        const topResult = searchResults[0];
-        const topCategory = topResult.category;
-        const topScore = topResult.score;
+        return { results: searchResults, queryTerms };
+    }
+    
+    searchContext(userQuestion) {
+        const { results, queryTerms } = this.performSearch(userQuestion);
         
-        // Keep only results from the same category as the top result, or results with very similar scores
-        const filteredResults = searchResults.filter(result => {
-            return result.category === topCategory || result.score >= topScore * 0.9;
-        });
+        if (!results || results.length === 0) {
+            this.elements.searchStatus.textContent = '🔍 No specific context found';
+            return { context: null, categories: [] };
+        }
         
-        // Sort filtered results by score (descending), then by document ID for ties
-        filteredResults.sort((a, b) => {
-            // Primary: score (descending)
-            if (Math.abs(b.score - a.score) > 0.01) return b.score - a.score;
-            // Secondary: document ID (ascending) for consistent ordering
-            return a.id - b.id;
-        });
+        // Take top 2 results for context
+        const topResults = results.slice(0, 2);
         
-        // Get top 2 from filtered results
-        const topResults = filteredResults.slice(0, 2);
-        
-        // Log the top results for debugging
-        console.log('Top results after filtering:', topResults.map(r => ({ 
-            id: r.id,
-            heading: r.heading, 
-            category: r.category, 
-            score: r.score.toFixed(2) 
-        })));
-        
-        // Build concise context from results using summaries
-        const contextParts = topResults.map((result, index) => {
-            // Use summary instead of full content for more concise context
+        // Build context using summaries
+        const contextParts = topResults.map(result => {
             return `[${result.category} - ${result.heading}]\n${result.summary}`;
         });
         
@@ -940,157 +910,16 @@ Guidelines:
     generateSimpleResponse(userMessage, searchResult) {
         const { context, categories } = searchResult || { context: null, categories: [] };
         
-        // Detect generic AI queries (same logic as searchContext)
-        const lowerQuestion = userMessage.toLowerCase();
-        const genericAITerms = ['what is ai', 'what is artificial intelligence', 'explain ai', 
-                                'tell me about ai', 'artificial intelligence', 'introduction to ai',
-                                'ai concepts', 'ai basics', 'ai fundamentals'];
-        const isGenericAIQuery = genericAITerms.some(term => lowerQuestion.includes(term)) ||
-                                 (lowerQuestion.match(/\bai\b/) && lowerQuestion.split(/\s+/).length <= 5);
+        // Use unified search
+        const { results, queryTerms } = this.performSearch(userMessage);
         
-        const specificTerms = ['neural network', 'cnn', 'rnn', 'machine learning', 'regression', 
-                              'classification', 'clustering', 'speech', 'vision', 'ocr', 'nlp',
-                              'prompt', 'llm', 'token', 'embedding', 'generative', 'sentiment',
-                              'entity', 'mfcc', 'tts', 'stt', 'image', 'document'];
-        const hasSpecificTerms = specificTerms.some(term => lowerQuestion.includes(term));
-        
-        // Detect important multi-word technical phrases in the query
-        const technicalPhrases = [
-            'large language model', 'language model', 'neural network', 'machine learning', 
-            'deep learning', 'computer vision', 'speech recognition', 'natural language',
-            'object detection', 'image classification', 'sentiment analysis', 'named entity',
-            'generative ai', 'information extraction'
-        ];
-        const detectedPhrases = technicalPhrases.filter(phrase => lowerQuestion.includes(phrase));
-        console.log('Detected technical phrases:', detectedPhrases);
-        
-        // Search for relevant results
-        let searchResults = this.miniSearch.search(userMessage, {
-            boost: { heading: 3, keywords: 2 },
-            fuzzy: 0.2,
-            prefix: true
-        });
-        
-        // If technical phrases detected, boost documents in relevant categories
-        if (detectedPhrases.length > 0) {
-            searchResults = searchResults.map(result => {
-                let phraseBoost = 1;
-                const resultCategory = result.category.toLowerCase();
-                const resultHeading = result.heading.toLowerCase();
-                const resultContent = result.content.toLowerCase();
-                
-                detectedPhrases.forEach(phrase => {
-                    // Check if phrase appears in heading or content
-                    if (resultHeading.includes(phrase) || resultContent.includes(phrase)) {
-                        phraseBoost *= 3; // Strong boost for matching the technical phrase
-                    }
-                    
-                    // Also boost by category relevance
-                    if ((phrase.includes('language model') || phrase === 'generative ai') && resultCategory.includes('generative')) {
-                        phraseBoost *= 2;
-                    } else if (phrase.includes('vision') && resultCategory.includes('vision')) {
-                        phraseBoost *= 2;
-                    } else if (phrase.includes('speech') && resultCategory.includes('speech')) {
-                        phraseBoost *= 2;
-                    } else if ((phrase.includes('machine learning') || phrase.includes('neural network')) && resultCategory.includes('machine learning')) {
-                        phraseBoost *= 2;
-                    }
-                });
-                
-                return { ...result, score: result.score * phraseBoost };
-            });
-            console.log('Applied technical phrase boosting');
+        if (!results || results.length === 0) {
+            const message = this.addMessage('assistant', "I don't have specific information about that in my knowledge base. Could you try rephrasing your question or asking about a different AI topic?");
+            this.addCategoryLinks(message, []);
+            return;
         }
         
-        // Extract significant terms from the query (ignore stop words)
-        const queryTerms = userMessage.toLowerCase()
-            .replace(/[^a-z0-9\s]/g, ' ')  // Remove punctuation
-            .split(/\s+/)
-            .filter(term => term.length > 3 && !['what', 'when', 'where', 'which', 'who', 'how', 'does', 'between', 'difference', 'explain', 'tell', 'about'].includes(term));
-        
-        // Boost documents based on query term matches
-        if (queryTerms.length >= 1) {
-            searchResults = searchResults.map(result => {
-                let termMatchCount = 0;
-                let headingMatchCount = 0;
-                const resultKeywords = result.keywords.map(k => k.toLowerCase());
-                const resultHeading = result.heading.toLowerCase();
-                const resultContent = result.content.toLowerCase();
-                
-                queryTerms.forEach(term => {
-                    // Check for flexible matching - term can be contained in keywords or vice versa
-                    const foundInKeywords = resultKeywords.some(k => k.includes(term) || term.includes(k));
-                    const foundInHeading = resultHeading.includes(term);
-                    const foundInContent = resultContent.includes(term);
-                    
-                    if (foundInKeywords || foundInHeading || foundInContent) {
-                        termMatchCount++;
-                    }
-                    
-                    // Track heading matches separately for additional boost
-                    if (foundInHeading) {
-                        headingMatchCount++;
-                    }
-                });
-                
-                // Apply multiplicative boost based on how many terms matched
-                let multiTermBoost = 1;
-                if (termMatchCount >= 2) {
-                    multiTermBoost = 1 + (termMatchCount * 0.5); // +50% per matching term
-                }
-                
-                // Extra boost if terms appear in heading (3x boost per term in heading)
-                if (headingMatchCount > 0) {
-                    multiTermBoost *= (1 + headingMatchCount * 2); // 3x for 1 term in heading, 5x for 2 terms, etc.
-                }
-                
-                return { ...result, score: result.score * multiTermBoost, matchedTerms: termMatchCount, headingMatches: headingMatchCount };
-            });
-        }
-        
-        // Apply AI Overview boost for generic queries
-        if (isGenericAIQuery && !hasSpecificTerms) {
-            searchResults = searchResults.map(result => {
-                let boostMultiplier = 1;
-                if (result.category === 'AI Overview') {
-                    boostMultiplier = 5;
-                    
-                    // Extra boost for introductory/foundational content
-                    const heading = result.heading.toLowerCase();
-                    if (heading.includes('introduction') || heading.includes('what is')) {
-                        boostMultiplier *= 1.5;
-                    }
-                }
-                return { ...result, score: result.score * boostMultiplier };
-            }).sort((a, b) => {
-                // Primary sort by score (descending)
-                if (Math.abs(b.score - a.score) > 0.01) return b.score - a.score;
-                // Secondary sort by document ID (ascending) for consistent ordering within category
-                return a.id - b.id;
-            });
-        }
-        
-        // Final sort: prioritize score strongly to respect phrase and term boosting
-        searchResults.sort((a, b) => {
-            // First priority: score (descending) - use larger threshold to respect boosts
-            // Categories with strong phrase matches should dominate
-            if (Math.abs(b.score - a.score) > 1.0) return b.score - a.score;
-            
-            // Second priority: heading matches (if we have query terms)
-            if (queryTerms.length > 0 && a.headingMatches !== b.headingMatches) {
-                return (b.headingMatches || 0) - (a.headingMatches || 0);
-            }
-            
-            // Third priority: if same category, use document ID order
-            if (a.category === b.category) {
-                return a.id - b.id;
-            }
-            
-            // Otherwise maintain score order (even small differences)
-            return b.score - a.score;
-        });
-        
-        console.log('Top 5 Simple mode results:', searchResults.slice(0, 5).map(r => ({ 
+        console.log('Top 5 Simple mode results:', results.slice(0, 5).map(r => ({ 
             id: r.id, 
             heading: r.heading, 
             category: r.category, 
@@ -1098,7 +927,7 @@ Guidelines:
             headingMatches: r.headingMatches || 0
         })));
         
-        const topResults = searchResults.slice(0, 3);
+        const topResults = results.slice(0, 3);
         
         if (topResults.length === 0) {
             // No results found - show fallback link

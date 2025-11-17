@@ -54,186 +54,76 @@ def extract_headings_and_content(markdown_file):
     
     return sections
 
-def extract_keywords(text, is_technical_content=True):
-    """Extract important keywords from text using improved filtering with strong technical term boosting."""
-    # Extract acronyms (2-5 uppercase letters) before lowercasing - these are VERY important
-    acronyms = re.findall(r'\b[A-Z]{2,5}\b', text)
-    acronyms = [a.lower() for a in acronyms]
+def extract_keywords(heading, content):
+    """
+    Extract keywords intelligently from heading and content.
+    Prioritizes: heading terms, multi-word phrases, acronyms, then frequent terms.
+    """
+    keywords = []
     
-    # Extract important AI/ML terms that should be boosted (case-insensitive)
-    ai_terms = []
-    important_phrases = [
-        'computer vision', 'machine learning', 'deep learning', 'neural network',
-        'natural language', 'speech recognition', 'image classification', 
-        'object detection', 'regression', 'classification', 'clustering',
-        'convolutional', 'recurrent', 'transformer', 'generative ai',
-        'large language model', 'information extraction', 'text analysis'
-    ]
-    text_lower = text.lower()
-    for phrase in important_phrases:
-        if phrase in text_lower:
-            # Convert to hyphenated keyword
-            ai_terms.append(phrase.replace(' ', '-'))
-    
-    # Remove special characters and convert to lowercase
-    text = re.sub(r'[^a-zA-Z0-9\s-]', ' ', text.lower())
-    # Split into words
-    words = text.split()
-    
-    # Comprehensive stop words list - very generic, non-technical terms
-    stop_words = {
-        # Articles, pronouns, prepositions
-        'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with',
-        'by', 'from', 'as', 'into', 'through', 'after', 'before', 'between', 'over', 'under',
-        
-        # Common verbs
-        'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does',
-        'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'said',
-        
-        # Demonstratives and determiners
-        'this', 'that', 'these', 'those', 'it', 'its', 'you', 'your', 'we', 'our', 'they',
-        'their', 'them', 'there', 'here', 'where', 'when', 'what', 'which', 'who', 'whom',
-        'whose', 'how', 'why', 'some', 'any', 'each', 'every', 'all', 'both', 'few', 'more',
-        'most', 'other', 'such', 'only', 'own', 'same', 'than', 'then', 'too', 'very',
-        
-        # Common transition/filler words
-        'also', 'however', 'because', 'since', 'while', 'during', 'within', 'without',
-        'about', 'above', 'across', 'against', 'along', 'among', 'around', 'behind', 'below',
-        'beside', 'besides', 'beyond', 'down', 'during', 'except', 'inside', 'near', 'off',
-        'outside', 'since', 'toward', 'upon', 'within', 'without', 'whether', 'like', 'just',
-        
-        # Common verbs (expanded)
-        'make', 'makes', 'made', 'making', 'take', 'takes', 'took', 'taken', 'taking', 'get',
-        'gets', 'got', 'gotten', 'getting', 'use', 'uses', 'used', 'using', 'work', 'works',
-        'worked', 'working', 'include', 'includes', 'included', 'including', 'provide',
-        'provides', 'provided', 'providing', 'need', 'needs', 'needed', 'needing', 'want',
-        'wants', 'wanted', 'wanting', 'know', 'knows', 'knew', 'known', 'knowing',
-        
-        # Common adjectives/adverbs
-        'first', 'second', 'third', 'last', 'next', 'new', 'old', 'good', 'great', 'small',
-        'large', 'many', 'much', 'often', 'sometimes', 'always', 'never', 'again', 'once',
-        'well', 'back', 'even', 'still', 'now', 'way', 'ways'
-    }
-    
-    # Filter words: must be longer than 3 chars and not in stop words
-    keywords = [w for w in words if len(w) > 3 and w not in stop_words]
-    
-    # Add acronyms and AI terms
-    keywords.extend(acronyms)
-    keywords.extend(ai_terms)
-    
-    # Count word frequency
-    word_freq = {}
-    for word in keywords:
-        word_freq[word] = word_freq.get(word, 0) + 1
-    
-    # STRONG BOOSTS for technical terms
-    # Acronyms get 10x boost - they're critical identifiers (was 3x)
-    for acronym in set(acronyms):
-        if acronym in word_freq:
-            word_freq[acronym] *= 10
-    
-    # AI/ML terms get 8x boost - these are domain-specific (new)
-    for term in set(ai_terms):
-        if term in word_freq:
-            word_freq[term] *= 8
-    
-    # Sort by frequency (descending) and return top keywords
-    sorted_keywords = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)
-    
-    # Limit to top 20 keywords to avoid keyword inflation
-    # This ensures only the most relevant terms are included
-    return [word for word, freq in sorted_keywords[:20]]
-
-def generate_semantic_keywords(category, heading, content):
-    """Generate additional semantic/contextual keywords based on topic area."""
-    semantic_keywords = []
-    
-    # Combine heading and content for topic detection
-    text = (heading + ' ' + content).lower()
-    
-    # Only add "ai" and "artificial-intelligence" if they appear in the text
-    # BUT give strong preference to AI Overview category for these terms
-    if 'artificial intelligence' in text or ' ai ' in text or text.startswith('ai ') or text.endswith(' ai'):
-        if category == 'AI Overview':
-            # For AI Overview, add these with extra emphasis
-            semantic_keywords.extend(['ai', 'artificial-intelligence', 'ai-fundamentals', 'ai-basics'])
-        else:
-            # For other categories, only add if specifically mentioned
-            semantic_keywords.extend(['ai', 'artificial-intelligence'])
-    
-    # Topic-specific semantic keywords based on STRONG content matches
-    # Only add if the primary topic term appears prominently (in heading or multiple times in content)
-    topic_mappings = {
-        # AI Overview topics
-        'responsible ai': ['ethics', 'fairness', 'transparency', 'accountability', 'bias'],
-        'ethics': ['responsible-ai', 'fairness', 'transparency', 'accountability', 'bias'],
-        
-        # Text Analysis topics
-        'sentiment analysis': ['opinion', 'emotion', 'polarity', 'positive', 'negative'],
-        'sentiment': ['opinion', 'emotion', 'polarity'],
-        'named entity': ['ner', 'entity-extraction', 'entity-recognition'],
-        'entity recognition': ['ner', 'entity-extraction', 'named-entity'],
-        'tokenization': ['tokens', 'word-splitting', 'text-parsing'],
-        'embeddings': ['vectors', 'word2vec', 'semantic-similarity'],
-        'embedding': ['vectors', 'word2vec', 'semantic-similarity'],
-        'bag of words': ['bow', 'word-frequency', 'term-frequency'],
-        
-        # Speech topics
-        'speech recognition': ['stt', 'speech-to-text', 'transcription', 'dictation', 'voice-input'],
-        'transcription': ['stt', 'speech-to-text', 'speech-recognition'],
-        'speech synthesis': ['tts', 'text-to-speech', 'voice-generation', 'reading-aloud', 'narration'],
-        'text-to-speech': ['tts', 'speech-synthesis', 'voice-generation'],
-        'phoneme': ['pronunciation', 'sounds', 'speech-units', 'acoustic'],
-        'mfcc': ['audio-features', 'sound-analysis', 'signal-processing'],
-        
-        # Computer Vision topics
-        'ocr': ['text-extraction', 'character-recognition', 'document-scanning', 'reading-text'],
-        'optical character': ['ocr', 'text-extraction', 'character-recognition'],
-        'object detection': ['localization', 'bounding-box', 'finding-objects', 'item-detection'],
-        'image classification': ['categorization', 'labeling', 'tagging', 'image-recognition'],
-        'image segmentation': ['masking', 'pixel-classification', 'region-detection'],
-        'convolutional neural network': ['cnn', 'cnns', 'convolution', 'filter', 'feature-map', 'image-processing'],
-        
-        # ML topics - be specific about clustering vs segmentation
-        'regression': ['prediction', 'continuous', 'forecasting', 'estimation'],
-        'binary classification': ['categorization', 'labeling', 'sorting'],
-        'multiclass classification': ['categorization', 'labeling', 'sorting'],
-        'clustering algorithm': ['grouping', 'unsupervised', 'patterns'],
-        'k-means': ['clustering', 'grouping', 'unsupervised'],
-        'neural network': ['deep-learning', 'neurons', 'layers', 'backpropagation'],
-        'deep learning': ['neural-networks', 'rnn', 'transformer'],
-        
-        # Generative AI topics
-        'large language model': ['llm', 'llms', 'large-language-model', 'foundation-model'],
-        'prompt': ['instruction', 'query', 'input', 'request'],
-        'agent': ['autonomous', 'tool-use', 'function-calling', 'planning'],
-        'retrieval augmented': ['rag', 'retrieval', 'context', 'grounding', 'search'],
-        'token': ['word', 'embedding', 'vocabulary', 'tokenization'],
-        
-        # Information Extraction topics
-        'invoice': ['billing', 'payment', 'receipt', 'financial-document'],
-        'form': ['template', 'field', 'structured-data', 'extraction'],
-        'field extraction': ['data-extraction', 'parsing', 'structured-output'],
-        'document processing': ['automation', 'digitization', 'workflow']
-    }
-    
-    # Check for topic keywords in heading (primary indicator)
+    # 1. Extract all words from heading - these are the most important
     heading_lower = heading.lower()
-    for topic, keywords in topic_mappings.items():
-        if topic in heading_lower:
-            semantic_keywords.extend(keywords)
+    heading_words = re.findall(r'\b[a-z]{4,}\b', heading_lower)
     
-    # Check for topic keywords in content, but require multiple mentions (2+) or strong context
-    for topic, keywords in topic_mappings.items():
-        # Count occurrences of the topic in content
-        topic_count = text.count(topic)
-        # Only add if topic appears multiple times or is in heading
-        if topic_count >= 2 or (topic_count >= 1 and topic in heading_lower):
-            semantic_keywords.extend(keywords)
+    # 2. Extract acronyms from content (2-5 uppercase letters) - critical identifiers
+    acronyms = re.findall(r'\b[A-Z]{2,5}\b', content)
+    acronyms_lower = [a.lower() for a in set(acronyms)]
     
-    # Remove duplicates and return
-    return list(set(semantic_keywords))
+    # 3. Extract important multi-word technical phrases
+    text_lower = (heading + ' ' + content).lower()
+    technical_phrases = [
+        'machine-learning', 'deep-learning', 'neural-network', 'neural-networks',
+        'computer-vision', 'natural-language', 'speech-recognition', 'speech-synthesis',
+        'language-model', 'large-language-model', 'object-detection', 'image-classification',
+        'sentiment-analysis', 'named-entity', 'information-extraction', 'generative-ai',
+        'text-to-speech', 'speech-to-text', 'convolutional-network', 'recurrent-network'
+    ]
+    found_phrases = [phrase for phrase in technical_phrases if phrase.replace('-', ' ') in text_lower]
+    
+    # 4. Extract frequent content words (clean approach)
+    content_lower = content.lower()
+    content_lower = re.sub(r'[^a-z0-9\s]', ' ', content_lower)
+    words = content_lower.split()
+    
+    # Stop words - very common, non-technical terms
+    stop_words = {
+        'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with',
+        'by', 'from', 'as', 'into', 'through', 'this', 'that', 'these', 'those',
+        'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had',
+        'can', 'will', 'would', 'could', 'should', 'may', 'might', 'must',
+        'there', 'their', 'them', 'they', 'what', 'which', 'when', 'where', 'who',
+        'how', 'why', 'some', 'any', 'each', 'more', 'most', 'such', 'than', 'then',
+        'also', 'using', 'used', 'include', 'includes', 'example', 'like'
+    }
+    
+    # Filter and count words
+    filtered_words = [w for w in words if len(w) > 3 and w not in stop_words]
+    word_freq = Counter(filtered_words)
+    
+    # 5. Build final keyword list with priorities
+    # Priority 1: Heading words (appear as-is)
+    keywords.extend(heading_words)
+    
+    # Priority 2: Acronyms (heavily weighted)
+    keywords.extend(acronyms_lower)
+    
+    # Priority 3: Technical phrases found in content
+    keywords.extend(found_phrases)
+    
+    # Priority 4: Top frequent words from content (limit to top 10)
+    top_content_words = [word for word, count in word_freq.most_common(10)]
+    keywords.extend(top_content_words)
+    
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_keywords = []
+    for kw in keywords:
+        if kw not in seen:
+            seen.add(kw)
+            unique_keywords.append(kw)
+    
+    # Limit to top 15 keywords to keep focused
+    return unique_keywords[:15]
 
 def calculate_tfidf_scores(all_documents):
     """Calculate TF-IDF scores for keywords across all documents to boost unique terms."""
@@ -285,22 +175,11 @@ def create_index_for_folder(folder_path, category, start_id=1):
         sections = extract_headings_and_content(md_file)
         
         for section in sections:
-            # Create a searchable document for each section
-            combined_text = f"{section['heading']} {section['content']}"
-            keywords = extract_keywords(combined_text)
+            # Extract keywords from heading and content using new intelligent extraction
+            keywords = extract_keywords(section['heading'], section['content'])
             
-            # Generate semantic/contextual keywords
-            semantic_keywords = generate_semantic_keywords(category, section['heading'], section['content'])
-            
-            # Combine extracted keywords with semantic keywords
-            all_keywords = keywords[:12] + semantic_keywords
-            # Remove duplicates while preserving order (extracted keywords first)
-            seen = set()
-            final_keywords = []
-            for kw in all_keywords:
-                if kw not in seen:
-                    seen.add(kw)
-                    final_keywords.append(kw)
+            # Keywords are already prioritized and limited to 15
+            final_keywords = keywords
             
             # Create summary (first 200 chars of content)
             summary = section['content'][:200].strip()

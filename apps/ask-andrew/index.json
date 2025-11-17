@@ -7,28 +7,25 @@
     "content": "Artificial Intelligence (AI) refers to the simulation of human intelligence in machines that are programmed to think, learn, and solve problems. It encompasses a broad range of technologies and approaches aimed at enabling computers to perform tasks that typically require human cognition.",
     "summary": "Artificial Intelligence (AI) refers to the simulation of human intelligence in machines that are programmed to think, learn, and solve problems. It encompasses a broad range of technologies and approa...",
     "keywords": [
-      "intelligence",
-      "artificial",
-      "human",
       "introduction",
+      "artificial",
+      "intelligence",
       "simulation",
       "machines",
       "programmed",
       "think",
       "solve",
-      "learn",
+      "human",
       "refers",
-      "ai-fundamentals",
-      "ai-basics",
-      "ai",
-      "artificial-intelligence"
+      "learn",
+      "ai"
     ],
     "tfidf_top_terms": [
-      "intelligence",
-      "artificial",
-      "human",
       "introduction",
-      "simulation"
+      "artificial",
+      "intelligence",
+      "simulation",
+      "machines"
     ]
   },
   {
@@ -39,8 +36,8 @@
     "content": "AI has transformed numerous aspects of daily life and industry, from automating routine tasks to enabling advanced data analysis and decision-making. Its impact spans healthcare, finance, transportation, entertainment, and more, driving innovation and efficiency.",
     "summary": "AI has transformed numerous aspects of daily life and industry, from automating routine tasks to enabling advanced data analysis and decision-making. Its impact spans healthcare, finance, transportati...",
     "keywords": [
-      "impact",
       "importance",
+      "impact",
       "society",
       "numerous",
       "aspects",
@@ -48,16 +45,16 @@
       "life",
       "industry",
       "automating",
+      "routine",
+      "enabling",
       "transformed",
+      "tasks",
       "modern",
-      "ai-fundamentals",
-      "ai-basics",
-      "ai",
-      "artificial-intelligence"
+      "ai"
     ],
     "tfidf_top_terms": [
-      "impact",
       "importance",
+      "impact",
       "society",
       "numerous",
       "aspects"
@@ -74,28 +71,25 @@
       "historical",
       "evolution",
       "foundations",
+      "1950s",
       "early",
       "concepts",
       "deep",
-      "rnn",
       "neural-networks",
-      "ai-basics",
-      "ai-fundamentals",
+      "deep-learning",
       "systems",
       "learning",
-      "deep-learning",
       "neural-network",
       "machine-learning",
-      "transformer",
-      "ai",
-      "artificial-intelligence"
+      "data",
+      "ai"
     ],
     "tfidf_top_terms": [
       "historical",
       "evolution",
       "foundations",
-      "early",
-      "concepts"
+      "1950s",
+      "early"
     ]
   },
   {
@@ -108,26 +102,26 @@
     "keywords": [
       "practical",
       "past",
+      "automation",
       "expert",
+      "rule",
       "early",
       "control",
-      "automation",
-      "rule-based",
+      "medical",
+      "uses",
       "natural-language",
-      "ai-fundamentals",
-      "ai-basics",
       "language",
       "systems",
       "speech-recognition",
-      "ai",
-      "artificial-intelligence"
+      "based",
+      "ai"
     ],
     "tfidf_top_terms": [
       "practical",
       "past",
+      "automation",
       "expert",
-      "early",
-      "control"
+      "rule"
     ]
   },
   {
@@ -138,25 +132,23 @@
     "content": "- AI in Healthcare, Finance, and Transportation\n- AI-powered diagnostics, personalized medicine, and drug discovery.\n- Algorithmic trading, fraud detection, and risk management.\n- Autonomous vehicles, traffic management, and logistics optimization.\n- Virtual Assistants and Chatbots\n- Predictive analytics, recommendation systems, and business intelligence.\n- Real-time data processing and adaptive systems.",
     "summary": "- AI in Healthcare, Finance, and Transportation\n- AI-powered diagnostics, personalized medicine, and drug discovery.\n- Algorithmic trading, fraud detection, and risk management.\n- Autonomous vehicles,...",
     "keywords": [
+      "present",
       "management",
-      "present-day",
       "finance",
       "transportation",
       "diagnostics",
       "personalized",
       "medicine",
-      "ai-powered",
+      "drug",
+      "powered",
       "healthcare",
       "applications",
-      "ai-fundamentals",
-      "ai-basics",
       "systems",
-      "ai",
-      "artificial-intelligence"
+      "ai"
     ],
     "tfidf_top_terms": [
+      "present",
       "management",
-      "present-day",
       "finance",
       "transportation",
       "diagnostics"
@@ -171,30 +163,23 @@
     "summary": "Key points to understand about responsible AI include:\n\n- **Fairness**: AI models are trained using data, which is generally sourced and selected by humans. There's substantial risk that the data sele...",
     "keywords": [
       "developers",
-      "personal",
-      "responsible",
-      "ensure",
       "fairness",
       "bias",
-      "transparency",
-      "ethics",
-      "accountability",
+      "take",
+      "responsible",
+      "ensure",
       "trained",
-      "applications",
-      "ai-basics",
-      "ai-fundamentals",
-      "training",
+      "need",
       "data",
       "models",
-      "ai",
-      "artificial-intelligence"
+      "ai"
     ],
     "tfidf_top_terms": [
       "developers",
-      "personal",
-      "responsible",
-      "ensure",
-      "fairness"
+      "fairness",
+      "bias",
+      "take",
+      "responsible"
     ]
   },
   {
@@ -205,33 +190,27 @@
     "content": "Some example of scenarios where responsible AI practices should be applied include:\n\n- An AI-powered college admissions system should be tested to ensure it evaluates all applications fairly, taking into account relevant academic criteria but avoiding unfounded discrimination based on irrelevant demographic factors.\n- An AI-powered robotic solution that uses computer vision to detect objects should avoid unintentional harm or damage. One way to accomplish this goal is to use probability values t",
     "summary": "Some example of scenarios where responsible AI practices should be applied include:\n\n- An AI-powered college admissions system should be tested to ensure it evaluates all applications fairly, taking i...",
     "keywords": [
-      "avoid",
       "examples",
+      "avoid",
       "responsible",
-      "ai-powered",
-      "transparency",
-      "bias",
-      "ethics",
-      "accountability",
-      "fairness",
+      "powered",
       "identification",
+      "uses",
       "computer-vision",
       "objects",
       "images",
+      "system",
       "confidence",
       "users",
-      "system",
-      "ai-basics",
-      "ai-fundamentals",
-      "ai",
-      "artificial-intelligence"
+      "based",
+      "ai"
     ],
     "tfidf_top_terms": [
-      "avoid",
       "examples",
+      "avoid",
       "responsible",
-      "ai-powered",
-      "transparency"
+      "powered",
+      "identification"
     ]
   },
   {
@@ -242,30 +221,26 @@
     "content": "The first step is to provide the model with a large vocabulary of words and phrases; and we do mean *large*. The latest generation of LLMs have vocabularies that consist of hundreds of thousands of tokens, based on large volumes of training data from across the Internet and other sources.\n\nWait a minute. *Tokens*?\n\nWhile we tend to think of language in terms of *words*, LLMs break down their vocabulary into *tokens*. Tokens include words, but also *sub*-words (like the \"un\" in \"unbelievable\" and",
     "summary": "The first step is to provide the model with a large vocabulary of words and phrases; and we do mean *large*. The latest generation of LLMs have vocabularies that consist of hundreds of thousands of to...",
     "keywords": [
-      "step",
+      "first",
       "llms",
-      "break",
-      "assigned",
-      "text-parsing",
-      "word-splitting",
-      "large-language-model",
-      "tokens",
-      "embedding",
       "tokenization",
+      "large-language-model",
+      "large",
       "vocabulary",
-      "language",
-      "words",
+      "step",
+      "tokens",
       "training",
-      "word",
+      "language-model",
+      "words",
       "data",
       "model"
     ],
     "tfidf_top_terms": [
-      "step",
+      "first",
       "llms",
-      "break",
-      "assigned",
-      "text-parsing"
+      "tokenization",
+      "large-language-model",
+      "large"
     ]
   },
   {
@@ -276,40 +251,27 @@
     "content": "Now that we have a set of tokens with unique IDs, we need to find a way to relate them to one another. To do this, we assign each token a *vector* (an array of multiple numeric values, like [1, 23, 45]). Each vector has multiple numeric *elements* or *dimensions*, and we can use these to encode linguistic and semantic attributes of the token to help provide a great deal of information about what the token *means* and how it relates to other tokens, in an efficient format.\n\nWe need to transform t",
     "summary": "Now that we have a set of tokens with unique IDs, we need to find a way to relate them to one another. To do this, we assign each token a *vector* (an array of multiple numeric values, like [1, 23, 45...",
     "keywords": [
+      "transforming",
+      "with",
       "attention",
       "layer",
-      "find",
       "token",
-      "vector",
       "multiple",
+      "need",
       "tokens",
+      "transformer",
+      "vector",
       "semantic",
       "embeddings",
-      "embedding",
-      "neurons",
-      "backpropagation",
-      "tokenization",
-      "semantic-similarity",
-      "layers",
-      "word2vec",
-      "vocabulary",
-      "vectors",
       "neural-network",
-      "deep-learning",
-      "word",
-      "values",
-      "transformer",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "values"
     ],
     "tfidf_top_terms": [
+      "transforming",
+      "with",
       "attention",
       "layer",
-      "find",
-      "token",
-      "vector"
+      "token"
     ]
   },
   {
@@ -320,33 +282,27 @@
     "content": "Initially, the token vector values are assigned randomly, before being fed through the transformer to create embedding vectors. The token vectors are fed into the transformer along with a *positional encoding* that indicates where the token appears in the sequence of training text (we need to do this because the order in which tokens appear in the sequence is relevant to how they relate to one another). For example, our tokens might start off looking like this:\n\n|Token | Token ID | Position | Ve",
     "summary": "Initially, the token vector values are assigned randomly, before being fed through the transformer to create embedding vectors. The token vectors are fed into the transformer along with a *positional...",
     "keywords": [
-      "positional",
-      "encoding",
       "initial",
+      "positional",
       "initially",
+      "assigned",
+      "randomly",
+      "encoding",
       "id",
       "sequence",
+      "vectors",
       "token",
       "vector",
-      "tokens",
-      "embedding",
-      "tokenization",
-      "vocabulary",
-      "vectors",
-      "word",
-      "values",
       "transformer",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "tokens",
+      "values"
     ],
     "tfidf_top_terms": [
-      "positional",
-      "encoding",
       "initial",
+      "positional",
       "initially",
-      "id"
+      "assigned",
+      "randomly"
     ]
   },
   {
@@ -358,32 +314,22 @@
     "summary": "To determine the vector representations of tokens that include embedded contextual information, the transformer uses *attention* layers. An attention layer considers each token in turn, within the con...",
     "keywords": [
       "bark",
+      "embedding",
       "id",
       "different",
-      "elements",
       "attention",
+      "elements",
       "token",
-      "tokens",
-      "embeddings",
-      "embedding",
-      "tokenization",
-      "semantic-similarity",
-      "word2vec",
-      "vocabulary",
       "vectors",
-      "example",
-      "word",
-      "transformer",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "tokens",
+      "vector",
+      "embeddings"
     ],
     "tfidf_top_terms": [
       "bark",
+      "embedding",
       "id",
       "different",
-      "elements",
       "attention"
     ]
   },
@@ -396,36 +342,26 @@
     "summary": "Now that we have a set of embeddings that encapsulate the contextual relationship between tokens, we can use the *decoder* block of a transformer to iteratively predict the next word in a sequence bas...",
     "keywords": [
       "predicting",
-      "already",
+      "completions",
+      "next",
       "decoder",
+      "from",
       "sequence",
       "attention",
+      "prompts",
       "token",
       "tokens",
-      "context",
-      "query",
-      "instruction",
-      "embedding",
-      "request",
-      "tokenization",
-      "predict",
-      "input",
-      "vocabulary",
-      "training",
-      "word",
       "transformer",
-      "model",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "context",
+      "predict",
+      "model"
     ],
     "tfidf_top_terms": [
       "predicting",
-      "already",
+      "completions",
+      "next",
       "decoder",
-      "sequence",
-      "attention"
+      "from"
     ]
   },
   {
@@ -436,30 +372,26 @@
     "content": "There are two main types of prompts:\n\n- **System prompts** that set the behavior and tone of the model, and any constraints it should adhere to. For example, \"*You're a helpful assistant that responds in a cheerful, friendly manner.*\". System prompts determine constraints and styles for the model's responses.\n- **User prompts** that elicit a response to a specific question or instruction. For example, \"*Summarize the key considerations for adopting generative AI described in <u>GenAI_Considerati",
     "summary": "There are two main types of prompts:\n\n- **System prompts** that set the behavior and tone of the model, and any constraints it should adhere to. For example, \"*You're a helpful assistant that responds...",
     "keywords": [
+      "types",
       "user",
+      "application",
       "tone",
       "constraints",
-      "application",
-      "types",
-      "prompts",
+      "responds",
+      "considerations",
       "prompt",
+      "prompts",
       "system",
-      "query",
-      "instruction",
-      "request",
       "generative-ai",
-      "input",
-      "example",
       "ai",
-      "artificial-intelligence",
       "model"
     ],
     "tfidf_top_terms": [
+      "types",
       "user",
-      "tone",
-      "constraints",
       "application",
-      "types"
+      "tone",
+      "constraints"
     ]
   },
   {
@@ -471,27 +403,23 @@
     "summary": "To keep a conversation consistent and relevant, generative AI apps often keep track of the conversation history; and include summarized versions of it in subsequent prompts. This ensures there’s an on...",
     "keywords": [
       "conversation",
-      "question",
       "history",
+      "question",
       "keep",
       "build",
       "risks",
+      "privacy",
       "generative",
       "prompts",
       "context",
-      "query",
-      "instruction",
-      "request",
       "generative-ai",
-      "input",
       "ai",
-      "artificial-intelligence",
       "model"
     ],
     "tfidf_top_terms": [
       "conversation",
-      "question",
       "history",
+      "question",
       "keep",
       "build"
     ]
@@ -504,36 +432,28 @@
     "content": "To add even more context, generative AI applications can use a technique called *retrieval augmented generation (RAG)*. This approach involves retrieving information, like documents or emails, and using it to augment the prompt with relevant data. The response generated by the model is then *grounded* in the information that was provided.\n\nFor example, suppose you submit a prompt like \"*What's the maximum I can claim for travel expenses on a business trip?*\". With no other information, a model w",
     "summary": "To add even more context, generative AI applications can use a technique called *retrieval augmented generation (RAG)*. This approach involves retrieving information, like documents or emails, and usi...",
     "keywords": [
-      "rag",
-      "expenses",
-      "policy",
       "retrieval",
       "augmented",
-      "grounding",
-      "prompt",
-      "search",
-      "generation",
-      "context",
-      "query",
-      "instruction",
-      "information",
-      "request",
-      "generative-ai",
-      "input",
-      "ai",
-      "artificial-intelligence",
-      "model",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
-    ],
-    "tfidf_top_terms": [
       "rag",
       "expenses",
       "policy",
+      "retrieving",
+      "relevant",
+      "travel",
+      "prompt",
+      "generation",
+      "context",
+      "generative-ai",
+      "information",
+      "ai",
+      "model"
+    ],
+    "tfidf_top_terms": [
       "retrieval",
-      "augmented"
+      "augmented",
+      "rag",
+      "expenses",
+      "policy"
     ]
   },
   {
@@ -544,30 +464,27 @@
     "content": "The quality of responses from generative AI assistants not only depends on the language model used, but on the prompts you submit to it.\n\n\n\nTo get better results from your prompts:\n\n- Be **clear** and **specific** – prompts with explicit instructions or questions work better than vague language.\n- Add **context** - mention the topic, audience, or format you want.\n- Use **examples**, If you want a certain style, provide an example of what you mean.\n- Ask for **structure**, Like bullet points, tab",
     "summary": "The quality of responses from generative AI assistants not only depends on the language model used, but on the prompts you submit to it.\n\n\n\nTo get better results from your prompts:\n\n- Be **clear** and...",
     "keywords": [
+      "tips",
       "better",
       "results",
-      "tips",
+      "want",
       "responses",
-      "assistants",
-      "prompts",
+      "your",
       "generative",
+      "prompts",
       "quality",
-      "query",
-      "instruction",
-      "request",
       "generative-ai",
-      "input",
       "language",
+      "language-model",
       "ai",
-      "artificial-intelligence",
       "model"
     ],
     "tfidf_top_terms": [
+      "tips",
       "better",
       "results",
-      "tips",
-      "responses",
-      "assistants"
+      "want",
+      "responses"
     ]
   },
   {
@@ -578,34 +495,28 @@
     "content": "AI agents have three key elements:\n\n- **A large language model**: This is the agent's brain; using generative AI for language understanding and reasoning.\n- **Instructions**: A system prompt that defines the agent’s role and behavior. Think of it as the agent’s job description.\n- **Tools**: These are what the agent uses to interact with the world. Tools can include:\n    - *Knowledge* tools that provide access to information, like search engines or databases.\n    - *Action* tools that enable the ",
     "summary": "AI agents have three key elements:\n\n- **A large language model**: This is the agent's brain; using generative AI for language understanding and reasoning.\n- **Instructions**: A system prompt that defi...",
     "keywords": [
+      "components",
       "tools",
       "role",
-      "components",
       "agent",
-      "tasks",
       "large-language-model",
-      "three",
+      "tasks",
       "elements",
+      "large",
       "agents",
-      "tool-use",
-      "function-calling",
-      "autonomous",
-      "planning",
+      "three",
       "generative-ai",
       "language",
+      "language-model",
       "ai",
-      "artificial-intelligence",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "model"
     ],
     "tfidf_top_terms": [
+      "components",
       "tools",
       "role",
-      "components",
       "agent",
-      "tasks"
+      "large-language-model"
     ]
   },
   {
@@ -616,34 +527,25 @@
     "content": "Agents can also work with one another, in multi-agent systems. Instead of one agent doing everything, multiple agents can collaborate—each with its own specialty. One might gather data, another might analyze it, and a third might take action. Together, they form an AI-powered workforce that can handle complex workflows, just like a human team.\n\n\n\nAgents communicate with each other through prompts, using generative AI to determine what tasks are required and which agents are responsible for compl",
     "summary": "Agents can also work with one another, in multi-agent systems. Instead of one agent doing everything, multiple agents can collaborate—each with its own specialty. One might gather data, another might...",
     "keywords": [
-      "multi-agent",
+      "multi",
       "instead",
       "doing",
       "everything",
-      "collaborate",
       "agent",
-      "agents",
+      "work",
       "another",
-      "tool-use",
-      "function-calling",
-      "autonomous",
-      "planning",
+      "agents",
       "multiple",
       "generative-ai",
       "systems",
-      "ai",
-      "artificial-intelligence",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "ai"
     ],
     "tfidf_top_terms": [
-      "multi-agent",
+      "multi",
       "instead",
       "doing",
       "everything",
-      "collaborate"
+      "agent"
     ]
   },
   {
@@ -654,25 +556,27 @@
     "content": "Because machine learning is based on mathematics and statistics, it's common to think about machine learning models in mathematical terms. Fundamentally, a machine learning model is a software application that encapsulates a *function* to calculate an output value based on one or more input values. The process of defining that function is known as *training*. After the function has been defined, you can use it to predict new values in a process called *inferencing*.\n\nLet's explore the steps invo",
     "summary": "Because machine learning is based on mathematics and statistics, it's common to think about machine learning models in mathematical terms. Fundamentally, a machine learning model is a software applica...",
     "keywords": [
+      "measurements",
+      "what",
       "machine",
+      "label",
       "output",
       "function",
-      "label",
-      "based",
       "predict",
       "features",
-      "learning",
       "training",
+      "learning",
       "machine-learning",
       "values",
+      "based",
       "model"
     ],
     "tfidf_top_terms": [
+      "measurements",
+      "what",
       "machine",
-      "output",
-      "function",
       "label",
-      "based"
+      "output"
     ]
   },
   {
@@ -689,11 +593,10 @@
       "labels",
       "machine",
       "algorithms",
-      "learning",
       "features",
       "training",
+      "learning",
       "machine-learning",
-      "data",
       "values"
     ],
     "tfidf_top_terms": [
@@ -716,25 +619,20 @@
       "form",
       "supervised",
       "number",
-      "machine",
       "predicted",
-      "forecasting",
-      "estimation",
-      "continuous",
-      "based",
-      "label",
-      "prediction",
       "regression",
+      "machine",
+      "label",
       "learning",
       "machine-learning",
-      "model"
+      "based"
     ],
     "tfidf_top_terms": [
       "size",
       "form",
       "supervised",
       "number",
-      "machine"
+      "predicted"
     ]
   },
   {
@@ -746,23 +644,22 @@
     "summary": "*Classification* is a form of supervised machine learning in which the label represents a categorization, or *class*. There are two common classification scenarios.",
     "keywords": [
       "represents",
+      "categorization",
       "form",
       "supervised",
-      "scenarios",
       "machine",
       "class",
-      "common",
       "label",
+      "common",
       "learning",
-      "categorization",
       "machine-learning",
       "classification"
     ],
     "tfidf_top_terms": [
       "represents",
+      "categorization",
       "form",
       "supervised",
-      "scenarios",
       "machine"
     ]
   },
@@ -775,27 +672,22 @@
     "summary": "In *binary classification*, the label determines whether the observed item *is* (or *isn't*) an instance of a specific class. Or put another way, binary classification models predict one of two mutual...",
     "keywords": [
       "observed",
-      "instance",
+      "whether",
       "determines",
       "item",
-      "specific",
       "customer",
-      "another",
       "binary",
       "class",
-      "based",
       "label",
-      "sorting",
-      "labeling",
-      "categorization",
-      "classification"
+      "classification",
+      "based"
     ],
     "tfidf_top_terms": [
       "observed",
-      "instance",
+      "whether",
       "determines",
       "item",
-      "specific"
+      "customer"
     ]
   },
   {
@@ -808,26 +700,21 @@
     "keywords": [
       "adelie",
       "gentoo",
-      "movie",
       "classes",
       "penguin",
       "multiclass",
       "multiple",
-      "predict",
       "label",
-      "based",
-      "sorting",
-      "labeling",
-      "categorization",
-      "example",
-      "classification"
+      "predict",
+      "classification",
+      "based"
     ],
     "tfidf_top_terms": [
       "adelie",
       "gentoo",
-      "movie",
       "classes",
-      "penguin"
+      "penguin",
+      "multiclass"
     ]
   },
   {
@@ -839,23 +726,22 @@
     "summary": "*Unsupervised* machine learning involves training models using data that consists only of *feature* values without any known labels. Unsupervised machine learning algorithms determine relationships be...",
     "keywords": [
       "unsupervised",
+      "only",
       "involves",
       "consists",
-      "labels",
       "machine",
       "feature",
-      "learning",
       "training",
+      "learning",
       "machine-learning",
       "data",
-      "models",
-      "values"
+      "models"
     ],
     "tfidf_top_terms": [
       "unsupervised",
+      "only",
       "involves",
       "consists",
-      "labels",
       "machine"
     ]
   },
@@ -871,21 +757,20 @@
       "observations",
       "similar",
       "classes",
-      "algorithm",
       "clustering",
-      "based",
-      "label",
+      "algorithm",
       "features",
       "machine-learning",
+      "classification",
       "data",
-      "classification"
+      "based"
     ],
     "tfidf_top_terms": [
       "groups",
       "observations",
       "similar",
       "classes",
-      "algorithm"
+      "clustering"
     ]
   },
   {
@@ -899,26 +784,22 @@
       "cream",
       "explore",
       "sales",
-      "train",
       "temperature",
+      "train",
+      "example",
+      "regression",
       "feature",
       "value",
-      "forecasting",
-      "estimation",
-      "continuous",
-      "predict",
       "label",
-      "prediction",
-      "regression",
-      "example",
+      "predict",
       "model"
     ],
     "tfidf_top_terms": [
       "cream",
       "explore",
       "sales",
-      "train",
-      "temperature"
+      "temperature",
+      "train"
     ]
   },
   {
@@ -932,26 +813,21 @@
       "line",
       "axis",
       "given",
-      "calculate",
       "temperature",
-      "value",
-      "forecasting",
-      "estimation",
-      "continuous",
-      "function",
-      "prediction",
+      "calculate",
       "regression",
+      "value",
+      "function",
       "training",
       "data",
-      "values",
       "model"
     ],
     "tfidf_top_terms": [
       "line",
       "axis",
       "given",
-      "calculate",
-      "temperature"
+      "temperature",
+      "calculate"
     ]
   },
   {
@@ -964,27 +840,23 @@
     "keywords": [
       "held",
       "sales",
-      "temperature",
+      "back",
       "actual",
+      "evaluating",
       "predicted",
+      "regression",
       "value",
-      "forecasting",
-      "estimation",
-      "continuous",
       "label",
       "function",
-      "prediction",
-      "regression",
-      "data",
       "values",
       "model"
     ],
     "tfidf_top_terms": [
       "held",
       "sales",
-      "temperature",
+      "back",
       "actual",
-      "predicted"
+      "evaluating"
     ]
   },
   {
@@ -998,26 +870,22 @@
       "differences",
       "evaluation",
       "evaluate",
-      "calculate",
       "actual",
-      "metrics",
+      "calculate",
+      "between",
       "predicted",
-      "forecasting",
-      "estimation",
-      "continuous",
-      "common",
-      "based",
-      "prediction",
       "regression",
+      "metrics",
+      "common",
       "values",
-      "model"
+      "based"
     ],
     "tfidf_top_terms": [
       "differences",
       "evaluation",
       "evaluate",
-      "calculate",
-      "actual"
+      "actual",
+      "calculate"
     ]
   },
   {
@@ -1032,21 +900,20 @@
       "indicates",
       "wrong",
       "doesn",
-      "matter",
       "absolute",
+      "prediction",
       "variance",
+      "many",
       "creams",
       "mean",
-      "error",
-      "prediction",
-      "example"
+      "error"
     ],
     "tfidf_top_terms": [
       "mae",
       "indicates",
       "wrong",
       "doesn",
-      "matter"
+      "absolute"
     ]
   },
   {
@@ -1059,23 +926,22 @@
     "keywords": [
       "errors",
       "larger",
+      "takes",
       "discrepancies",
       "mse",
-      "squared",
       "absolute",
       "mean",
+      "squared",
       "error",
-      "actual",
       "metric",
-      "predicted",
       "values"
     ],
     "tfidf_top_terms": [
       "errors",
       "larger",
+      "takes",
       "discrepancies",
-      "mse",
-      "squared"
+      "mse"
     ]
   },
   {
@@ -1086,22 +952,22 @@
     "content": "The mean squared error helps take the magnitude of errors into account, but because it *squares* the error values, the resulting metric no longer represents the quantity measured by the label. In other words, we can say that the MSE of our model is 6, but that doesn't measure its accuracy in terms of the number of ice creams that were mispredicted; 6 is just a numeric score that indicates the level of error in the validation predictions.\n\nIf we want to measure the error in terms of the number of",
     "summary": "The mean squared error helps take the magnitude of errors into account, but because it *squares* the error values, the resulting metric no longer represents the quantity measured by the label. In othe...",
     "keywords": [
-      "rmse",
       "root",
+      "rmse",
       "measure",
       "helps",
       "mse",
-      "squared",
       "creams",
-      "error",
       "mean",
+      "squared",
+      "error",
       "terms",
       "number",
       "metric"
     ],
     "tfidf_top_terms": [
-      "rmse",
       "root",
+      "rmse",
       "measure",
       "helps",
       "mse"
@@ -1120,13 +986,10 @@
       "variance",
       "actual",
       "validation",
+      "squared",
+      "between",
       "metrics",
-      "forecasting",
-      "estimation",
-      "continuous",
       "label",
-      "prediction",
-      "regression",
       "machine-learning",
       "data",
       "values",
@@ -1152,16 +1015,12 @@
       "selection",
       "parameters",
       "described",
-      "real-world",
+      "above",
       "evaluate",
       "commonly",
       "algorithm",
-      "metrics",
-      "forecasting",
-      "estimation",
-      "continuous",
-      "prediction",
       "regression",
+      "metrics",
       "training",
       "model"
     ],
@@ -1170,7 +1029,7 @@
       "selection",
       "parameters",
       "described",
-      "real-world"
+      "above"
     ]
   },
   {
@@ -1183,26 +1042,22 @@
     "keywords": [
       "understand",
       "look",
-      "simplified",
-      "single",
+      "whether",
       "blood",
       "glucose",
+      "works",
       "patient",
-      "binary",
-      "feature",
-      "predict",
-      "sorting",
-      "labeling",
-      "categorization",
       "example",
+      "binary",
+      "predict",
       "classification"
     ],
     "tfidf_top_terms": [
       "understand",
       "look",
-      "simplified",
-      "single",
-      "blood"
+      "whether",
+      "blood",
+      "glucose"
     ]
   },
   {
@@ -1213,28 +1068,26 @@
     "content": "To train the model, we'll use an algorithm to fit the training data to a function that calculates the *probability* of the class label being *true* (in other words, that the patient has diabetes). Probability is measured as a value between 0.0 and 1.0, such that the *total* probability for *all* possible classes is 1.0. So for example, if the probability of a patient having diabetes is 0.7, then there's a corresponding probability of 0.3 that the patient isn't</u> diabetic.\n\nThere are many algor",
     "summary": "To train the model, we'll use an algorithm to fit the training data to a function that calculates the *probability* of the class label being *true* (in other words, that the patient has diabetes). Pro...",
     "keywords": [
+      "other",
+      "probability",
       "true",
       "patient",
-      "probability",
+      "binary",
       "diabetes",
       "value",
       "function",
       "predict",
-      "sorting",
-      "regression",
       "training",
-      "labeling",
-      "categorization",
-      "values",
       "classification",
+      "values",
       "model"
     ],
     "tfidf_top_terms": [
+      "other",
+      "probability",
       "true",
       "patient",
-      "probability",
-      "diabetes",
-      "value"
+      "binary"
     ]
   },
   {
@@ -1246,27 +1099,25 @@
     "summary": "As with regression, when training a binary classification model you hold back a random subset of data with which to validate the trained model. Let's assume we held back the following data to validate...",
     "keywords": [
       "validate",
+      "back",
       "following",
       "blood",
       "glucose",
+      "evaluating",
+      "predicted",
       "binary",
       "diabetes",
-      "predicted",
       "function",
-      "sorting",
-      "regression",
-      "labeling",
-      "categorization",
-      "data",
       "classification",
+      "data",
       "model"
     ],
     "tfidf_top_terms": [
       "validate",
+      "back",
       "following",
       "blood",
-      "glucose",
-      "binary"
+      "glucose"
     ]
   },
   {
@@ -1277,28 +1128,28 @@
     "content": "The first step in calculating evaluation metrics for a binary classification model is usually to create a matrix of the number of correct and incorrect predictions for each possible class label:\n\n\n\nThis visualization is called a *confusion matrix*, and it shows the prediction totals where:\n\n- &#375;=0 and y=0: *True negatives* (TN)\n- &#375;=1 and y=0: *False positives* (FP)\n- &#375;=0 and y=1: *False negatives* (FN)\n- &#375;=1 and y=1: *True positives* (TP)\n\nThe arrangement of the confusion matr",
     "summary": "The first step in calculating evaluation metrics for a binary classification model is usually to create a matrix of the number of correct and incorrect predictions for each possible class label:\n\n\n\nTh...",
     "keywords": [
-      "matrix",
+      "correct",
       "evaluation",
+      "matrix",
+      "confusion",
       "predictions",
       "true",
-      "tn",
       "fn",
+      "tn",
       "fp",
       "tp",
+      "number",
       "binary",
       "metrics",
-      "sorting",
-      "labeling",
-      "categorization",
       "classification",
       "model"
     ],
     "tfidf_top_terms": [
-      "matrix",
+      "correct",
       "evaluation",
-      "predictions",
-      "true",
-      "tn"
+      "matrix",
+      "confusion",
+      "predictions"
     ]
   },
   {
@@ -1309,25 +1160,27 @@
     "content": "The simplest metric you can calculate from the confusion matrix is *accuracy* - the proportion of predictions that the model got right. Accuracy is calculated as:\n\n***(TN+TP) &#247; (TN+FN+FP+TP)***\n\nIn the case of our diabetes example, the calculation is:\n\n(2+3) &#247; (2+1+0+3)\n\n= 5 &#247; 6\n\n= **0.83**\n\nSo for our validation data, the diabetes classification model produced correct predictions 83% of the time.\n\nAccuracy might initially seem like a good metric to evaluate a model, but consider ",
     "summary": "The simplest metric you can calculate from the confusion matrix is *accuracy* - the proportion of predictions that the model got right. Accuracy is calculated as:\n\n***(TN+TP) &#247; (TN+FN+FP+TP)***...",
     "keywords": [
-      "cases",
       "simplest",
+      "cases",
+      "confusion",
+      "matrix",
       "accuracy",
       "predictions",
-      "tn",
       "fn",
-      "tp",
+      "tn",
+      "calculate",
       "fp",
+      "tp",
       "diabetes",
       "metric",
-      "classification",
       "model"
     ],
     "tfidf_top_terms": [
-      "cases",
       "simplest",
-      "accuracy",
-      "predictions",
-      "tn"
+      "cases",
+      "confusion",
+      "matrix",
+      "accuracy"
     ]
   },
   {
@@ -1373,10 +1226,10 @@
       "precision",
       "positive",
       "similar",
-      "tp",
       "fp",
-      "diabetes",
+      "tp",
       "predicted",
+      "diabetes",
       "metric",
       "model"
     ],
@@ -1396,18 +1249,17 @@
     "content": "*F1-score* is an overall metric that combines recall and precision. The formula for F1-score is:\n\n***(2 x Precision x Recall) &#247; (Precision + Recall)***\n\nFor our diabetes example:\n\n(2 x 1.0 x 0.75) &#247; (1.0 + 0.75)\n\n= 1.5 &#247; 1.75\n\n**= 0.86**",
     "summary": "*F1-score* is an overall metric that combines recall and precision. The formula for F1-score is:\n\n***(2 x Precision x Recall) &#247; (Precision + Recall)***\n\nFor our diabetes example:\n\n(2 x 1.0 x 0.75...",
     "keywords": [
-      "f1-score",
+      "score",
       "combines",
       "formula",
       "overall",
       "recall",
       "precision",
-      "metric",
       "diabetes",
-      "example"
+      "metric"
     ],
     "tfidf_top_terms": [
-      "f1-score",
+      "score",
       "combines",
       "formula",
       "overall",
@@ -1422,29 +1274,28 @@
     "content": "Another name for recall is the *true positive rate* (TPR), and there's an equivalent metric called the *false positive rate* (FPR) that is calculated as **FP&#247;(FP+TN)**. We already know that the TPR for our model when using a threshold of 0.5 is 0.75, and we can use the formula for FPR to calculate a value of 0&#247;2 = 0.\n\nOf course, if we were to change the threshold above which the model predicts *true* (**1**), it would affect the number of positive and negative predictions; and therefor",
     "summary": "Another name for recall is the *true positive rate* (TPR), and there's an equivalent metric called the *false positive rate* (FPR) that is calculated as **FP&#247;(FP+TN)**. We already know that the T...",
     "keywords": [
-      "tpr",
+      "area",
+      "under",
+      "curve",
       "fpr",
       "auc",
       "roc",
-      "curve",
-      "area",
+      "tpr",
       "threshold",
+      "rate",
       "positive",
       "true",
       "tn",
       "fp",
-      "model",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "metric",
+      "model"
     ],
     "tfidf_top_terms": [
-      "tpr",
+      "area",
+      "under",
+      "curve",
       "fpr",
-      "auc",
-      "roc",
-      "curve"
+      "auc"
     ]
   },
   {
@@ -1460,15 +1311,11 @@
       "observation",
       "species",
       "penguin",
-      "calculate",
       "multiclass",
-      "probability",
+      "calculate",
+      "example",
       "class",
       "algorithms",
-      "sorting",
-      "labeling",
-      "categorization",
-      "example",
       "classification"
     ],
     "tfidf_top_terms": [
@@ -1488,27 +1335,22 @@
     "summary": "To train a multiclass classification model, we need to use an algorithm to fit the training data to a function that calculates a probability value for each possible class. There are two kinds of algor...",
     "keywords": [
       "train",
-      "calculates",
       "multiclass",
       "algorithm",
-      "probability",
-      "value",
+      "need",
       "algorithms",
       "function",
-      "sorting",
       "training",
-      "labeling",
-      "categorization",
-      "data",
       "classification",
+      "data",
       "model"
     ],
     "tfidf_top_terms": [
       "train",
-      "calculates",
       "multiclass",
       "algorithm",
-      "probability"
+      "need",
+      "algorithms"
     ]
   },
   {
@@ -1519,27 +1361,24 @@
     "content": "One-vs-Rest algorithms train a binary classification function for each class, each calculating the probability that the observation is an example of the target class. Each function calculates the probability of the observation being a specific class compared to *any* other class. For our penguin species classification model, the algorithm would essentially create three binary classification functions:\n\n- ***f<sup>0</sup>(x) = P(y=0 | x)***\n- ***f<sup>1</sup>(x) = P(y=1 | x)***\n- ***f<sup>2</sup>",
     "summary": "One-vs-Rest algorithms train a binary classification function for each class, each calculating the probability that the observation is an example of the target class. Each function calculates the prob...",
     "keywords": [
-      "one-vs-rest",
+      "calculates",
+      "rest",
       "observation",
       "produces",
-      "calculates",
       "probability",
       "algorithm",
-      "binary",
       "class",
+      "binary",
       "algorithms",
       "function",
-      "sorting",
-      "labeling",
-      "categorization",
       "classification",
       "model"
     ],
     "tfidf_top_terms": [
-      "one-vs-rest",
+      "calculates",
+      "rest",
       "observation",
       "produces",
-      "calculates",
       "probability"
     ]
   },
@@ -1553,23 +1392,22 @@
     "keywords": [
       "multinomial",
       "alternative",
+      "probability",
       "classes",
       "approach",
-      "probability",
       "algorithm",
-      "vector",
       "class",
-      "output",
+      "vector",
       "algorithms",
-      "function",
-      "example"
+      "output",
+      "function"
     ],
     "tfidf_top_terms": [
       "multinomial",
       "alternative",
+      "probability",
       "classes",
-      "approach",
-      "probability"
+      "approach"
     ]
   },
   {
@@ -1584,24 +1422,24 @@
       "overall",
       "recall",
       "precision",
-      "tn",
-      "fn",
+      "accuracy",
+      "evaluating",
       "multiclass",
-      "tp",
+      "fn",
+      "tn",
       "fp",
+      "tp",
       "metrics",
       "class",
-      "sorting",
-      "labeling",
-      "categorization",
-      "classification"
+      "classification",
+      "model"
     ],
     "tfidf_top_terms": [
       "classifier",
       "overall",
       "recall",
       "precision",
-      "tn"
+      "accuracy"
     ]
   },
   {
@@ -1616,21 +1454,21 @@
       "petals",
       "flowers",
       "flower",
+      "just",
       "botanist",
       "observes",
       "sample",
       "suppose",
-      "records",
-      "number",
       "clustering",
-      "example"
+      "example",
+      "number"
     ],
     "tfidf_top_terms": [
       "leaves",
       "petals",
       "flowers",
       "flower",
-      "botanist"
+      "just"
     ]
   },
   {
@@ -1641,23 +1479,23 @@
     "content": "There are multiple algorithms you can use for clustering. One of the most commonly used algorithms is *K-Means* clustering, which consists of the following steps:\n\n1. The feature (***x***) values are vectorized to define *n*-dimensional coordinates (where *n* is the number of features). In the flower example, we have two features: number of leaves (***x<sub>1</sub>***) and number of petals (***x<sub>2</sub>***). So, the feature vector has two coordinates that we can use to conceptually plot the ",
     "summary": "There are multiple algorithms you can use for clustering. One of the most commonly used algorithms is *K-Means* clustering, which consists of the following steps:\n\n1. The feature (***x***) values are...",
     "keywords": [
+      "points",
       "coordinates",
       "steps",
-      "points",
       "centroid",
       "clusters",
       "following",
-      "number",
       "clustering",
-      "feature",
+      "number",
       "algorithms",
-      "features",
-      "data"
+      "training",
+      "data",
+      "model"
     ],
     "tfidf_top_terms": [
+      "points",
       "coordinates",
       "steps",
-      "points",
       "centroid",
       "clusters"
     ]
@@ -1679,8 +1517,9 @@
       "close",
       "clusters",
       "centroid",
-      "points",
+      "evaluating",
       "clustering",
+      "between",
       "model"
     ],
     "tfidf_top_terms": [
@@ -1699,31 +1538,28 @@
     "content": "To better understand how a deep neural network model works, let's explore an example in which a neural network is used to define a classification model for penguin species.\n\n\n\nThe feature data (***x***) consists of some measurements of a penguin. Specifically, the measurements are:\n\n- The length of the penguin's bill.\n- The depth of the penguin's bill.\n- The length of the penguin's flippers.\n- The penguin's weight.\n\nIn this case, ***x*** is a vector of four values, or mathematically, ***x=[x1,x2",
     "summary": "To better understand how a deep neural network model works, let's explore an example in which a neural network is used to define a classification model for penguin species.\n\n\n\nThe feature data (***x**...",
     "keywords": [
+      "using",
       "species",
       "penguin",
       "layer",
+      "deep",
       "network",
-      "neural",
+      "example",
       "vector",
-      "rnn",
-      "neural-networks",
-      "neurons",
-      "backpropagation",
-      "layers",
+      "neural",
       "deep-learning",
+      "learning",
       "neural-network",
       "machine-learning",
-      "example",
       "classification",
-      "transformer",
       "model"
     ],
     "tfidf_top_terms": [
+      "using",
       "species",
       "penguin",
       "layer",
-      "network",
-      "neural"
+      "deep"
     ]
   },
   {
@@ -1734,29 +1570,27 @@
     "content": "The weights in a neural network are central to how it calculates predicted values for labels. During the training process, the model *learns* the weights that will result in the most accurate predictions. Let's explore the training process in a little more detail to understand how this learning takes place.\n\n\n\n1. The training and validation datasets are defined, and the training features are fed into the input layer.\n1. The neurons in each layer of the network apply their weights (which are init",
     "summary": "The weights in a neural network are central to how it calculates predicted values for labels. During the training process, the model *learns* the weights that will result in the most accurate predicti...",
     "keywords": [
+      "does",
       "loss",
       "weights",
-      "network",
+      "learn",
+      "known",
       "layer",
-      "calculates",
+      "network",
       "neural",
-      "output",
-      "neurons",
-      "layers",
-      "backpropagation",
-      "function",
       "process",
+      "output",
+      "function",
       "training",
       "neural-network",
-      "deep-learning",
       "values"
     ],
     "tfidf_top_terms": [
+      "does",
       "loss",
       "weights",
-      "network",
-      "layer",
-      "calculates"
+      "learn",
+      "known"
     ]
   },
   {
@@ -1771,11 +1605,11 @@
       "computational",
       "meaning",
       "insights",
+      "what",
       "structure",
       "nlp",
       "refers",
       "extract",
-      "text-analysis",
       "techniques",
       "analysis",
       "text"
@@ -1785,7 +1619,7 @@
       "computational",
       "meaning",
       "insights",
-      "structure"
+      "what"
     ]
   },
   {
@@ -1801,10 +1635,11 @@
       "splitting",
       "phrases",
       "subword",
+      "lowercasing",
       "concepts",
-      "units",
-      "text-analysis",
       "tokenization",
+      "units",
+      "normalization",
       "analysis",
       "words",
       "text"
@@ -1830,13 +1665,14 @@
       "relied",
       "symbolic",
       "methods",
+      "still",
       "useful",
-      "interpretable",
       "nlp",
+      "before",
       "deep",
       "techniques",
-      "learning",
-      "deep-learning"
+      "deep-learning",
+      "learning"
     ],
     "tfidf_top_terms": [
       "statistical",
@@ -1855,24 +1691,27 @@
     "summary": "- Term Frequency (TF): Simple word count per document.\n- Stop-word Removal: Eliminates high-frequency, low-value words.\n- Stemming: Heuristic-based truncation (e.g., Porter Stemmer).\n- Lemmatization:...",
     "keywords": [
       "pos",
-      "tf",
-      "idf",
-      "frequency",
-      "term",
+      "simple",
+      "count",
       "core",
-      "document",
-      "text-analysis",
+      "idf",
+      "tf",
+      "term",
+      "frequency",
       "techniques",
+      "document",
       "analysis",
+      "word",
       "words",
+      "based",
       "text"
     ],
     "tfidf_top_terms": [
       "pos",
-      "tf",
-      "idf",
-      "frequency",
-      "term"
+      "simple",
+      "count",
+      "core",
+      "idf"
     ]
   },
   {
@@ -1883,21 +1722,14 @@
     "content": "",
     "summary": "",
     "keywords": [
-      "bow",
-      "word-frequency",
-      "term-frequency",
+      "from",
       "embeddings",
-      "semantic-similarity",
-      "word2vec",
-      "vectors",
       "words"
     ],
     "tfidf_top_terms": [
-      "bow",
-      "word-frequency",
-      "term-frequency",
+      "from",
       "embeddings",
-      "semantic-similarity"
+      "words"
     ]
   },
   {
@@ -1913,12 +1745,11 @@
       "barked",
       "bites",
       "svm",
-      "document",
       "vocabulary",
       "vectors",
-      "words",
+      "document",
       "word",
-      "classification",
+      "words",
       "text"
     ],
     "tfidf_top_terms": [
@@ -1937,25 +1768,24 @@
     "content": "N-grams capture contiguous sequences of N words, adding some notion of word order and local context.\n\nTypes:\n\n- Unigrams: single words\n- Bigrams: two-word sequences (“New York”)\n- Trigrams: three-word sequences (“I love pizza”)\n\nHow It Works:\n1. Slide a window of size N across the text.\n2. Count frequency of each N-gram.\n\nCan be combined with BoW to form richer features.\n\nTradeoffs:\n\n- Captures local syntax (e.g., “not good” vs. “good”).\n- Still sparse and brittle—misses long-range dependencies.",
     "summary": "N-grams capture contiguous sequences of N words, adding some notion of word order and local context.\n\nTypes:\n\n- Unigrams: single words\n- Bigrams: two-word sequences (“New York”)\n- Trigrams: three-word...",
     "keywords": [
-      "n-grams",
+      "grams",
       "local",
+      "good",
       "contiguous",
       "adding",
       "notion",
-      "order",
-      "types",
       "sequences",
       "capture",
-      "context",
-      "words",
-      "word"
+      "word",
+      "language-model",
+      "words"
     ],
     "tfidf_top_terms": [
-      "n-grams",
+      "grams",
       "local",
+      "good",
       "contiguous",
-      "adding",
-      "notion"
+      "adding"
     ]
   },
   {
@@ -1966,23 +1796,23 @@
     "content": "Word embeddings map words to dense, low-dimensional vectors that capture semantic relationships. Unlike BoW, embeddings preserve meaning and similarity.\n\nWord2Vec:\n\n- Skip-gram: Predicts context words from a target word.\n- CBOW: Predicts target word from surrounding context.\n- Learns embeddings by maximizing co-occurrence prediction.\n\nGloVe:\n\n- Global Vectors for Word Representation.\n- Uses matrix factorization of word co-occurrence statistics.\n- Embeddings reflect global corpus structure.\n\nProp",
     "summary": "Word embeddings map words to dense, low-dimensional vectors that capture semantic relationships. Unlike BoW, embeddings preserve meaning and similarity.\n\nWord2Vec:\n\n- Skip-gram: Predicts context words...",
     "keywords": [
-      "cbow",
       "glove",
+      "cbow",
       "similarity",
       "predicts",
       "static",
-      "semantic",
-      "clustering",
-      "embeddings",
-      "word2vec",
-      "semantic-similarity",
+      "target",
+      "occurrence",
       "vectors",
-      "words",
-      "word"
+      "semantic",
+      "embeddings",
+      "context",
+      "word",
+      "words"
     ],
     "tfidf_top_terms": [
-      "cbow",
       "glove",
+      "cbow",
       "similarity",
       "predicts",
       "static"
@@ -1996,26 +1826,23 @@
     "content": "- Context Insensitivity: “Apple” in “apple pie” vs. “Apple Inc.” = same vector.\n- Cannot disambiguate polysemy or handle sarcasm, idioms, or negation.\n- Corpus Dependence: Embeddings reflect biases in training data.\n- Rare words may be poorly represented.\n- No Sentence-Level Meaning\n- Embeddings are word-level only.\n- Cannot represent full sentence semantics or grammar.",
     "summary": "- Context Insensitivity: “Apple” in “apple pie” vs. “Apple Inc.” = same vector.\n- Cannot disambiguate polysemy or handle sarcasm, idioms, or negation.\n- Corpus Dependence: Embeddings reflect biases in...",
     "keywords": [
+      "limitations",
       "apple",
       "cannot",
-      "limitations",
       "insensitivity",
       "disambiguate",
-      "polysemy",
-      "sarcasm",
       "static",
-      "handle",
+      "sentence",
+      "level",
+      "same",
       "vector",
-      "context",
       "embeddings",
-      "word2vec",
-      "semantic-similarity",
-      "vectors"
+      "context"
     ],
     "tfidf_top_terms": [
+      "limitations",
       "apple",
       "cannot",
-      "limitations",
       "insensitivity",
       "disambiguate"
     ]
@@ -2030,14 +1857,12 @@
     "keywords": [
       "core",
       "applications",
-      "text-analysis",
       "analysis",
       "text"
     ],
     "tfidf_top_terms": [
       "core",
       "applications",
-      "text-analysis",
       "analysis",
       "text"
     ]
@@ -2050,25 +1875,27 @@
     "content": "- TF-IDF: Highlights distinctive terms.\n- RAKE: Uses word co-occurrence and frequency.\n- TextRank: Graph-based ranking of phrases.\n- Transformers: Use attention weights to identify salient tokens.",
     "summary": "- TF-IDF: Highlights distinctive terms.\n- RAKE: Uses word co-occurrence and frequency.\n- TextRank: Graph-based ranking of phrases.\n- Transformers: Use attention weights to identify salient tokens.",
     "keywords": [
-      "rake",
       "keyword",
-      "tf-idf",
+      "rake",
       "highlights",
       "distinctive",
-      "co-occurrence",
-      "tf",
       "idf",
+      "tf",
+      "occurrence",
+      "textrank",
+      "graph",
       "terms",
-      "word",
-      "transformer",
-      "extraction"
+      "uses",
+      "frequency",
+      "extraction",
+      "word"
     ],
     "tfidf_top_terms": [
-      "rake",
       "keyword",
-      "tf-idf",
+      "rake",
       "highlights",
-      "distinctive"
+      "distinctive",
+      "idf"
     ]
   },
   {
@@ -2083,24 +1910,24 @@
       "detects",
       "entities",
       "people",
+      "spacy",
+      "entity",
+      "ner",
+      "named-entity",
+      "organizations",
       "locations",
       "dates",
-      "entity-recognition",
-      "entity-extraction",
-      "named-entity",
-      "ner",
-      "entity",
-      "organizations",
       "bert",
       "recognition",
-      "models"
+      "models",
+      "based"
     ],
     "tfidf_top_terms": [
       "named",
       "detects",
       "entities",
       "people",
-      "locations"
+      "spacy"
     ]
   },
   {
@@ -2111,23 +1938,23 @@
     "content": "- Extractive: Selects key sentences (TextRank, LexRank).\n- Abstractive: Generates new text (BART, T5).",
     "summary": "- Extractive: Selects key sentences (TextRank, LexRank).\n- Abstractive: Generates new text (BART, T5).",
     "keywords": [
-      "bart",
       "summarization",
+      "bart",
       "extractive",
       "selects",
-      "textrank",
       "lexrank",
       "abstractive",
       "sentences",
+      "textrank",
       "generates",
       "text"
     ],
     "tfidf_top_terms": [
-      "bart",
       "summarization",
+      "bart",
       "extractive",
       "selects",
-      "textrank"
+      "lexrank"
     ]
   },
   {
@@ -2138,28 +1965,28 @@
     "content": "- Assigns labels (e.g., spam, topic, sentiment).\n- Commonly used for sentiment analysis\n- Models: Naive Bayes, SVM, BERT fine-tuning.",
     "summary": "- Assigns labels (e.g., spam, topic, sentiment).\n- Commonly used for sentiment analysis\n- Models: Naive Bayes, SVM, BERT fine-tuning.",
     "keywords": [
+      "sentiment-analysis",
       "sentiment",
       "assigns",
       "spam",
       "topic",
-      "opinion",
-      "emotion",
-      "polarity",
+      "naive",
+      "bayes",
       "svm",
       "commonly",
-      "bert",
       "labels",
+      "bert",
       "analysis",
-      "models",
       "classification",
+      "models",
       "text"
     ],
     "tfidf_top_terms": [
+      "sentiment-analysis",
       "sentiment",
       "assigns",
       "spam",
-      "topic",
-      "opinion"
+      "topic"
     ]
   },
   {
@@ -2172,27 +1999,24 @@
     "keywords": [
       "listens",
       "transcribes",
-      "written",
+      "capability",
       "scenarios",
+      "written",
       "called",
-      "voice-input",
-      "dictation",
-      "speech-to-text",
-      "stt",
-      "transcription",
-      "common",
       "input",
+      "common",
+      "speech-recognition",
       "recognition",
       "audio",
-      "speech-recognition",
-      "speech"
+      "speech",
+      "text"
     ],
     "tfidf_top_terms": [
       "listens",
       "transcribes",
-      "written",
+      "capability",
       "scenarios",
-      "called"
+      "written"
     ]
   },
   {
@@ -2204,22 +2028,22 @@
     "summary": "Service centers use speech recognition to:\n\n- Transcribe customer calls in real time for agent reference and quality assurance.\n- Route callers to the right department based on what they say.\n- Analyz...",
     "keywords": [
       "service",
-      "call",
       "support",
+      "call",
       "centers",
       "calls",
       "real",
       "transcribe",
       "customer",
       "quality",
-      "recognition",
       "speech-recognition",
+      "recognition",
       "speech"
     ],
     "tfidf_top_terms": [
       "service",
-      "call",
       "support",
+      "call",
       "centers",
       "calls"
     ]
@@ -2232,30 +2056,27 @@
     "content": "Virtual assistants and AI agents rely on speech recognition to:\n\n- Accept voice commands for hands-free control of devices and applications.\n- Answer questions using natural language understanding.\n- Complete tasks like setting reminders, sending messages, or searching information.\n- Control smart home devices, automotive systems, and wearable technology.\n\n**Business value**: Increases user engagement, simplifies complex workflows, and enables operation in situations where screens aren't practic",
     "summary": "Virtual assistants and AI agents rely on speech recognition to:\n\n- Accept voice commands for hands-free control of devices and applications.\n- Answer questions using natural language understanding.\n-...",
     "keywords": [
-      "devices",
-      "voice-activated",
-      "virtual",
+      "activated",
       "assistants",
+      "devices",
+      "virtual",
+      "accept",
       "control",
       "rely",
+      "voice",
       "natural-language",
       "agents",
-      "tool-use",
-      "function-calling",
-      "autonomous",
-      "planning",
-      "recognition",
       "speech-recognition",
+      "recognition",
       "speech",
-      "ai",
-      "artificial-intelligence"
+      "ai"
     ],
     "tfidf_top_terms": [
-      "devices",
-      "voice-activated",
-      "virtual",
+      "activated",
       "assistants",
-      "control"
+      "devices",
+      "virtual",
+      "accept"
     ]
   },
   {
@@ -2276,11 +2097,8 @@
       "notes",
       "action",
       "item",
-      "create",
       "transcription",
-      "stt",
-      "speech-to-text",
-      "speech-recognition"
+      "create"
     ],
     "tfidf_top_terms": [
       "meeting",
@@ -2307,8 +2125,8 @@
       "notes",
       "healthcare",
       "patient",
-      "recognition",
       "speech-recognition",
+      "recognition",
       "speech"
     ],
     "tfidf_top_terms": [
@@ -2329,16 +2147,13 @@
     "keywords": [
       "spoken",
       "technology",
-      "written",
       "scenarios",
+      "written",
+      "creates",
       "called",
-      "text-to-speech",
       "converts",
-      "reading-aloud",
-      "tts",
-      "narration",
-      "voice-generation",
       "common",
+      "speech-synthesis",
       "synthesis",
       "audio",
       "speech",
@@ -2347,9 +2162,9 @@
     "tfidf_top_terms": [
       "spoken",
       "technology",
-      "written",
       "scenarios",
-      "called"
+      "written",
+      "creates"
     ]
   },
   {
@@ -2360,30 +2175,27 @@
     "content": "AI agents use speech synthesis to:\n\n- Respond to users with natural-sounding voices instead of requiring them to read text.\n- Create personalized interactions by adjusting tone, pace, and speaking style.\n- Handle customer inquiries through voice channels like phone systems.\n- Provide consistent brand experiences across voice and text interfaces.\n\n**Business value**: Makes AI agents more approachable, reduces customer effort, and extends service availability to voice-only channels.",
     "summary": "AI agents use speech synthesis to:\n\n- Respond to users with natural-sounding voices instead of requiring them to read text.\n- Create personalized interactions by adjusting tone, pace, and speaking sty...",
     "keywords": [
-      "voice",
-      "channels",
       "conversational",
       "chatbots",
+      "channels",
       "respond",
+      "voice",
+      "natural",
       "agents",
       "customer",
-      "tool-use",
-      "function-calling",
-      "autonomous",
-      "planning",
       "users",
+      "speech-synthesis",
       "synthesis",
       "speech",
       "ai",
-      "text",
-      "artificial-intelligence"
+      "text"
     ],
     "tfidf_top_terms": [
-      "voice",
-      "channels",
       "conversational",
       "chatbots",
-      "respond"
+      "channels",
+      "respond",
+      "voice"
     ]
   },
   {
@@ -2394,22 +2206,22 @@
     "content": "Applications generate audio to:\n\n- Read web content, articles, and documents aloud for users with visual impairments.\n- Support users with reading disabilities like dyslexia.\n- Enable content consumption while driving, exercising, or performing other tasks.\n- Provide audio alternatives for text-heavy interfaces.\n\n**Business value**: Expands your audience reach, demonstrates commitment to inclusion, and improves user satisfaction.",
     "summary": "Applications generate audio to:\n\n- Read web content, articles, and documents aloud for users with visual impairments.\n- Support users with reading disabilities like dyslexia.\n- Enable content consumpt...",
     "keywords": [
-      "consumption",
       "accessibility",
+      "consumption",
       "articles",
       "aloud",
       "read",
-      "content",
-      "generate",
       "documents",
-      "visual",
-      "users",
       "applications",
+      "generate",
+      "visual",
+      "content",
+      "users",
       "audio"
     ],
     "tfidf_top_terms": [
-      "consumption",
       "accessibility",
+      "consumption",
       "articles",
       "aloud",
       "read"
@@ -2423,28 +2235,25 @@
     "content": "Systems use speech synthesis to:\n\n- Announce important alerts, reminders, and status updates.\n- Provide navigation instructions in mapping and GPS applications.\n- Deliver time-sensitive information without requiring users to look at screens.\n- Communicate system status in industrial and operational environments.\n\n**Business value**: Ensures critical information reaches users even when visual attention isn't available, improving safety and responsiveness.",
     "summary": "Systems use speech synthesis to:\n\n- Announce important alerts, reminders, and status updates.\n- Provide navigation instructions in mapping and GPS applications.\n- Deliver time-sensitive information wi...",
     "keywords": [
-      "gps",
-      "alerts",
-      "status",
       "notifications",
+      "alerts",
+      "gps",
+      "status",
       "announce",
       "reminders",
       "important",
       "users",
+      "speech-synthesis",
       "information",
       "systems",
       "synthesis",
-      "speech",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "speech"
     ],
     "tfidf_top_terms": [
-      "gps",
-      "alerts",
-      "status",
       "notifications",
+      "alerts",
+      "gps",
+      "status",
       "announce"
     ]
   },
@@ -2457,24 +2266,24 @@
     "summary": "Educational platforms use speech synthesis to:\n\n- Create narrated lessons and course content without recording studios.\n- Provide pronunciation examples for language learning.\n- Generate audio version...",
     "keywords": [
       "course",
-      "e-learning",
       "educational",
       "platforms",
       "narrated",
       "lessons",
-      "content",
       "create",
+      "content",
+      "speech-synthesis",
       "synthesis",
-      "learning",
       "training",
+      "learning",
       "speech"
     ],
     "tfidf_top_terms": [
       "course",
-      "e-learning",
       "educational",
       "platforms",
-      "narrated"
+      "narrated",
+      "lessons"
     ]
   },
   {
@@ -2485,23 +2294,24 @@
     "content": "Content creators use speech synthesis to:\n\n- Generate character voices for games and interactive experiences.\n- Produce podcast drafts and audiobook prototypes.\n- Create voiceovers for videos and presentations.\n- Personalize audio content based on user preferences.\n\n**Business value**: Lowers production costs, enables rapid prototyping, and creates customized experiences at scale.",
     "summary": "Content creators use speech synthesis to:\n\n- Generate character voices for games and interactive experiences.\n- Produce podcast drafts and audiobook prototypes.\n- Create voiceovers for videos and pres...",
     "keywords": [
-      "experiences",
       "entertainment",
       "media",
+      "experiences",
       "creators",
       "voices",
       "games",
       "interactive",
       "character",
-      "content",
       "generate",
+      "content",
+      "speech-synthesis",
       "synthesis",
       "speech"
     ],
     "tfidf_top_terms": [
-      "experiences",
       "entertainment",
       "media",
+      "experiences",
       "creators",
       "voices"
     ]
@@ -2514,30 +2324,27 @@
     "content": "The most powerful speech-enabled applications combine both capabilities to create conversational experiences:\n\n- **Voice-driven customer service**: Agents listen to customer questions (recognition), process the request, and respond with helpful answers (synthesis).\n- **Interactive voice response (IVR) systems**: Callers speak their needs, and the system guides them through options using natural dialogue.\n- **Language learning applications**: Students speak practice phrases (recognition), and the",
     "summary": "The most powerful speech-enabled applications combine both capabilities to create conversational experiences:\n\n- **Voice-driven customer service**: Agents listen to customer questions (recognition), p...",
     "keywords": [
+      "combining",
       "ivr",
       "speak",
-      "combining",
+      "provides",
+      "voice",
       "natural",
-      "voice-input",
-      "dictation",
+      "applications",
       "create",
       "customer",
-      "applications",
-      "stt",
-      "speech-to-text",
-      "transcription",
       "system",
       "synthesis",
-      "recognition",
       "speech-recognition",
+      "recognition",
       "speech"
     ],
     "tfidf_top_terms": [
+      "combining",
       "ivr",
       "speak",
-      "combining",
-      "natural",
-      "voice-input"
+      "provides",
+      "voice"
     ]
   },
   {
@@ -2548,25 +2355,27 @@
     "content": "Before you add speech capabilities to your application, evaluate these factors:\n\n- **Audio quality requirements**: Background noise, microphone quality, and network bandwidth affect speech recognition accuracy.\n- **Language and dialect support**: Verify that your target languages and regional variations are supported.\n- **Privacy and compliance**: Understand how audio data is processed, stored, and protected to meet regulatory requirements.\n- **Latency expectations**: Real-time conversations req",
     "summary": "Before you add speech capabilities to your application, evaluate these factors:\n\n- **Audio quality requirements**: Background noise, microphone quality, and network bandwidth affect speech recognition...",
     "keywords": [
-      "wcag",
-      "considerations",
       "implementing",
-      "capabilities",
+      "wcag",
+      "latency",
       "require",
-      "application",
+      "capabilities",
+      "considerations",
+      "your",
+      "before",
       "requirements",
       "quality",
       "users",
-      "audio",
       "speech-recognition",
+      "audio",
       "speech"
     ],
     "tfidf_top_terms": [
-      "wcag",
-      "considerations",
       "implementing",
-      "capabilities",
-      "require"
+      "wcag",
+      "latency",
+      "require",
+      "capabilities"
     ]
   },
   {
@@ -2579,23 +2388,26 @@
     "keywords": [
       "analog",
       "digital",
+      "second",
       "microphone",
-      "samples",
+      "sound",
       "capture",
       "convert",
+      "samples",
       "begins",
+      "converts",
       "system",
+      "speech-recognition",
       "audio",
       "recognition",
-      "speech-recognition",
       "speech"
     ],
     "tfidf_top_terms": [
       "analog",
       "digital",
+      "second",
       "microphone",
-      "samples",
-      "capture"
+      "sound"
     ]
   },
   {
@@ -2606,29 +2418,26 @@
     "content": "Raw audio samples contain too much information for efficient pattern recognition. Pre-processing transforms the waveform into a compact representation that highlights speech characteristics while discarding irrelevant details like absolute volume.",
     "summary": "Raw audio samples contain too much information for efficient pattern recognition. Pre-processing transforms the waveform into a compact representation that highlights speech characteristics while disc...",
     "keywords": [
-      "pre-processing",
       "meaningful",
-      "contain",
+      "much",
       "efficient",
-      "samples",
       "pattern",
+      "contain",
       "transforms",
+      "samples",
       "extract",
       "information",
+      "processing",
       "features",
       "audio",
-      "recognition",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "recognition"
     ],
     "tfidf_top_terms": [
-      "pre-processing",
       "meaningful",
-      "contain",
+      "much",
       "efficient",
-      "samples"
+      "pattern",
+      "contain"
     ]
   },
   {
@@ -2639,28 +2448,28 @@
     "content": "MFCC is the most common feature extraction technique in speech recognition. It mimics how the human ear perceives sound by emphasizing frequencies where speech energy concentrates and compressing less important ranges.",
     "summary": "MFCC is the most common feature extraction technique in speech recognition. It mimics how the human ear perceives sound by emphasizing frequencies where speech energy concentrates and compressing less...",
     "keywords": [
-      "mel-frequency",
       "cepstral",
       "mfccs",
+      "mimics",
+      "perceives",
       "coefficients",
       "technique",
-      "sound-analysis",
-      "audio-features",
-      "signal-processing",
+      "human",
+      "frequency",
       "mfcc",
       "feature",
+      "extraction",
       "common",
-      "recognition",
       "speech-recognition",
-      "speech",
-      "extraction"
+      "recognition",
+      "speech"
     ],
     "tfidf_top_terms": [
-      "mel-frequency",
       "cepstral",
       "mfccs",
-      "coefficients",
-      "technique"
+      "mimics",
+      "perceives",
+      "coefficients"
     ]
   },
   {
@@ -2671,27 +2480,24 @@
     "content": "1. **Divide audio into frames:** Split the signal into overlapping 20–30 millisecond windows.\n2. **Apply Fourier transform:** Convert each frame from time domain to frequency domain, revealing which pitches are present.\n3. **Map to Mel scale:** Adjust frequency bins to match human hearing sensitivity—we distinguish low pitches better than high ones.\n4. **Extract coefficients:** Compute a small set of numbers (often 13 coefficients) that summarize the spectral shape of each frame.\n\n\n\nThe result i",
     "summary": "1. **Divide audio into frames:** Split the signal into overlapping 20–30 millisecond windows.\n2. **Apply Fourier transform:** Convert each frame from time domain to frequency domain, revealing which p...",
     "keywords": [
+      "time",
       "domain",
       "pitches",
       "divide",
-      "split",
       "frame",
       "coefficients",
-      "frequency",
-      "frames",
-      "sound-analysis",
-      "audio-features",
-      "signal-processing",
+      "works",
       "mfcc",
-      "feature",
+      "frequency",
       "vectors",
+      "feature",
       "audio"
     ],
     "tfidf_top_terms": [
+      "time",
       "domain",
       "pitches",
       "divide",
-      "split",
       "frame"
     ]
   },
@@ -2705,26 +2511,23 @@
     "keywords": [
       "recognize",
       "relationship",
-      "learn",
       "smallest",
-      "sound",
-      "modeling",
       "units",
-      "phonemes",
-      "speech-units",
-      "sounds",
-      "pronunciation",
+      "learn",
       "acoustic",
-      "audio",
+      "modeling",
+      "phonemes",
+      "between",
       "features",
+      "audio",
       "models"
     ],
     "tfidf_top_terms": [
       "recognize",
       "relationship",
-      "learn",
       "smallest",
-      "sound"
+      "units",
+      "learn"
     ]
   },
   {
@@ -2735,32 +2538,27 @@
     "content": "Modern acoustic models use **transformer architectures**, a type of deep learning network that excels at sequence tasks. The transformer processes the MFCC feature vectors and predicts which phoneme is most likely at each moment in time.\n\nTransformer models achieve effective phoneme prediction through: \n\n- **Attention mechanism:** The model examines surrounding frames to resolve ambiguity. For example, the phoneme /t/ sounds different at the start of \"top\" versus the end of \"bat.\"\n- **Parallel p",
     "summary": "Modern acoustic models use **transformer architectures**, a type of deep learning network that excels at sequence tasks. The transformer processes the MFCC feature vectors and predicts which phoneme i...",
     "keywords": [
-      "recurrent",
       "frames",
+      "architectures",
       "frame",
-      "network",
-      "mfcc",
+      "from",
       "phonemes",
-      "phoneme",
-      "sounds",
-      "speech-units",
-      "pronunciation",
+      "mfcc",
       "acoustic",
+      "network",
+      "modern",
+      "phoneme",
+      "transformer",
       "features",
       "deep-learning",
-      "models",
-      "transformer",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "models"
     ],
     "tfidf_top_terms": [
-      "recurrent",
       "frames",
+      "architectures",
       "frame",
-      "network",
-      "mfcc"
+      "from",
+      "phonemes"
     ]
   },
   {
@@ -2773,25 +2571,23 @@
     "keywords": [
       "nice",
       "alone",
-      "modeling",
+      "guarantee",
       "sequences",
       "predictions",
+      "modeling",
       "patterns",
       "phoneme",
-      "speech-units",
-      "sounds",
-      "pronunciation",
-      "predict",
-      "acoustic",
       "language",
+      "predict",
       "word",
+      "language-model",
       "models",
       "model"
     ],
     "tfidf_top_terms": [
       "nice",
       "alone",
-      "modeling",
+      "guarantee",
       "sequences",
       "predictions"
     ]
@@ -2804,22 +2600,24 @@
     "content": "Decoding algorithms search through millions of possible word sequences to find the transcription that best matches both acoustic and language model predictions. This stage balances two competing goals: staying faithful to the audio signal while producing readable, grammatically correct text.",
     "summary": "Decoding algorithms search through millions of possible word sequences to find the transcription that best matches both acoustic and language model predictions. This stage balances two competing goals...",
     "keywords": [
-      "best",
       "select",
+      "best",
       "millions",
       "possible",
       "decoding",
       "hypothesis",
       "search",
-      "sequences",
       "find",
+      "sequences",
+      "transcription",
       "algorithms",
       "word",
+      "language-model",
       "text"
     ],
     "tfidf_top_terms": [
-      "best",
       "select",
+      "best",
       "millions",
       "possible",
       "decoding"
@@ -2837,13 +2635,12 @@
       "please",
       "friday",
       "maintains",
-      "shortlist",
-      "top-scoring",
+      "search",
       "decoding",
+      "scoring",
       "hypothesis",
       "report",
       "technique",
-      "search",
       "common"
     ],
     "tfidf_top_terms": [
@@ -2851,7 +2648,7 @@
       "please",
       "friday",
       "maintains",
-      "shortlist"
+      "search"
     ]
   },
   {
@@ -2866,13 +2663,13 @@
       "requires",
       "cleanup",
       "presentation",
-      "applies",
-      "rules",
       "decoder",
       "produces",
-      "formatting",
-      "post-processing",
+      "often",
+      "before",
+      "post",
       "output",
+      "processing",
       "text"
     ],
     "tfidf_top_terms": [
@@ -2880,7 +2677,7 @@
       "requires",
       "cleanup",
       "presentation",
-      "applies"
+      "decoder"
     ]
   },
   {
@@ -2893,31 +2690,26 @@
     "keywords": [
       "hello",
       "name",
+      "capitalization",
+      "punctuation",
       "pm",
       "tasks",
       "convert",
-      "three",
-      "post-processing",
-      "confidence",
       "transcription",
-      "stt",
-      "speech-to-text",
+      "post",
+      "three",
+      "confidence",
       "common",
+      "processing",
       "words",
-      "speech-recognition",
-      "ai",
-      "artificial-intelligence",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "ai"
     ],
     "tfidf_top_terms": [
       "hello",
       "name",
-      "pm",
-      "tasks",
-      "convert"
+      "capitalization",
+      "punctuation",
+      "pm"
     ]
   },
   {
@@ -2928,29 +2720,28 @@
     "content": "Each stage builds on the previous one:\n\n1. **Audio capture** provides the raw signal.\n2. **Pre-processing** extracts MFCC features that highlight speech patterns.\n3. **Acoustic modeling** predicts phoneme probabilities using transformer networks.\n4. **Language modeling** applies vocabulary and grammar knowledge.\n5. **Decoding** searches for the best word sequence.\n6. **Post-processing** formats the text for human readers.\n\nBy separating concerns, modern speech recognition systems achieve high ac",
     "summary": "Each stage builds on the previous one:\n\n1. **Audio capture** provides the raw signal.\n2. **Pre-processing** extracts MFCC features that highlight speech patterns.\n3. **Acoustic modeling** predicts pho...",
     "keywords": [
+      "works",
+      "together",
       "capture",
-      "modeling",
-      "post-processing",
       "mfcc",
-      "pipeline",
-      "stage",
       "acoustic",
+      "modeling",
+      "post",
+      "pipeline",
+      "processing",
       "language",
-      "audio",
       "speech-recognition",
-      "speech",
-      "transformer",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "stage",
+      "language-model",
+      "audio",
+      "speech"
     ],
     "tfidf_top_terms": [
+      "works",
+      "together",
       "capture",
-      "modeling",
-      "post-processing",
       "mfcc",
-      "pipeline"
+      "acoustic"
     ]
   },
   {
@@ -2961,25 +2752,24 @@
     "content": "Text normalization prepares raw text for pronunciation by expanding abbreviations, numbers, and symbols into spoken forms.\n\nConsider the sentence: \"*Dr. Smith ordered 3 items for $25.50 on 12/15/2023.*\"\n\nA normalization system converts it to: \"Doctor Smith ordered three items for twenty-five dollars and fifty cents on December fifteenth, two thousand twenty-three.\"\n\nCommon normalization tasks include:\n\n- Expanding abbreviations (\"Dr.\" becomes \"Doctor\", \"Inc.\" becomes \"Incorporated\")\n- Converting",
     "summary": "Text normalization prepares raw text for pronunciation by expanding abbreviations, numbers, and symbols into spoken forms.\n\nConsider the sentence: \"*Dr. Smith ordered 3 items for $25.50 on 12/15/2023....",
     "keywords": [
+      "standardize",
       "becomes",
+      "twenty",
       "symbols",
       "expanding",
       "abbreviations",
-      "smith",
-      "ordered",
-      "2023",
-      "items",
+      "five",
       "numbers",
+      "three",
       "normalization",
-      "system",
       "text"
     ],
     "tfidf_top_terms": [
+      "standardize",
       "becomes",
+      "twenty",
       "symbols",
-      "expanding",
-      "abbreviations",
-      "smith"
+      "expanding"
     ]
   },
   {
@@ -2995,16 +2785,10 @@
       "breaks",
       "normalized",
       "determines",
-      "smallest",
-      "units",
       "phonemes",
-      "speech-units",
-      "sounds",
-      "pronunciation",
       "analysis",
-      "acoustic",
-      "words",
       "word",
+      "words",
       "text"
     ],
     "tfidf_top_terms": [
@@ -3023,28 +2807,28 @@
     "content": "Grapheme-to-phoneme (G2P) conversion maps written letters (*graphemes*) to pronunciation sounds (*phonemes*). English spelling doesn't reliably indicate pronunciation, so G2P systems use both rules and learned patterns.\n\nFor example:\n\n- The word \"though\" converts to /θoʊ/\n- The word \"through\" converts to /θruː/\n- The word \"cough\" converts to /kɔːf/\n\nEach word contains the letters \"ough\", but the pronunciation differs dramatically.\n\nModern G2P systems use neural networks trained on pronunciation ",
     "summary": "Grapheme-to-phoneme (G2P) conversion maps written letters (*graphemes*) to pronunciation sounds (*phonemes*). English spelling doesn't reliably indicate pronunciation, so G2P systems use both rules an...",
     "keywords": [
-      "grapheme-to-phoneme",
+      "grapheme",
       "conversion",
       "letters",
       "spelling",
+      "tense",
+      "pronunciation",
       "read",
       "converts",
       "phonemes",
-      "speech-units",
-      "sounds",
-      "pronunciation",
-      "acoustic",
-      "systems",
-      "neural-network",
+      "patterns",
+      "phoneme",
+      "neural-networks",
       "word",
-      "transformer"
+      "systems",
+      "neural-network"
     ],
     "tfidf_top_terms": [
-      "grapheme-to-phoneme",
+      "grapheme",
       "conversion",
       "letters",
       "spelling",
-      "read"
+      "tense"
     ]
   },
   {
@@ -3059,13 +2843,14 @@
       "rhythm",
       "stress",
       "intonation",
+      "make",
+      "pronunciation",
       "sound",
-      "natural",
       "refers",
-      "generation",
+      "natural",
       "patterns",
       "prosody",
-      "pronunciation",
+      "generation",
       "speech"
     ],
     "tfidf_top_terms": [
@@ -3073,7 +2858,7 @@
       "rhythm",
       "stress",
       "intonation",
-      "sound"
+      "make"
     ]
   },
   {
@@ -3084,12 +2869,11 @@
     "content": "Prosody encompasses several vocal characteristics:\n\n- **Pitch contours**: Rising or falling pitch patterns that signal questions versus statements\n- **Duration**: How long to hold each sound, creating emphasis or natural rhythm\n- **Intensity**: Volume variations that highlight important words\n- **Pauses**: Breaks between phrases or sentences that aid comprehension\n- **Stress patterns**: Which syllables receive emphasis within words and sentences\n\nProsody has a significant effect on how spoken te",
     "summary": "Prosody encompasses several vocal characteristics:\n\n- **Pitch contours**: Rising or falling pitch patterns that signal questions versus statements\n- **Duration**: How long to hold each sound, creating...",
     "keywords": [
+      "never",
+      "said",
       "cake",
       "emphasis",
       "encompasses",
-      "several",
-      "vocal",
-      "characteristics",
       "pitch",
       "sentences",
       "elements",
@@ -3098,11 +2882,11 @@
       "words"
     ],
     "tfidf_top_terms": [
+      "never",
+      "said",
       "cake",
       "emphasis",
-      "encompasses",
-      "several",
-      "vocal"
+      "encompasses"
     ]
   },
   {
@@ -3113,29 +2897,28 @@
     "content": "Modern speech synthesis systems use transformer neural networks to predict prosody. Transformers excel at understanding context across entire sentences, not just adjacent words.",
     "summary": "Modern speech synthesis systems use transformer neural networks to predict prosody. Transformers excel at understanding context across entire sentences, not just adjacent words.",
     "keywords": [
-      "transformer-based",
-      "networks",
-      "modern",
-      "neural",
-      "prosody",
       "prediction",
+      "networks",
+      "transformers",
+      "modern",
+      "transformer",
+      "prosody",
+      "neural",
+      "speech-synthesis",
+      "neural-networks",
       "predict",
       "synthesis",
       "systems",
       "neural-network",
-      "speech",
-      "transformer",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "based",
+      "speech"
     ],
     "tfidf_top_terms": [
-      "transformer-based",
+      "prediction",
       "networks",
+      "transformers",
       "modern",
-      "neural",
-      "prosody"
+      "transformer"
     ]
   },
   {
@@ -3146,33 +2929,25 @@
     "content": "1. **Input encoding**: The transformer receives the phoneme sequence with linguistic features (punctuation, part of speech, sentence structure)\n2. **Contextual analysis**: Self-attention mechanisms identify relationships between words (for example, which noun a pronoun references, where sentence boundaries fall)\n3. **Prosody prediction**: The model outputs predicted values for pitch, duration, and energy at each phoneme\n4. **Style factors**: The system considers speaking style (neutral, expressi",
     "summary": "1. **Input encoding**: The transformer receives the phoneme sequence with linguistic features (punctuation, part of speech, sentence structure)\n2. **Contextual analysis**: Self-attention mechanisms id...",
     "keywords": [
-      "sentence",
       "style",
+      "sentence",
       "pitch",
-      "generation",
-      "phoneme",
-      "prosody",
-      "sounds",
-      "speech-units",
-      "pronunciation",
-      "process",
+      "encoding",
       "input",
-      "acoustic",
+      "prosody",
+      "phoneme",
+      "generation",
+      "process",
       "words",
       "speech",
-      "transformer",
-      "model",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "model"
     ],
     "tfidf_top_terms": [
-      "sentence",
       "style",
+      "sentence",
       "pitch",
-      "generation",
-      "phoneme"
+      "encoding",
+      "input"
     ]
   },
   {
@@ -3183,29 +2958,26 @@
     "content": "- **Syntax**: Clause boundaries indicate where to pause\n- **Semantics**: Important concepts receive emphasis\n- **Discourse context**: Contrasting information or answers to questions may carry extra stress\n- **Speaker identity**: Each voice has characteristic pitch range and speaking rate\n- **Emotional tone**: Excitement, concern, or neutrality shape prosodic patterns\n\nThe prosody predictions create a target specification: \"Produce the phoneme /æ/ at 180 Hz for 80 milliseconds with moderate inten",
     "summary": "- **Syntax**: Clause boundaries indicate where to pause\n- **Semantics**: Important concepts receive emphasis\n- **Discourse context**: Contrasting information or answers to questions may carry extra st...",
     "keywords": [
-      "pause",
-      "milliseconds",
       "factors",
       "influencing",
       "choices",
+      "pause",
+      "milliseconds",
       "syntax",
       "clause",
       "boundaries",
       "indicate",
+      "semantics",
       "important",
-      "phoneme",
       "prosody",
-      "speech-units",
-      "sounds",
-      "pronunciation",
-      "acoustic"
+      "phoneme"
     ],
     "tfidf_top_terms": [
-      "pause",
-      "milliseconds",
       "factors",
       "influencing",
-      "choices"
+      "choices",
+      "pause",
+      "milliseconds"
     ]
   },
   {
@@ -3216,29 +2988,24 @@
     "content": "Speech synthesis generates the final audio waveform based on the phoneme sequence and prosody specifications.",
     "summary": "Speech synthesis generates the final audio waveform based on the phoneme sequence and prosody specifications.",
     "keywords": [
-      "specifications",
       "generates",
       "final",
       "waveform",
-      "generate",
       "sequence",
-      "reading-aloud",
-      "text-to-speech",
-      "tts",
-      "narration",
-      "voice-generation",
+      "generate",
       "phoneme",
       "prosody",
-      "based",
+      "speech-synthesis",
       "synthesis",
       "audio",
-      "speech"
+      "speech",
+      "based"
     ],
     "tfidf_top_terms": [
-      "specifications",
       "generates",
       "final",
       "waveform",
+      "sequence",
       "generate"
     ]
   },
@@ -3253,26 +3020,25 @@
       "gan",
       "vocoders",
       "waveform",
+      "samples",
       "approaches",
       "modern",
       "deep",
-      "generation",
+      "generate",
       "neural",
+      "generation",
+      "deep-learning",
       "systems",
       "learning",
-      "deep-learning",
-      "models",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "audio",
+      "models"
     ],
     "tfidf_top_terms": [
       "gan",
       "vocoders",
       "waveform",
-      "approaches",
-      "modern"
+      "samples",
+      "approaches"
     ]
   },
   {
@@ -3284,33 +3050,25 @@
     "summary": "1. **Acoustic feature generation**: An acoustic model (often a transformer) converts phonemes and prosody targets into mel-spectrograms—visual representations of sound frequencies over time\n2. **Vocod...",
     "keywords": [
       "vocoder",
-      "mel-spectrograms",
+      "spectrograms",
       "representations",
       "converts",
-      "voice-input",
-      "dictation",
-      "stt",
-      "speech-to-text",
-      "transcription",
       "acoustic",
+      "feature",
+      "generation",
       "process",
       "synthesis",
+      "speech-recognition",
       "audio",
       "recognition",
-      "speech-recognition",
-      "speech",
-      "transformer",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "speech"
     ],
     "tfidf_top_terms": [
       "vocoder",
-      "mel-spectrograms",
+      "spectrograms",
       "representations",
       "converts",
-      "voice-input"
+      "acoustic"
     ]
   },
   {
@@ -3321,30 +3079,28 @@
     "content": "When you request speech synthesis for \"Dr. Chen's appointment is at 3:00 PM\":\n\n1. **Text normalization** expands it to \"Doctor Chen's appointment is at three o'clock P M\"\n2. **Linguistic analysis** converts it to phonemes: /ˈdɑktər ˈtʃɛnz əˈpɔɪntmənt ɪz æt θri əˈklɑk pi ɛm/\n3. **Prosody generation** predicts pitch rising slightly on \"appointment\", a pause after \"is\", and emphasis on \"three\"\n4. **Speech synthesis** generates an audio waveform matching those specifications\n\nThe entire process typi",
     "summary": "When you request speech synthesis for \"Dr. Chen's appointment is at 3:00 PM\":\n\n1. **Text normalization** expands it to \"Doctor Chen's appointment is at three o'clock P M\"\n2. **Linguistic analysis** co...",
     "keywords": [
+      "complete",
       "appointment",
       "chen",
-      "complete",
-      "pm",
+      "request",
+      "expands",
+      "doctor",
       "action",
+      "pm",
       "three",
-      "reading-aloud",
-      "text-to-speech",
-      "tts",
-      "narration",
-      "voice-generation",
       "normalization",
       "pipeline",
-      "request",
+      "speech-synthesis",
       "synthesis",
       "speech",
       "text"
     ],
     "tfidf_top_terms": [
+      "complete",
       "appointment",
       "chen",
-      "complete",
-      "pm",
-      "action"
+      "request",
+      "expands"
     ]
   },
   {
@@ -3355,30 +3111,27 @@
     "content": "One of the oldest computer vision solutions is a technique called *image classification*, in which a model that has been trained with a large number of images is used to predict a text label based on an image's contents.\n\nFor example, suppose a grocery store wants to implement smart checkout system that identifies produce automatically. For example, the customer could place fruits or vegetables on a scale at the checkout, and an AI application connected to a camera could automatically identify t",
     "summary": "One of the oldest computer vision solutions is a technique called *image classification*, in which a model that has been trained with a large number of images is used to predict a text label based on...",
     "keywords": [
+      "produce",
+      "automatically",
       "image-classification",
       "checkout",
-      "tagging",
-      "image-recognition",
-      "computer-vision",
       "trained",
+      "large",
+      "computer-vision",
       "images",
       "predict",
-      "based",
       "image",
-      "labeling",
-      "categorization",
-      "example",
       "classification",
+      "based",
       "ai",
-      "artificial-intelligence",
       "model"
     ],
     "tfidf_top_terms": [
+      "produce",
+      "automatically",
       "image-classification",
       "checkout",
-      "tagging",
-      "image-recognition",
-      "computer-vision"
+      "trained"
     ]
   },
   {
@@ -3393,14 +3146,9 @@
       "regions",
       "grocery",
       "store",
-      "item-detection",
-      "bounding-box",
-      "localization",
-      "finding-objects",
       "object-detection",
       "checkout",
       "suppose",
-      "sophisticated",
       "objects",
       "multiple",
       "detection",
@@ -3411,7 +3159,7 @@
       "regions",
       "grocery",
       "store",
-      "item-detection"
+      "object-detection"
     ]
   },
   {
@@ -3423,24 +3171,22 @@
     "summary": "Another, more sophisticated way to detect objects in an image, is called \"semantic segmentation\". In this approach, a model is trained to find objects, and classify individual pixels in the image base...",
     "keywords": [
       "segmentation",
-      "detect",
       "sophisticated",
-      "called",
-      "approach",
-      "objects",
+      "detect",
       "another",
-      "trained",
-      "find",
+      "called",
+      "objects",
+      "approach",
       "semantic",
       "image",
       "model"
     ],
     "tfidf_top_terms": [
       "segmentation",
-      "detect",
       "sophisticated",
-      "called",
-      "approach"
+      "detect",
+      "another",
+      "called"
     ]
   },
   {
@@ -3456,10 +3202,11 @@
       "computer",
       "multimodal",
       "vision",
+      "find",
+      "relationships",
+      "trained",
       "computer-vision",
       "objects",
-      "trained",
-      "find",
       "analysis",
       "image",
       "models"
@@ -3480,29 +3227,24 @@
     "content": "A common way to perform image processing tasks is to apply *filters* that modify the pixel values of the image to create a visual effect. A filter is defined by one or more arrays of pixel values, called filter *kernels*. For example, you could define filter with a 3x3 kernel as shown in this example:\n\n```\n-1 -1 -1\n-1  8 -1\n-1 -1 -1\n```\n\nThe kernel is then *convolved* across the image, calculating a weighted sum for each 3x3 patch of pixels and assigning the result to a new image. It's easier to",
     "summary": "A common way to perform image processing tasks is to apply *filters* that modify the pixel values of the image to create a visual effect. A filter is defined by one or more arrays of pixel values, cal...",
     "keywords": [
+      "filters",
+      "filter",
       "pixel",
       "kernel",
       "convolved",
+      "across",
       "array",
       "effect",
-      "filter",
-      "result",
-      "convolutional",
       "value",
       "image",
-      "example",
-      "values",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "values"
     ],
     "tfidf_top_terms": [
+      "filters",
+      "filter",
       "pixel",
       "kernel",
-      "convolved",
-      "array",
-      "effect"
+      "convolved"
     ]
   },
   {
@@ -3513,40 +3255,28 @@
     "content": "The ability to use filters to apply effects to images is useful in image processing tasks, such as you might perform with image editing software. However, the goal of computer vision is often to extract meaning, or at least actionable insights, from images; which requires the creation of machine learning models that are trained to recognize features based on large volumes of existing images.\n\n\n\nOne of the most common machine learning model architectures for computer vision is a *convolutional ne",
     "summary": "The ability to use filters to apply effects to images is useful in image processing tasks, such as you might perform with image editing software. However, the goal of computer vision is often to extra...",
     "keywords": [
-      "convolution",
-      "cnns",
-      "feature-map",
-      "image-processing",
+      "convolutional",
       "image-classification",
-      "filter",
-      "tagging",
-      "image-recognition",
+      "networks",
       "cnn",
       "computer-vision",
       "images",
-      "rnn",
-      "neural-networks",
-      "convolutional",
+      "network",
+      "neural",
       "feature",
-      "neurons",
-      "backpropagation",
-      "layers",
-      "image",
-      "labeling",
+      "neural-networks",
       "deep-learning",
+      "image",
       "neural-network",
-      "categorization",
       "machine-learning",
-      "classification",
-      "transformer",
       "model"
     ],
     "tfidf_top_terms": [
-      "convolution",
-      "cnns",
-      "feature-map",
-      "image-processing",
-      "image-classification"
+      "convolutional",
+      "image-classification",
+      "networks",
+      "cnn",
+      "computer-vision"
     ]
   },
   {
@@ -3557,36 +3287,28 @@
     "content": "Transformers work by processing huge volumes of data, and encoding language *tokens* (representing individual words or phrases) as vector-based *embeddings* (arrays of numeric values). A technique called *attention* is used to assign embedding values that reflect different aspects of how each token is used in the context of other tokens. You can think of the embeddings as vectors in multidimensional space, in which each dimension embeds a linguistic attribute of a token based on its context in t",
     "summary": "Transformers work by processing huge volumes of data, and encoding language *tokens* (representing individual words or phrases) as vector-based *embeddings* (arrays of numeric values). A technique cal...",
     "keywords": [
+      "other",
       "transformers",
       "nlp",
       "similar",
+      "modeling",
       "token",
-      "text-analysis",
-      "tokens",
       "semantic",
+      "tokens",
       "embeddings",
-      "embedding",
-      "tokenization",
-      "semantic-similarity",
-      "word2vec",
-      "vocabulary",
+      "context",
       "language",
-      "vectors",
+      "language-model",
       "words",
-      "word",
       "values",
-      "transformer",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "based"
     ],
     "tfidf_top_terms": [
+      "other",
       "transformers",
       "nlp",
       "similar",
-      "token",
-      "text-analysis"
+      "modeling"
     ]
   },
   {
@@ -3599,35 +3321,26 @@
     "keywords": [
       "result",
       "vision",
-      "visual",
+      "transformers",
       "images",
+      "visual",
+      "between",
       "semantic",
-      "embedding",
-      "tokenization",
-      "semantic-similarity",
-      "word2vec",
-      "vocabulary",
       "language",
       "features",
-      "vectors",
-      "word",
+      "language-model",
       "models",
       "values",
-      "transformer",
+      "based",
       "ai",
-      "artificial-intelligence",
-      "model",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "model"
     ],
     "tfidf_top_terms": [
       "result",
       "vision",
-      "visual",
+      "transformers",
       "images",
-      "semantic"
+      "visual"
     ]
   },
   {
@@ -3638,32 +3351,27 @@
     "content": "A language transformer creates embeddings that define a linguistic vocabulary that encode semantic relationships between words. A vision transformer creates a visual vocabulary that does the same for visual features. When the training data includes images with associated text descriptions, we can combine the encoders from both of these transformers in a *multimodal* model; and use a technique called *cross-model attention* to define a unified spatial representation of the embeddings, like this.\n",
     "summary": "A language transformer creates embeddings that define a linguistic vocabulary that encode semantic relationships between words. A vision transformer creates a visual vocabulary that does the same for...",
     "keywords": [
-      "creates",
+      "bringing",
       "define",
       "multimodal",
-      "relationships",
+      "creates",
+      "together",
+      "vocabulary",
       "visual",
+      "transformer",
       "semantic",
       "embeddings",
-      "semantic-similarity",
-      "word2vec",
-      "vocabulary",
       "language",
       "features",
-      "vectors",
-      "transformer",
-      "model",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "models",
+      "model"
     ],
     "tfidf_top_terms": [
-      "creates",
+      "bringing",
       "define",
       "multimodal",
-      "relationships",
-      "visual"
+      "creates",
+      "together"
     ]
   },
   {
@@ -3674,30 +3382,28 @@
     "content": "The same multimodal model architecture that enables AI to create natural language responses to visual input, can also be used to enable it to create images in response to natural language prompts. By identifying the visual features associated with language, an image synthesis model can take a description of a desired image or video and generate it.\n\nMost modern image-generation models use a technique called *diffusion*, in which a prompt is used to identify a set of related visual features that ",
     "summary": "The same multimodal model architecture that enables AI to create natural language responses to visual input, can also be used to enable it to create images in response to natural language prompts. By...",
     "keywords": [
-      "video",
       "diffusion",
+      "video",
+      "with",
       "natural-language",
       "prompt",
       "create",
       "visual",
-      "query",
-      "instruction",
-      "request",
-      "input",
-      "image",
+      "generation",
+      "process",
       "language",
+      "image",
       "features",
       "models",
       "ai",
-      "artificial-intelligence",
       "model"
     ],
     "tfidf_top_terms": [
-      "video",
       "diffusion",
+      "video",
+      "with",
       "natural-language",
-      "prompt",
-      "create"
+      "prompt"
     ]
   },
   {
@@ -3708,35 +3414,25 @@
     "content": "**Invoice processing** solutions can analyze invoices to extract:\n\n- **Vendor information**: Company names, addresses, and contact details.\n- **Transaction details**: Invoice numbers, dates, and payment terms.\n- **Line items**: Product descriptions, quantities, unit prices, and totals.\n- **Tax information**: Tax rates, amounts, and exempt items.\n\n**Receipt processing** solutions might need to read receipts to extract:\n\n- **Merchant details**: Store names, locations, and transaction IDs.\n- **Purc",
     "summary": "**Invoice processing** solutions can analyze invoices to extract:\n\n- **Vendor information**: Company names, addresses, and contact details.\n- **Transaction details**: Invoice numbers, dates, and payme...",
     "keywords": [
+      "financial",
       "transaction",
       "payment",
-      "financial",
+      "items",
       "invoice",
       "names",
-      "workflow",
-      "billing",
-      "financial-document",
-      "receipt",
-      "digitization",
       "details",
-      "items",
       "solutions",
-      "automation",
-      "numbers",
-      "processing",
       "extract",
+      "document",
       "information",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "processing"
     ],
     "tfidf_top_terms": [
+      "financial",
       "transaction",
       "payment",
-      "financial",
-      "invoice",
-      "names"
+      "items",
+      "invoice"
     ]
   },
   {
@@ -3747,28 +3443,25 @@
     "content": "**Contract processing** solutions can be used to extract:\n\n- **Party information**: Contracting parties, signatories, and witnesses.\n- **Terms and conditions**: Effective dates, renewal terms, and termination clauses.\n- **Financial terms**: Payment schedules, penalties, and insurance requirements.\n\n**Regulatory forms** that may need to be processed include:\n\n- **Tax documents**: W-2s, 1099s, and other tax forms.\n- **Insurance forms**: Policy numbers, claim amounts, and incident details.\n- **Gove",
     "summary": "**Contract processing** solutions can be used to extract:\n\n- **Party information**: Contracting parties, signatories, and witnesses.\n- **Terms and conditions**: Effective dates, renewal terms, and ter...",
     "keywords": [
-      "forms",
-      "insurance",
       "legal",
       "compliance",
+      "forms",
+      "insurance",
       "contract",
       "party",
       "solutions",
-      "terms",
       "documents",
+      "terms",
       "requirements",
-      "processing",
       "extract",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "information",
+      "processing"
     ],
     "tfidf_top_terms": [
-      "forms",
-      "insurance",
       "legal",
       "compliance",
+      "forms",
+      "insurance",
       "contract"
     ]
   },
@@ -3780,25 +3473,21 @@
     "content": "**Medical records** can be processed to retrieve:\n\n- **Patient information**: Demographics, medical record numbers, and insurance details.\n- **Clinical data**: Diagnoses, treatments, medication lists, and vital signs.\n- **Administrative data**: Appointment schedules, billing codes, and provider information.",
     "summary": "**Medical records** can be processed to retrieve:\n\n- **Patient information**: Demographics, medical record numbers, and insurance details.\n- **Clinical data**: Diagnoses, treatments, medication lists,...",
     "keywords": [
-      "medical",
+      "records",
       "processed",
       "retrieve",
       "demographics",
       "record",
       "documentation",
-      "records",
-      "healthcare",
+      "medical",
       "numbers",
+      "healthcare",
       "patient",
       "information",
-      "data",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "data"
     ],
     "tfidf_top_terms": [
-      "medical",
+      "records",
       "processed",
       "retrieve",
       "demographics",
@@ -3813,30 +3502,27 @@
     "content": "**Shipping documents** often contain vital details such as:\n\n- **Shipment details**: Tracking numbers, weights, and dimensions.\n- **Address information**: Sender and recipient details, and delivery instructions.\n- **Customs documentation**: Commodity codes, values, and country of origin.\n\n**Purchase Orders** are commonly processed to extract:\n\n- **Vendor information**: Supplier details and contact information.\n- **Product specifications**: Item codes, descriptions, and quantities.\n- **Delivery r",
     "summary": "**Shipping documents** often contain vital details such as:\n\n- **Shipment details**: Tracking numbers, weights, and dimensions.\n- **Address information**: Sender and recipient details, and delivery in...",
     "keywords": [
-      "delivery",
-      "instructions",
-      "codes",
       "supply",
       "chain",
       "logistics",
-      "shipping",
-      "details",
-      "documents",
-      "extract",
-      "information",
-      "ai",
-      "artificial-intelligence",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
-    ],
-    "tfidf_top_terms": [
       "delivery",
       "instructions",
       "codes",
+      "shipping",
+      "details",
+      "often",
+      "contain",
+      "documents",
+      "extract",
+      "information",
+      "ai"
+    ],
+    "tfidf_top_terms": [
       "supply",
-      "chain"
+      "chain",
+      "logistics",
+      "delivery",
+      "instructions"
     ]
   },
   {
@@ -3847,30 +3533,28 @@
     "content": "When planning an information extraction solution, it's important to consider the requirements and constraints that the system must address. Some key considerations include:\n\n- **Document characteristics**. The documents from which you need to extract data are the basis of the whole solution. Consider factors like:\n    - **Layout consistency**: Standardized forms favor template-based approaches, while a need to process multiple formats and layouts may require a more complex machine learning based",
     "summary": "When planning an information extraction solution, it's important to consider the requirements and constraints that the system must address. Some key considerations include:\n\n- **Document characteristi...",
     "keywords": [
+      "choosing",
+      "right",
       "information-extraction",
       "solution",
       "consider",
       "api",
-      "require",
       "requirements",
-      "processing",
+      "approach",
+      "need",
       "generative-ai",
+      "processing",
       "deep-learning",
       "machine-learning",
       "data",
-      "ai",
-      "artificial-intelligence",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "ai"
     ],
     "tfidf_top_terms": [
+      "choosing",
+      "right",
       "information-extraction",
       "solution",
-      "consider",
-      "api",
-      "require"
+      "consider"
     ]
   },
   {
@@ -3881,33 +3565,26 @@
     "content": "The OCR pipeline consists of five essential stages that work together to transform visual information into text data.\n\n\n\nThe stages in the OCR process are:\n\n1. Image acquisition and input.\n1. Preprocessing and image enhancement.\n1. Text region detection.\n1. Character recognition and classification.\n1. Output generation and post-processing.\n\nLet's examine each stage in more depth.",
     "summary": "The OCR pipeline consists of five essential stages that work together to transform visual information into text data.\n\n\n\nThe stages in the OCR process are:\n\n1. Image acquisition and input.\n1. Preproce...",
     "keywords": [
-      "step-by-step",
-      "five",
       "essential",
-      "together",
+      "transform",
       "stages",
       "consists",
-      "document-scanning",
-      "reading-text",
-      "character-recognition",
-      "text-extraction",
+      "five",
+      "work",
+      "step",
+      "together",
       "pipeline",
       "ocr",
       "process",
       "image",
-      "classification",
-      "text",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "text"
     ],
     "tfidf_top_terms": [
-      "step-by-step",
-      "five",
       "essential",
-      "together",
-      "stages"
+      "transform",
+      "stages",
+      "consists",
+      "five"
     ]
   },
   {
@@ -3918,25 +3595,27 @@
     "content": "The pipeline begins when an image containing text enters the system. This could be:\n\n- A photograph taken with a smartphone camera.\n- A scanned document from a flatbed or document scanner.\n- A frame extracted from a video stream.\n- A PDF page rendered as an image.",
     "summary": "The pipeline begins when an image containing text enters the system. This could be:\n\n- A photograph taken with a smartphone camera.\n- A scanned document from a flatbed or document scanner.\n- A frame e...",
     "keywords": [
-      "pdf",
       "acquisition",
+      "pdf",
       "containing",
       "enters",
+      "photograph",
+      "taken",
+      "input",
       "begins",
+      "system",
       "document",
       "pipeline",
-      "system",
-      "stage",
-      "input",
       "image",
+      "stage",
       "text"
     ],
     "tfidf_top_terms": [
-      "pdf",
       "acquisition",
+      "pdf",
       "containing",
       "enters",
-      "begins"
+      "photograph"
     ]
   },
   {
@@ -3947,32 +3626,28 @@
     "content": "Before text detection begins, the following techniques are used to optimize the image for better recognition accuracy:\n\n- **Noise reduction** removes visual artifacts, dust spots, and scanning imperfections that could interfere with text detection. The specific techniques used to perform noise reduction include:\n\n    - **Filtering and image processing algorithms**: Gaussian filters, median filters, and morphological operations.\n    - **Machine learning models**: Denoising autoencoders and convol",
     "summary": "Before text detection begins, the following techniques are used to optimize the image for better recognition accuracy:\n\n- **Noise reduction** removes visual artifacts, dust spots, and scanning imperfe...",
     "keywords": [
-      "convolutional",
+      "preprocessing",
+      "enhancement",
+      "resolution",
       "techniques",
-      "detection",
       "algorithms",
-      "neurons",
-      "backpropagation",
-      "layers",
+      "neural-networks",
+      "detection",
       "image",
-      "regression",
-      "learning",
       "deep-learning",
+      "stage",
+      "learning",
       "neural-network",
       "machine-learning",
       "models",
-      "text",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "text"
     ],
     "tfidf_top_terms": [
-      "convolutional",
+      "preprocessing",
+      "enhancement",
+      "resolution",
       "techniques",
-      "detection",
-      "algorithms",
-      "neurons"
+      "algorithms"
     ]
   },
   {
@@ -3983,34 +3658,28 @@
     "content": "The system analyzes the preprocessed image to identify areas that contain text by using the following techniques:\n\n- **Layout analysis** distinguishes between text regions, images, graphics, and white space areas. Techniques for layout analysis include:\n\n    - **Traditional approaches**: Connected component analysis, run-length encoding, and projection-based segmentation.\n    - **Deep learning models**: Semantic segmentation networks like U-Net, Mask R-CNN, and specialized document layout analys",
     "summary": "The system analyzes the preprocessed image to identify areas that contain text by using the following techniques:\n\n- **Layout analysis** distinguishes between text regions, images, graphics, and white...",
     "keywords": [
-      "networks",
+      "region",
+      "layout",
       "cnn",
-      "rnn",
+      "networks",
+      "approaches",
+      "detection",
       "neural-networks",
-      "convolutional",
-      "clustering",
-      "neurons",
-      "backpropagation",
-      "layers",
       "analysis",
       "deep-learning",
+      "stage",
       "neural-network",
       "machine-learning",
       "models",
-      "transformer",
-      "classification",
-      "text",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "based",
+      "text"
     ],
     "tfidf_top_terms": [
-      "networks",
+      "region",
+      "layout",
       "cnn",
-      "rnn",
-      "neural-networks",
-      "convolutional"
+      "networks",
+      "approaches"
     ]
   },
   {
@@ -4021,34 +3690,28 @@
     "content": "This is the core of the OCR process where individual characters are identified:\n\n- **Feature extraction**: Analyzes the shape, size, and distinctive characteristics of each character or symbol.\n    - **Traditional methods**: Statistical features like moments, Fourier descriptors, and structural features (loops, endpoints, intersections)\n    - **Deep learning approaches**: Convolutional neural networks that automatically learn discriminative features from raw pixel data\n\n- **Pattern matching**: C",
     "summary": "This is the core of the OCR process where individual characters are identified:\n\n- **Feature extraction**: Analyzes the shape, size, and distinctive characteristics of each character or symbol.\n    -...",
     "keywords": [
-      "lstm",
       "character",
+      "lstm",
       "bert",
-      "rnn",
-      "neural-networks",
-      "convolutional",
-      "text-analysis",
+      "neural",
       "ocr",
-      "neurons",
-      "backpropagation",
-      "layers",
-      "features",
+      "neural-networks",
       "deep-learning",
+      "features",
+      "stage",
+      "recognition",
+      "language-model",
       "neural-network",
-      "models",
       "classification",
-      "transformer",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "models",
+      "based"
     ],
     "tfidf_top_terms": [
-      "lstm",
       "character",
+      "lstm",
       "bert",
-      "rnn",
-      "neural-networks"
+      "neural",
+      "ocr"
     ]
   },
   {
@@ -4061,32 +3724,26 @@
     "keywords": [
       "gpt",
       "lstm",
-      "recurrent",
+      "post",
       "bert",
-      "validation",
+      "generation",
       "ocr",
-      "neurons",
-      "backpropagation",
-      "layers",
-      "regression",
+      "output",
+      "processing",
+      "neural-networks",
+      "stage",
+      "language-model",
       "neural-network",
-      "deep-learning",
       "models",
-      "transformer",
       "ai",
-      "text",
-      "artificial-intelligence",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "text"
     ],
     "tfidf_top_terms": [
       "gpt",
       "lstm",
-      "recurrent",
+      "post",
       "bert",
-      "validation"
+      "generation"
     ]
   },
   {
@@ -4099,30 +3756,22 @@
     "keywords": [
       "follows",
       "systematic",
-      "structured-output",
-      "parsing",
-      "data-extraction",
       "stages",
       "transforms",
       "structured",
-      "document-scanning",
-      "reading-text",
-      "character-recognition",
-      "text-extraction",
+      "extraction",
       "pipeline",
       "ocr",
       "output",
-      "process",
-      "data",
-      "extraction",
-      "field"
+      "field",
+      "data"
     ],
     "tfidf_top_terms": [
       "follows",
       "systematic",
-      "structured-output",
-      "parsing",
-      "data-extraction"
+      "stages",
+      "transforms",
+      "structured"
     ]
   },
   {
@@ -4134,32 +3783,25 @@
     "summary": "The process begins with the structured output from the OCR pipeline, which can include:\n\n- **Raw text content**: The actual characters and words extracted from the document\n- **Positional metadata**:...",
     "keywords": [
       "ingestion",
-      "structured",
       "begins",
-      "document-scanning",
-      "reading-text",
-      "character-recognition",
-      "text-extraction",
-      "document",
+      "structured",
       "confidence",
+      "content",
+      "document",
       "pipeline",
       "ocr",
       "output",
       "information",
-      "stage",
       "process",
-      "text",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "stage",
+      "text"
     ],
     "tfidf_top_terms": [
       "ingestion",
-      "structured",
       "begins",
-      "document-scanning",
-      "reading-text"
+      "structured",
+      "confidence",
+      "content"
     ]
   },
   {
@@ -4172,27 +3814,25 @@
     "keywords": [
       "identifies",
       "potential",
+      "independently",
+      "combination",
       "candidate",
-      "approaches",
       "identification",
-      "document-scanning",
-      "reading-text",
-      "character-recognition",
-      "text-extraction",
+      "approaches",
       "multiple",
       "ocr",
-      "stage",
       "value",
       "output",
       "detection",
+      "stage",
       "field"
     ],
     "tfidf_top_terms": [
       "identifies",
       "potential",
-      "candidate",
-      "approaches",
-      "identification"
+      "independently",
+      "combination",
+      "candidate"
     ]
   },
   {
@@ -4203,25 +3843,23 @@
     "content": "Templates for field detection rely on rule-based pattern matching. Field identification may be accomplished using techniques such as:\n\n- Predefined document layouts with known field positions and anchor keywords.\n- Searches for label-value pairs like \"Invoice Number:\", \"Date:\", \"Total:\".\n- Regular expressions and string matching algorithms.\n\n**Advantages** of a template-based approach include high accuracy for known document types, fast processing, and explainable results.\n\n**Limitations** of th",
     "summary": "Templates for field detection rely on rule-based pattern matching. Field identification may be accomplished using techniques such as:\n\n- Predefined document layouts with known field positions and anch...",
     "keywords": [
-      "template-based",
+      "template",
       "matching",
       "templates",
-      "accomplished",
       "rely",
-      "rule-based",
-      "pattern",
+      "known",
       "approach",
-      "identification",
       "document",
       "detection",
-      "field"
+      "field",
+      "based"
     ],
     "tfidf_top_terms": [
-      "template-based",
+      "template",
       "matching",
       "templates",
-      "accomplished",
-      "rely"
+      "rely",
+      "known"
     ]
   },
   {
@@ -4232,28 +3870,27 @@
     "content": "Instead of hard-coded logic to extract fields based on known names and locations, you can use a corpus of example documents to train a machine learning model that extracts the fields based on learned relationships. *Transformer*-based models in particular are good at applying contextual cues to identify patterns, and so are often the basis of a field detection solution.\n\nTraining approaches for field detection machine learning models include:\n\n- **Supervised learning**: Trained on labeled datase",
     "summary": "Instead of hard-coded logic to extract fields based on known names and locations, you can use a corpus of example documents to train a machine learning model that extracts the fields based on learned...",
     "keywords": [
+      "locations",
+      "known",
       "fields",
       "machine",
       "detection",
-      "based",
+      "neural-networks",
+      "field",
       "learning",
       "neural-network",
       "machine-learning",
       "models",
-      "transformer",
+      "based",
       "text",
-      "model",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "model"
     ],
     "tfidf_top_terms": [
+      "locations",
+      "known",
       "fields",
       "machine",
-      "detection",
-      "based",
-      "learning"
+      "detection"
     ]
   },
   {
@@ -4265,25 +3902,27 @@
     "summary": "Recent advances in large language models (LLMs) have led to the emergence of generative AI-based field detection techniques, which enable more efficient and effective field detection through:\n\n- **Pro...",
     "keywords": [
       "llm",
-      "large-language-model",
       "generative",
       "schema",
+      "large-language-model",
+      "step",
       "fields",
+      "extraction",
       "generative-ai",
       "detection",
+      "field",
+      "language-model",
       "models",
+      "based",
       "ai",
-      "text",
-      "artificial-intelligence",
-      "extraction",
-      "field"
+      "text"
     ],
     "tfidf_top_terms": [
       "llm",
-      "large-language-model",
       "generative",
       "schema",
-      "fields"
+      "large-language-model",
+      "step"
     ]
   },
   {
@@ -4295,23 +3934,24 @@
     "summary": "After candidate values are identified, they must be mapped to specific schema fields:",
     "keywords": [
       "association",
+      "after",
       "mapped",
+      "specific",
       "mapping",
       "candidate",
       "identified",
-      "specific",
       "schema",
       "fields",
       "stage",
-      "values",
-      "field"
+      "field",
+      "values"
     ],
     "tfidf_top_terms": [
       "association",
+      "after",
       "mapped",
-      "mapping",
-      "candidate",
-      "identified"
+      "specific",
+      "mapping"
     ]
   },
   {
@@ -4322,23 +3962,26 @@
     "content": "In many cases, data fields in a document or form are discrete values that can be mapped to keys - for example, the vendor name, date, and total amount in a receipt or invoice. Common techniques used for key-value pairing include:\n\n- **Proximity analysis**:\n    - **Spatial clustering**: Group nearby text elements using distance algorithms.\n    - **Reading order analysis**: Follow natural text flow to associate labels with values.\n    - **Geometric relationships**: Use alignment, indentation, and ",
     "summary": "In many cases, data fields in a document or form are discrete values that can be mapped to keys - for example, the vendor name, date, and total amount in a receipt or invoice. Common techniques used f...",
     "keywords": [
-      "key-value",
       "pairing",
       "ner",
+      "named-entity",
       "relationships",
       "entity",
+      "many",
+      "cases",
       "labels",
       "techniques",
-      "clustering",
+      "value",
       "analysis",
       "recognition",
+      "data",
       "values",
       "text"
     ],
     "tfidf_top_terms": [
-      "key-value",
       "pairing",
       "ner",
+      "named-entity",
       "relationships",
       "entity"
     ]
@@ -4356,13 +3999,16 @@
       "structures",
       "object-detection",
       "structure",
+      "graph",
+      "structured",
       "cnn",
-      "processing",
-      "convolutional",
+      "approaches",
+      "content",
       "techniques",
+      "processing",
       "detection",
-      "neural-network",
-      "field"
+      "field",
+      "neural-network"
     ],
     "tfidf_top_terms": [
       "table",
@@ -4380,25 +4026,25 @@
     "content": "Field detection and extraction accuracy depends on many factors, and the algorithms and models used to implement the solution are subject to potential misidentification or value interpretation errors. To account for this, various techniques are employed to evaluate the accuracy of the predicted field values; including:\n\n- **OCR confidence**: Inheriting confidence scores from the underlying text recognition.\n- **Pattern matching confidence**: Scoring based on how well extraction matches expected ",
     "summary": "Field detection and extraction accuracy depends on many factors, and the algorithms and models used to implement the solution are subject to potential misidentification or value interpretation errors....",
     "keywords": [
-      "scoring",
       "verifying",
       "depends",
-      "accuracy",
+      "scoring",
       "validation",
+      "accuracy",
       "confidence",
-      "context",
-      "ocr",
-      "detection",
-      "values",
       "extraction",
-      "field"
+      "ocr",
+      "context",
+      "detection",
+      "field",
+      "values"
     ],
     "tfidf_top_terms": [
-      "scoring",
       "verifying",
       "depends",
-      "accuracy",
-      "validation"
+      "scoring",
+      "validation",
+      "accuracy"
     ]
   },
   {
@@ -4411,27 +4057,25 @@
     "keywords": [
       "generally",
       "consistent",
+      "expressed",
       "transformed",
       "formats",
       "ensure",
+      "dates",
+      "same",
       "standardization",
       "normalization",
       "extracted",
       "stage",
-      "example",
       "data",
-      "values",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "values"
     ],
     "tfidf_top_terms": [
       "generally",
       "consistent",
+      "expressed",
       "transformed",
-      "formats",
-      "ensure"
+      "formats"
     ]
   },
   {
@@ -4442,29 +4086,26 @@
     "content": "Examples of format standardization that can be implemented include:\n\n- **Date normalization**:\n    - **Format detection**: Identify various date formats (MM/DD/YYYY, DD-MM-YYYY, etc.).\n    - **Parsing algorithms**: Convert to standardized ISO formats.\n    - **Ambiguity resolution**: Handle cases where date format is unclear.\n\n- **Currency and numeric processing**:\n    - **Symbol recognition**: Handle different currency symbols and thousand separators.\n    - **Decimal normalization**: Standardize",
     "summary": "Examples of format standardization that can be implemented include:\n\n- **Date normalization**:\n    - **Format detection**: Identify various date formats (MM/DD/YYYY, DD-MM-YYYY, etc.).\n    - **Parsing...",
     "keywords": [
+      "format",
       "yyyy",
       "mm",
-      "dd",
       "iso",
-      "format",
+      "dd",
       "date",
       "handle",
+      "currency",
       "different",
       "formats",
       "standardization",
       "convert",
-      "normalization",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "normalization"
     ],
     "tfidf_top_terms": [
+      "format",
       "yyyy",
       "mm",
-      "dd",
       "iso",
-      "format"
+      "dd"
     ]
   },
   {
@@ -4475,28 +4116,25 @@
     "content": "As well as formatting the extracted fields, the standardization process enables further validation of the values that have been extracted through techniques like:\n\n- **Rule-based validation**:\n    - **Format checking**: Verify extracted values match expected patterns (phone numbers, email addresses).\n    - **Range validation**: Ensure numeric values fall within reasonable bounds.\n    - **Required field checking**: Confirm all mandatory fields are present.\n\n- **Statistical validation**:\n    - **O",
     "summary": "As well as formatting the extracted fields, the standardization process enables further validation of the values that have been extracted through techniques like:\n\n- **Rule-based validation**:\n    - *...",
     "keywords": [
-      "checking",
       "assurance",
+      "checking",
+      "well",
       "formatting",
-      "standardization",
       "validation",
-      "patterns",
+      "standardization",
+      "quality",
       "extracted",
       "fields",
-      "quality",
+      "patterns",
       "process",
       "data",
-      "values",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "values"
     ],
     "tfidf_top_terms": [
-      "checking",
       "assurance",
+      "checking",
+      "well",
       "formatting",
-      "standardization",
       "validation"
     ]
   },
@@ -4508,22 +4146,24 @@
     "content": "The final stage of the process usually involves integrating the extracted field values into a business process or system:",
     "summary": "The final stage of the process usually involves integrating the extracted field values into a business process or system:",
     "keywords": [
-      "business",
       "integration",
+      "business",
       "processes",
       "usually",
       "integrating",
       "final",
       "involves",
+      "with",
       "extracted",
-      "stage",
       "process",
       "systems",
-      "field"
+      "stage",
+      "field",
+      "values"
     ],
     "tfidf_top_terms": [
-      "business",
       "integration",
+      "business",
       "processes",
       "usually",
       "integrating"
@@ -4537,27 +4177,26 @@
     "content": "The extracted fields may need to be further transformed or reformatted so they align with application schemas used for data ingestion into downstream systems. For example:\n\n- **Database schemas**: Map extracted fields to specific database columns and tables.\n- **API payloads**: Format data for REST API consumption by downstream systems.\n- **Message queues**: Prepare structured messages for asynchronous processing.\n\nThe schema mapping process might involve transformations such as:\n\n- **Field rena",
     "summary": "The extracted fields may need to be further transformed or reformatted so they align with application schemas used for data ingestion into downstream systems. For example:\n\n- **Database schemas**: Map...",
     "keywords": [
-      "rest",
       "schemas",
       "downstream",
       "database",
-      "api",
       "mapping",
+      "api",
+      "rest",
+      "target",
       "schema",
       "extracted",
       "fields",
+      "need",
       "systems",
-      "data",
-      "structured-data",
-      "template",
-      "extraction",
-      "field"
+      "field",
+      "data"
     ],
     "tfidf_top_terms": [
-      "rest",
       "schemas",
       "downstream",
       "database",
+      "mapping",
       "api"
     ]
   },
@@ -4571,22 +4210,22 @@
     "keywords": [
       "reporting",
       "task",
-      "finished",
       "report",
+      "level",
       "another",
       "quality",
       "extracted",
       "confidence",
       "metrics",
+      "extraction",
       "common",
-      "process",
-      "extraction"
+      "field"
     ],
     "tfidf_top_terms": [
       "reporting",
       "task",
-      "finished",
       "report",
+      "level",
       "another"
     ]
   }
