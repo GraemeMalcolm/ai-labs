@@ -1,0 +1,16 @@
+{
+  "categoryLinks": {
+    "AI Overview": "https://aka.ms/mslearn-ai-concepts",
+    "Generative AI": "https://aka.ms/mslearn-intro-gen-ai",
+    "Machine Learning": "https://aka.ms/mslearn-ml-concepts",
+    "Text Analysis": "https://aka.ms/mslearn-nlp",
+    "Speech": "https://aka.ms/mslearn-ai-speech",
+    "Computer Vision": "https://aka.ms/mslearn-vision",
+    "Information Extraction": "https://aka.ms/mslearn-ai-info"
+  },
+  "fallbackLink": {
+    "name": "Introduction to AI",
+    "url": "https://aka.ms/mslearn-ai-introduction",
+    "description": "General introduction to AI concepts - shown when no specific results are found"
+  }
+}

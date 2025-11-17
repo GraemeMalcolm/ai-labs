@@ -10,6 +10,7 @@ class AskAndrew {
         this.isGenerating = false;
         this.indexData = null;
         this.metadata = null;
+        this.categoryLinks = null; // Separate category links file
         this.stopRequested = false;
         this.currentStream = null;
         this.webGPUAvailable = false;
@@ -35,6 +36,7 @@ class AskAndrew {
 
 Your role:
 - Explain concepts clearly and concisely based on the provided context
+- Keep responses short and focused on the question
 - Use examples and analogies when helpful
 - Break down complex topics into understandable parts
 - Be encouraging and supportive
@@ -57,6 +59,7 @@ Guidelines:
             // Load the index and metadata
             await this.loadIndex();
             await this.loadMetadata();
+            await this.loadCategoryLinks();
             
             // Initialize MiniSearch
             this.initializeMiniSearch();
@@ -94,6 +97,18 @@ Guidelines:
             console.log('Loaded metadata with links:', this.metadata.links);
         } catch (error) {
             console.error('Error loading metadata:', error);
+            throw error;
+        }
+    }
+
+    async loadCategoryLinks() {
+        try {
+            const response = await fetch('category-links.json');
+            if (!response.ok) throw new Error('Failed to load category links');
+            this.categoryLinks = await response.json();
+            console.log('Loaded category links:', this.categoryLinks);
+        } catch (error) {
+            console.error('Error loading category links:', error);
             throw error;
         }
     }
@@ -358,6 +373,23 @@ Guidelines:
         const acronyms = (userQuestion.match(/\b[A-Z]{2,5}\b/g) || []).map(a => a.toLowerCase());
         console.log('Detected acronyms:', acronyms);
         
+        // Detect generic AI queries (searches without specific technical terms)
+        const lowerQuestion = userQuestion.toLowerCase();
+        const genericAITerms = ['what is ai', 'what is artificial intelligence', 'explain ai', 
+                                'tell me about ai', 'artificial intelligence', 'introduction to ai',
+                                'ai concepts', 'ai basics', 'ai fundamentals'];
+        const isGenericAIQuery = genericAITerms.some(term => lowerQuestion.includes(term)) ||
+                                 (lowerQuestion.match(/\bai\b/) && lowerQuestion.split(/\s+/).length <= 5);
+        
+        // Check if query has specific technical terms that indicate other categories
+        const specificTerms = ['neural network', 'cnn', 'rnn', 'machine learning', 'regression', 
+                              'classification', 'clustering', 'speech', 'vision', 'ocr', 'nlp',
+                              'prompt', 'llm', 'token', 'embedding', 'generative', 'sentiment',
+                              'entity', 'mfcc', 'tts', 'stt', 'image', 'document'];
+        const hasSpecificTerms = specificTerms.some(term => lowerQuestion.includes(term));
+        
+        console.log('Generic AI query:', isGenericAIQuery, 'Has specific terms:', hasSpecificTerms);
+        
         // Search using MiniSearch with stricter matching for short queries
         const isShortQuery = userQuestion.trim().split(/\s+/).length <= 3;
         
@@ -366,6 +398,29 @@ Guidelines:
             fuzzy: isShortQuery ? 0.1 : 0.2, // Less fuzzy for short queries like "OCR"
             prefix: !isShortQuery // Disable prefix for short queries to be more precise
         });
+        
+        // If this is a generic AI query without specific terms, heavily boost AI Overview results
+        if (isGenericAIQuery && !hasSpecificTerms) {
+            searchResults = searchResults.map(result => {
+                let boostMultiplier = 1;
+                if (result.category === 'AI Overview') {
+                    boostMultiplier = 5; // Strong boost for AI Overview on generic queries
+                    
+                    // Extra boost for introductory/foundational content
+                    const heading = result.heading.toLowerCase();
+                    if (heading.includes('introduction') || heading.includes('what is')) {
+                        boostMultiplier *= 1.5; // Additional boost for intro content
+                    }
+                }
+                return { ...result, score: result.score * boostMultiplier };
+            }).sort((a, b) => {
+                // Primary sort by score (descending)
+                if (Math.abs(b.score - a.score) > 0.01) return b.score - a.score;
+                // Secondary sort by document ID (ascending) for consistent ordering
+                return a.id - b.id;
+            });
+            console.log('Applied AI Overview category boost for generic query');
+        }
         
         // If acronyms detected, prioritize results that contain those acronyms
         if (acronyms.length > 0) {
@@ -379,7 +434,12 @@ Guidelines:
                     }
                 });
                 return { ...result, score: result.score * boostMultiplier };
-            }).sort((a, b) => b.score - a.score);
+            }).sort((a, b) => {
+                // Primary sort by score (descending)
+                if (Math.abs(b.score - a.score) > 0.01) return b.score - a.score;
+                // Secondary sort by document ID (ascending)
+                return a.id - b.id;
+            });
         }
         
         console.log(`Found ${searchResults.length} search results for "${userQuestion}"`);
@@ -388,6 +448,14 @@ Guidelines:
             this.elements.searchStatus.textContent = '🔍 No specific context found';
             return { context: null, categories: [] };
         }
+        
+        // Log top search results before filtering
+        console.log('Top 5 search results before filtering:', searchResults.slice(0, 5).map(r => ({ 
+            id: r.id, 
+            heading: r.heading, 
+            category: r.category, 
+            score: r.score.toFixed(2) 
+        })));
         
         // Filter results to ensure they're related to the same topic
         // If we have results from multiple categories, only keep the category with the highest scoring result
@@ -400,11 +468,24 @@ Guidelines:
             return result.category === topCategory || result.score >= topScore * 0.9;
         });
         
+        // Sort filtered results by score (descending), then by document ID for ties
+        filteredResults.sort((a, b) => {
+            // Primary: score (descending)
+            if (Math.abs(b.score - a.score) > 0.01) return b.score - a.score;
+            // Secondary: document ID (ascending) for consistent ordering
+            return a.id - b.id;
+        });
+        
         // Get top 2 from filtered results
         const topResults = filteredResults.slice(0, 2);
         
         // Log the top results for debugging
-        console.log('Top results:', topResults.map(r => ({ heading: r.heading, category: r.category, score: r.score })));
+        console.log('Top results after filtering:', topResults.map(r => ({ 
+            id: r.id,
+            heading: r.heading, 
+            category: r.category, 
+            score: r.score.toFixed(2) 
+        })));
         
         // Build concise context from results using summaries
         const contextParts = topResults.map((result, index) => {
@@ -732,17 +813,73 @@ Guidelines:
     generateSimpleResponse(userMessage, searchResult) {
         const { context, categories } = searchResult || { context: null, categories: [] };
         
+        // Detect generic AI queries (same logic as searchContext)
+        const lowerQuestion = userMessage.toLowerCase();
+        const genericAITerms = ['what is ai', 'what is artificial intelligence', 'explain ai', 
+                                'tell me about ai', 'artificial intelligence', 'introduction to ai',
+                                'ai concepts', 'ai basics', 'ai fundamentals'];
+        const isGenericAIQuery = genericAITerms.some(term => lowerQuestion.includes(term)) ||
+                                 (lowerQuestion.match(/\bai\b/) && lowerQuestion.split(/\s+/).length <= 5);
+        
+        const specificTerms = ['neural network', 'cnn', 'rnn', 'machine learning', 'regression', 
+                              'classification', 'clustering', 'speech', 'vision', 'ocr', 'nlp',
+                              'prompt', 'llm', 'token', 'embedding', 'generative', 'sentiment',
+                              'entity', 'mfcc', 'tts', 'stt', 'image', 'document'];
+        const hasSpecificTerms = specificTerms.some(term => lowerQuestion.includes(term));
+        
         // Search for relevant results
-        const searchResults = this.miniSearch.search(userMessage, {
+        let searchResults = this.miniSearch.search(userMessage, {
             boost: { heading: 3, keywords: 2 },
             fuzzy: 0.2,
             prefix: true
         });
         
+        // Apply AI Overview boost for generic queries
+        if (isGenericAIQuery && !hasSpecificTerms) {
+            searchResults = searchResults.map(result => {
+                let boostMultiplier = 1;
+                if (result.category === 'AI Overview') {
+                    boostMultiplier = 5;
+                    
+                    // Extra boost for introductory/foundational content
+                    const heading = result.heading.toLowerCase();
+                    if (heading.includes('introduction') || heading.includes('what is')) {
+                        boostMultiplier *= 1.5;
+                    }
+                }
+                return { ...result, score: result.score * boostMultiplier };
+            }).sort((a, b) => {
+                // Primary sort by score (descending)
+                if (Math.abs(b.score - a.score) > 0.01) return b.score - a.score;
+                // Secondary sort by document ID (ascending) for consistent ordering within category
+                return a.id - b.id;
+            });
+        }
+        
+        // Ensure results are sorted by score, then by document ID for consistent ordering
+        searchResults.sort((a, b) => {
+            // If both in same category, prioritize document order (ID)
+            if (a.category === b.category) {
+                return a.id - b.id;
+            }
+            // Different categories: sort by score
+            return b.score - a.score;
+        });
+        
         const topResults = searchResults.slice(0, 3);
         
         if (topResults.length === 0) {
-            this.addMessage('assistant', "I couldn't find any relevant information in my knowledge base for that question. Please try rephrasing or ask about AI, Machine Learning, Speech, Computer Vision, or Information Extraction topics.");
+            // No results found - show fallback link
+            let fallbackMessage = "I couldn't find any relevant information in my knowledge base for that question. ";
+            
+            if (this.categoryLinks && this.categoryLinks.fallbackLink) {
+                const fallback = this.categoryLinks.fallbackLink;
+                fallbackMessage += `You might find this helpful:\n\n**Learn more:** <a href="${fallback.url}" target="_blank" rel="noopener noreferrer">${fallback.name}</a>`;
+            } else {
+                fallbackMessage += "Please try rephrasing or ask about AI, Machine Learning, Speech, Computer Vision, or Information Extraction topics.";
+            }
+            
+            this.addMessage('assistant', fallbackMessage);
             return;
         }
         
@@ -801,12 +938,12 @@ Guidelines:
     }
 
     buildLearnMoreLinks(categories) {
-        if (!categories || categories.length === 0 || !this.metadata || !this.metadata.links) {
+        if (!categories || categories.length === 0 || !this.categoryLinks || !this.categoryLinks.categoryLinks) {
             return '';
         }
         
         const links = categories.map(category => {
-            const link = this.metadata.links[category];
+            const link = this.categoryLinks.categoryLinks[category];
             if (link) {
                 return `<a href="${link}" target="_blank" rel="noopener noreferrer">${category}</a>`;
             }

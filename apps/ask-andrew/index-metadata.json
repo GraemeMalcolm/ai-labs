@@ -1,24 +1,21 @@
 {
   "categories": [
+    "AI Overview",
     "Generative AI",
     "Machine Learning",
+    "Text Analysis",
     "Speech",
     "Computer Vision",
     "Information Extraction"
   ],
-  "totalDocuments": 121,
+  "totalDocuments": 142,
   "folders": {
+    "00-ai-overview": "AI Overview",
     "01-generative-ai": "Generative AI",
     "02-machine-learning": "Machine Learning",
-    "03-speech": "Speech",
+    "03a-text-analysis": "Text Analysis",
+    "03b-speech": "Speech",
     "04-computer-vision": "Computer Vision",
     "05-information-extraction": "Information Extraction"
-  },
-  "links": {
-    "Generative AI": "https://aka.ms/mslearn-intro-gen-ai",
-    "Machine Learning": "https://aka.ms/mslearn-ml-concepts",
-    "Speech": "https://aka.ms/mslearn-ai-speech",
-    "Computer Vision": "https://aka.ms/mslearn-vision",
-    "Information Extraction": "https://aka.ms/mslearn-ai-info"
   }
 }

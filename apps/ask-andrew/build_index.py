@@ -1,7 +1,9 @@
 import os
 import json
 import re
+import math
 from pathlib import Path
+from collections import Counter
 
 def extract_headings_and_content(markdown_file):
     """Extract headings and their associated content from markdown files."""
@@ -52,18 +54,33 @@ def extract_headings_and_content(markdown_file):
     
     return sections
 
-def extract_keywords(text):
-    """Extract important keywords from text using improved filtering."""
-    # Extract acronyms (2-5 uppercase letters) before lowercasing
+def extract_keywords(text, is_technical_content=True):
+    """Extract important keywords from text using improved filtering with strong technical term boosting."""
+    # Extract acronyms (2-5 uppercase letters) before lowercasing - these are VERY important
     acronyms = re.findall(r'\b[A-Z]{2,5}\b', text)
     acronyms = [a.lower() for a in acronyms]
+    
+    # Extract important AI/ML terms that should be boosted (case-insensitive)
+    ai_terms = []
+    important_phrases = [
+        'computer vision', 'machine learning', 'deep learning', 'neural network',
+        'natural language', 'speech recognition', 'image classification', 
+        'object detection', 'regression', 'classification', 'clustering',
+        'convolutional', 'recurrent', 'transformer', 'generative ai',
+        'large language model', 'information extraction', 'text analysis'
+    ]
+    text_lower = text.lower()
+    for phrase in important_phrases:
+        if phrase in text_lower:
+            # Convert to hyphenated keyword
+            ai_terms.append(phrase.replace(' ', '-'))
     
     # Remove special characters and convert to lowercase
     text = re.sub(r'[^a-zA-Z0-9\s-]', ' ', text.lower())
     # Split into words
     words = text.split()
     
-    # Comprehensive stop words list
+    # Comprehensive stop words list - very generic, non-technical terms
     stop_words = {
         # Articles, pronouns, prepositions
         'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with',
@@ -101,18 +118,25 @@ def extract_keywords(text):
     # Filter words: must be longer than 3 chars and not in stop words
     keywords = [w for w in words if len(w) > 3 and w not in stop_words]
     
-    # Add acronyms (already lowercased)
+    # Add acronyms and AI terms
     keywords.extend(acronyms)
+    keywords.extend(ai_terms)
     
     # Count word frequency
     word_freq = {}
     for word in keywords:
         word_freq[word] = word_freq.get(word, 0) + 1
     
-    # Boost acronyms - they're important identifiers (multiply frequency by 3)
+    # STRONG BOOSTS for technical terms
+    # Acronyms get 10x boost - they're critical identifiers (was 3x)
     for acronym in set(acronyms):
         if acronym in word_freq:
-            word_freq[acronym] *= 3
+            word_freq[acronym] *= 10
+    
+    # AI/ML terms get 8x boost - these are domain-specific (new)
+    for term in set(ai_terms):
+        if term in word_freq:
+            word_freq[term] *= 8
     
     # Sort by frequency (descending) and return top keywords
     sorted_keywords = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)
@@ -128,10 +152,14 @@ def generate_semantic_keywords(category, heading, content):
     
     # Category-level semantic keywords
     category_keywords = {
+        'AI Overview': ['ai', 'artificial-intelligence', 'introduction', 'concepts', 
+                       'responsible-ai', 'ethics', 'fundamentals'],
         'Generative AI': ['llm', 'gpt', 'prompt', 'completion', 
                          'chat', 'assistant', 'copilot', 'chatbot'],
         'Machine Learning': ['ml', 'prediction', 'training',
                             'model', 'algorithm', 'data-science', 'analytics'],
+        'Text Analysis': ['nlp', 'natural-language', 'text', 'language', 'linguistics',
+                         'sentiment', 'entities', 'tokenization', 'parsing'],
         'Speech': ['audio', 'voice', 'sound', 'microphone', 'recording', 'listening',
                   'speaking', 'pronunciation', 'accent', 'dictation'],
         'Computer Vision': ['visual', 'picture', 'photo', 'camera', 'sight', 'seeing',
@@ -145,11 +173,28 @@ def generate_semantic_keywords(category, heading, content):
         semantic_keywords.extend(category_keywords[category])
     
     # Only add "ai" and "artificial-intelligence" if they appear in the text
+    # BUT give strong preference to AI Overview category for these terms
     if 'artificial intelligence' in text or ' ai ' in text or text.startswith('ai ') or text.endswith(' ai'):
-        semantic_keywords.extend(['ai', 'artificial-intelligence'])
+        if category == 'AI Overview':
+            # For AI Overview, add these with extra emphasis
+            semantic_keywords.extend(['ai', 'artificial-intelligence', 'ai-fundamentals', 'ai-basics'])
+        else:
+            # For other categories, only add if specifically mentioned
+            semantic_keywords.extend(['ai', 'artificial-intelligence'])
     
     # Topic-specific semantic keywords based on content
     topic_mappings = {
+        # AI Overview topics
+        'responsible ai': ['ethics', 'fairness', 'transparency', 'accountability', 'bias'],
+        'artificial intelligence': ['ai', 'machine-intelligence', 'cognitive', 'intelligent-systems'],
+        
+        # Text Analysis topics
+        'sentiment analysis': ['opinion', 'emotion', 'polarity', 'positive', 'negative'],
+        'named entity': ['ner', 'entity-extraction', 'entity-recognition'],
+        'tokenization': ['tokens', 'word-splitting', 'text-parsing'],
+        'embeddings': ['vectors', 'word2vec', 'semantic-similarity'],
+        'bag of words': ['bow', 'word-frequency', 'term-frequency'],
+        
         # Speech topics
         'speech recognition': ['stt', 'speech-to-text', 'transcription', 'dictation', 'voice-input'],
         'speech synthesis': ['tts', 'text-to-speech', 'voice-generation', 'reading-aloud', 'narration'],
@@ -191,6 +236,43 @@ def generate_semantic_keywords(category, heading, content):
     
     # Remove duplicates and return
     return list(set(semantic_keywords))
+
+def calculate_tfidf_scores(all_documents):
+    """Calculate TF-IDF scores for keywords across all documents to boost unique terms."""
+    # Count documents containing each term
+    doc_freq = Counter()
+    total_docs = len(all_documents)
+    
+    # Build document frequency map
+    for doc in all_documents:
+        unique_keywords = set(doc['keywords'])
+        for keyword in unique_keywords:
+            doc_freq[keyword] += 1
+    
+    # Calculate IDF (inverse document frequency) for each term
+    # IDF = log(total_docs / doc_freq)
+    idf_scores = {}
+    for term, freq in doc_freq.items():
+        idf_scores[term] = math.log(total_docs / freq) if freq > 0 else 0
+    
+    # Update each document with TF-IDF weighted keywords
+    for doc in all_documents:
+        keyword_scores = []
+        keyword_freq = Counter(doc['keywords'])
+        
+        for keyword in doc['keywords']:
+            # TF = term frequency in this document
+            tf = keyword_freq[keyword] / len(doc['keywords']) if doc['keywords'] else 0
+            # TF-IDF = TF * IDF
+            tfidf = tf * idf_scores.get(keyword, 0)
+            keyword_scores.append((keyword, tfidf))
+        
+        # Sort keywords by TF-IDF score and update document
+        keyword_scores.sort(key=lambda x: x[1], reverse=True)
+        doc['keywords'] = [kw for kw, score in keyword_scores]
+        doc['tfidf_top_terms'] = [kw for kw, score in keyword_scores[:5]]  # Top 5 most unique terms
+    
+    return all_documents
 
 def create_index_for_folder(folder_path, category, start_id=1):
     """Create a searchable index for all markdown files in a folder."""
@@ -242,13 +324,16 @@ def create_index_for_folder(folder_path, category, start_id=1):
     return index
 
 def main():
-    """Generate JSON indexes for all ask-andrew content folders."""
+    """Generate JSON indexes for all ask-andrew content folders with TF-IDF scoring."""
     base_path = Path(__file__).parent
     
+    # Updated to include ALL 7 categories
     folders = {
+        '00-ai-overview': 'AI Overview',
         '01-generative-ai': 'Generative AI',
         '02-machine-learning': 'Machine Learning',
-        '03-speech': 'Speech',
+        '03a-text-analysis': 'Text Analysis',
+        '03b-speech': 'Speech',
         '04-computer-vision': 'Computer Vision',
         '05-information-extraction': 'Information Extraction'
     }
@@ -256,6 +341,7 @@ def main():
     all_docs = []
     current_id = 1
     
+    # First pass: collect all documents
     for folder, category in folders.items():
         folder_path = base_path / folder
         if folder_path.exists():
@@ -265,30 +351,51 @@ def main():
             
             all_docs.extend(index)
             current_id += len(index)  # Increment ID counter for next folder
+        else:
+            print(f"Warning: Folder {folder} not found, skipping...")
+    
+    # Second pass: Apply TF-IDF scoring across all documents
+    print(f"\nApplying TF-IDF scoring across {len(all_docs)} documents...")
+    all_docs = calculate_tfidf_scores(all_docs)
     
     # Create master index
     master_index_file = base_path / "index.json"
     with open(master_index_file, 'w', encoding='utf-8') as f:
         json.dump(all_docs, f, indent=2, ensure_ascii=False)
-    print(f"\nCreated master index.json with {len(all_docs)} total entries")
+    print(f"Created master index.json with {len(all_docs)} total entries")
     
-    # Create a metadata file with category information and Microsoft Learn links
+    # Create a metadata file with category information
     metadata = {
         'categories': list(folders.values()),
         'totalDocuments': len(all_docs),
-        'folders': folders,
-        'links': {
-            'Generative AI': 'https://aka.ms/mslearn-intro-gen-ai',
-            'Machine Learning': 'https://aka.ms/mslearn-ml-concepts',
-            'Speech': 'https://aka.ms/mslearn-ai-speech',
-            'Computer Vision': 'https://aka.ms/mslearn-vision',
-            'Information Extraction': 'https://aka.ms/mslearn-ai-info'
-        }
+        'folders': folders
     }
     metadata_file = base_path / "index-metadata.json"
     with open(metadata_file, 'w', encoding='utf-8') as f:
         json.dump(metadata, f, indent=2)
     print(f"Created {metadata_file.name}")
+    
+    # Create separate category links file
+    category_links = {
+        'categoryLinks': {
+            'AI Overview': 'https://aka.ms/mslearn-ai-concepts',
+            'Generative AI': 'https://aka.ms/mslearn-intro-gen-ai',
+            'Machine Learning': 'https://aka.ms/mslearn-ml-concepts',
+            'Text Analysis': 'https://aka.ms/mslearn-nlp',
+            'Speech': 'https://aka.ms/mslearn-ai-speech',
+            'Computer Vision': 'https://aka.ms/mslearn-vision',
+            'Information Extraction': 'https://aka.ms/mslearn-ai-info'
+        },
+        'fallbackLink': {
+            'name': 'Introduction to AI',
+            'url': 'https://aka.ms/mslearn-ai-introduction',
+            'description': 'General introduction to AI concepts - shown when no specific results are found'
+        }
+    }
+    links_file = base_path / "category-links.json"
+    with open(links_file, 'w', encoding='utf-8') as f:
+        json.dump(category_links, f, indent=2)
+    print(f"Created {links_file.name}")
 
 if __name__ == '__main__':
     main()
