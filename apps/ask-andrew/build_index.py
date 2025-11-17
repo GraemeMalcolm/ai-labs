@@ -140,8 +140,10 @@ def extract_keywords(text, is_technical_content=True):
     
     # Sort by frequency (descending) and return top keywords
     sorted_keywords = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)
-    # Return just the words (not frequencies), limited to top entries
-    return [word for word, freq in sorted_keywords]
+    
+    # Limit to top 20 keywords to avoid keyword inflation
+    # This ensures only the most relevant terms are included
+    return [word for word, freq in sorted_keywords[:20]]
 
 def generate_semantic_keywords(category, heading, content):
     """Generate additional semantic/contextual keywords based on topic area."""
@@ -149,28 +151,6 @@ def generate_semantic_keywords(category, heading, content):
     
     # Combine heading and content for topic detection
     text = (heading + ' ' + content).lower()
-    
-    # Category-level semantic keywords
-    category_keywords = {
-        'AI Overview': ['ai', 'artificial-intelligence', 'introduction', 'concepts', 
-                       'responsible-ai', 'ethics', 'fundamentals'],
-        'Generative AI': ['llm', 'gpt', 'prompt', 'completion', 
-                         'chat', 'assistant', 'copilot', 'chatbot'],
-        'Machine Learning': ['ml', 'prediction', 'training',
-                            'model', 'algorithm', 'data-science', 'analytics'],
-        'Text Analysis': ['nlp', 'natural-language', 'text', 'language', 'linguistics',
-                         'sentiment', 'entities', 'tokenization', 'parsing'],
-        'Speech': ['audio', 'voice', 'sound', 'microphone', 'recording', 'listening',
-                  'speaking', 'pronunciation', 'accent', 'dictation'],
-        'Computer Vision': ['visual', 'picture', 'photo', 'camera', 'sight', 'seeing',
-                           'recognition', 'detection', 'identification'],
-        'Information Extraction': ['document', 'form', 'scan', 'digitization', 'automation',
-                                   'parsing', 'reading', 'understanding']
-    }
-    
-    # Add category-level keywords
-    if category in category_keywords:
-        semantic_keywords.extend(category_keywords[category])
     
     # Only add "ai" and "artificial-intelligence" if they appear in the text
     # BUT give strong preference to AI Overview category for these terms
@@ -182,36 +162,45 @@ def generate_semantic_keywords(category, heading, content):
             # For other categories, only add if specifically mentioned
             semantic_keywords.extend(['ai', 'artificial-intelligence'])
     
-    # Topic-specific semantic keywords based on content
+    # Topic-specific semantic keywords based on STRONG content matches
+    # Only add if the primary topic term appears prominently (in heading or multiple times in content)
     topic_mappings = {
         # AI Overview topics
         'responsible ai': ['ethics', 'fairness', 'transparency', 'accountability', 'bias'],
-        'artificial intelligence': ['ai', 'machine-intelligence', 'cognitive', 'intelligent-systems'],
+        'ethics': ['responsible-ai', 'fairness', 'transparency', 'accountability', 'bias'],
         
         # Text Analysis topics
         'sentiment analysis': ['opinion', 'emotion', 'polarity', 'positive', 'negative'],
+        'sentiment': ['opinion', 'emotion', 'polarity'],
         'named entity': ['ner', 'entity-extraction', 'entity-recognition'],
+        'entity recognition': ['ner', 'entity-extraction', 'named-entity'],
         'tokenization': ['tokens', 'word-splitting', 'text-parsing'],
         'embeddings': ['vectors', 'word2vec', 'semantic-similarity'],
+        'embedding': ['vectors', 'word2vec', 'semantic-similarity'],
         'bag of words': ['bow', 'word-frequency', 'term-frequency'],
         
         # Speech topics
         'speech recognition': ['stt', 'speech-to-text', 'transcription', 'dictation', 'voice-input'],
+        'transcription': ['stt', 'speech-to-text', 'speech-recognition'],
         'speech synthesis': ['tts', 'text-to-speech', 'voice-generation', 'reading-aloud', 'narration'],
+        'text-to-speech': ['tts', 'speech-synthesis', 'voice-generation'],
         'phoneme': ['pronunciation', 'sounds', 'speech-units', 'acoustic'],
         'mfcc': ['audio-features', 'sound-analysis', 'signal-processing'],
         
         # Computer Vision topics
         'ocr': ['text-extraction', 'character-recognition', 'document-scanning', 'reading-text'],
+        'optical character': ['ocr', 'text-extraction', 'character-recognition'],
         'object detection': ['localization', 'bounding-box', 'finding-objects', 'item-detection'],
         'image classification': ['categorization', 'labeling', 'tagging', 'image-recognition'],
-        'segmentation': ['masking', 'pixel-classification', 'region-detection'],
+        'image segmentation': ['masking', 'pixel-classification', 'region-detection'],
         'convolutional neural network': ['cnn', 'cnns', 'convolution', 'filter', 'feature-map', 'image-processing'],
         
-        # ML topics
+        # ML topics - be specific about clustering vs segmentation
         'regression': ['prediction', 'continuous', 'forecasting', 'estimation'],
-        'classification': ['categorization', 'labeling', 'prediction', 'sorting'],
-        'clustering': ['grouping', 'segmentation', 'unsupervised', 'patterns'],
+        'binary classification': ['categorization', 'labeling', 'sorting'],
+        'multiclass classification': ['categorization', 'labeling', 'sorting'],
+        'clustering algorithm': ['grouping', 'unsupervised', 'patterns'],
+        'k-means': ['clustering', 'grouping', 'unsupervised'],
         'neural network': ['deep-learning', 'neurons', 'layers', 'backpropagation'],
         'deep learning': ['neural-networks', 'rnn', 'transformer'],
         
@@ -219,7 +208,7 @@ def generate_semantic_keywords(category, heading, content):
         'large language model': ['llm', 'llms', 'large-language-model', 'foundation-model'],
         'prompt': ['instruction', 'query', 'input', 'request'],
         'agent': ['autonomous', 'tool-use', 'function-calling', 'planning'],
-        'rag': ['retrieval', 'context', 'grounding', 'search'],
+        'retrieval augmented': ['rag', 'retrieval', 'context', 'grounding', 'search'],
         'token': ['word', 'embedding', 'vocabulary', 'tokenization'],
         
         # Information Extraction topics
@@ -229,9 +218,18 @@ def generate_semantic_keywords(category, heading, content):
         'document processing': ['automation', 'digitization', 'workflow']
     }
     
-    # Check for topic keywords in text and add related semantic terms
+    # Check for topic keywords in heading (primary indicator)
+    heading_lower = heading.lower()
     for topic, keywords in topic_mappings.items():
-        if topic in text:
+        if topic in heading_lower:
+            semantic_keywords.extend(keywords)
+    
+    # Check for topic keywords in content, but require multiple mentions (2+) or strong context
+    for topic, keywords in topic_mappings.items():
+        # Count occurrences of the topic in content
+        topic_count = text.count(topic)
+        # Only add if topic appears multiple times or is in heading
+        if topic_count >= 2 or (topic_count >= 1 and topic in heading_lower):
             semantic_keywords.extend(keywords)
     
     # Remove duplicates and return
