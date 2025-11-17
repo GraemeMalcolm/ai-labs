@@ -145,7 +145,7 @@
                     "ai agents",
                     "multi-agent"
                 ],
-                "content": "A agents are AI systems designed to autonomously perform tasks or make decisions on behalf of users. They can operate independently or collaboratively in multi-agent systems to achieve complex objectives. AI agents typically consist of (a.) a large language model (LLM) that acts as the agent's 'brain', (b.) instructions that define the agent's job description and expected behavior, and (c.) tools that the agent can use to interact with external systems to retrieve information or initiate tasks."
+                "content": "A agents are AI systems designed to autonomously perform tasks or make decisions on behalf of users. They can operate independently or collaboratively in multi-agent systems to achieve complex objectives. AI agents typically consist of (a.) a large language model (LLM) that acts as the agent's 'brain', (b.) instructions that define the agent's job description and expected behavior, and (c.) tools that the agent can use to interact with external systems to retrieve information or initiate tasks. For example, an AI agent might be designed to assist with finding information about expense limits and policies, and submitting expense claims."
             }
         ]
     },
