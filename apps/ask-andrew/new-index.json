@@ -138,7 +138,7 @@
     },
     {
         "category": "Text Analysis",
-        "link": "https://aka.ms/mslearn-text-analytics",
+        "link": "https://aka.ms/mslearn-nlp",
         "documents": [
             {
                 "id": 10,
@@ -204,7 +204,7 @@
     },
     {
         "category": "Speech",
-        "link": "https://aka.ms/mslearn-speech",
+        "link": "https://aka.ms/mslearn-ai-speech",
         "documents": [
             {
                 "id": 14,
@@ -261,7 +261,7 @@
     },
     {
         "category": "Computer Vision",
-        "link": "https://aka.ms/mslearn-computer-vision",
+        "link": "https://aka.ms/mslearn-vision",
         "documents": [
             {
                 "id": 17,
@@ -352,7 +352,7 @@
     },
     {
         "category": "Information Extraction",
-        "link": "https://aka.ms/mslearn-document-intelligence",
+        "link": "https://aka.ms/mslearn-ai-info",
         "documents": [
             {
                 "id": 22,
