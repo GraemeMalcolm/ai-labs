@@ -529,7 +529,11 @@ Guidelines:
                 </div>
                 <div class="message-content">
                     <p class="message-author" aria-label="From Andrew">Andrew</p>
-                    <div class="message-text" ${isTyping ? 'aria-live="polite" aria-busy="true"' : ''}>${isTyping ? '<span class="typing-indicator" aria-label="Andrew is typing">●●●</span>' : content}</div>
+                    <div class="message-text" ${isTyping ? 'aria-live="polite" aria-busy="true"' : ''}>
+                        ${isTyping 
+                            ? '<span class="typing-indicator" aria-label="Andrew is typing">●●●</span>' 
+                            : this.escapeHtml(content)}
+                    </div>
                 </div>
             `;
         } else {
