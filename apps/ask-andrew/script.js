@@ -755,7 +755,10 @@ Guidelines:
             // Add AI mode note
             formattedResponse += `<p style="font-style: italic; color: #666; font-size: 0.9em; margin-top: 10px;">Note: You're using Simple mode. Switch to <a href="#" class="ai-mode-link" onclick="window.askAndrew.showAiModeModal(); return false;">AI mode</a> for more detailed explanations.</p>`;
             
-            this.addMessage('assistant', formattedResponse);
+            // Add message with placeholder, then update with HTML content
+            const messageDiv = this.addMessage('assistant', 'Loading...');
+            const messageText = messageDiv.querySelector('.message-text');
+            messageText.innerHTML = formattedResponse;
             return;
         }
         
@@ -788,7 +791,10 @@ Guidelines:
         // Add note about AI mode
         formattedResponse += `<p style="font-style: italic; color: #666; font-size: 0.9em; margin-top: 10px;">Note: You're using Simple mode. Switch to <a href="#" class="ai-mode-link" onclick="window.askAndrew.showAiModeModal(); return false;">AI mode</a> for more detailed explanations.</p>`;
         
-        this.addMessage('assistant', formattedResponse);
+        // Add message with placeholder, then update with HTML content
+        const messageDiv = this.addMessage('assistant', 'Loading...');
+        const messageText = messageDiv.querySelector('.message-text');
+        messageText.innerHTML = formattedResponse;
         
         // Update search status
         if (categories.length > 0) {
