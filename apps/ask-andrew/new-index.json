@@ -293,7 +293,7 @@
                     "picture",
                     "camera"
                 ],
-                "content": "Computer Vision is a field of artificial intelligence that enables computers to understand and interpret visual information from images and videos. Common computer vision tasks include: Image Classification (identifying what's in an image, such as recognizing a photo contains a cat), Object Detection (locating and identifying multiple objects within an image with bounding boxes), Semantic Segmentation (classifying every pixel in an image to identify distinct regions and objects), and Multimodal Models (combining visual and textual information to understand images in context). Computer vision is used in applications ranging from autonomous vehicles and medical imaging to facial recognition and augmented reality."
+                "content": "Computer Vision is a field of artificial intelligence that enables computers to understand and interpret visual information from images and videos. Common computer vision tasks include: Image Classification (identifying what's in an image, such as recognizing a photo contains a cat), Object Detection (locating and identifying multiple objects within an image with bounding boxes), Semantic Segmentation (classifying every pixel in an image to identify distinct regions and objects), and image captioning (combining visual and textual information to understand images in context). Common models used in computer vision include convolutional neural networks (CNNs) and vision transformers (ViTs). Computer vision is used in applications ranging from autonomous vehicles and medical imaging to facial recognition and augmented reality."
             },
             {
                 "id": 18,
