@@ -1,17 +1,11 @@
 import * as webllm from "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.46/+esm";
-import MiniSearch from 'https://cdn.jsdelivr.net/npm/minisearch@6.3.0/+esm';
-import nlp from 'https://cdn.jsdelivr.net/npm/compromise@14.10.0/+esm';
 
 class AskAndrew {
     constructor() {
         this.engine = null;
-        this.miniSearch = null;
         this.conversationHistory = [];
         this.isGenerating = false;
-        this.indexData = null;
-        this.metadata = null;
-        this.categoryLinks = null; // Separate category links file
-        this.technicalTerms = null; // Multi-word technical terms
+        this.indexData = null; // Now contains the category structure from new-index.json
         this.stopRequested = false;
         this.currentStream = null;
         this.webGPUAvailable = false;
@@ -55,14 +49,8 @@ Guidelines:
 
     async initialize() {
         try {
-            // Load the index and metadata
+            // Load the index
             await this.loadIndex();
-            await this.loadMetadata();
-            await this.loadCategoryLinks();
-            await this.loadTechnicalTerms();
-            
-            // Initialize MiniSearch
-            this.initializeMiniSearch();
             
             // Initialize WebLLM
             await this.initializeWebLLM();
@@ -79,76 +67,32 @@ Guidelines:
     async loadIndex() {
         try {
             this.updateProgress(5, 'Loading knowledge base...');
-            const response = await fetch('index.json');
+            const response = await fetch('new-index.json');
             if (!response.ok) throw new Error('Failed to load index');
             this.indexData = await response.json();
-            console.log(`Loaded ${this.indexData.length} documents`);
+            console.log('Loaded index with', this.indexData.length, 'categories');
+            
+            // Build a flat lookup map: keyword -> {document, category, link}
+            this.keywordMap = new Map();
+            this.indexData.forEach(category => {
+                category.documents.forEach(doc => {
+                    doc.keywords.forEach(keyword => {
+                        const normalizedKeyword = keyword.toLowerCase().trim();
+                        if (normalizedKeyword) {
+                            this.keywordMap.set(normalizedKeyword, {
+                                document: doc,
+                                category: category.category,
+                                link: category.link
+                            });
+                        }
+                    });
+                });
+            });
+            console.log('Built keyword map with', this.keywordMap.size, 'keywords');
         } catch (error) {
             console.error('Error loading index:', error);
             throw error;
         }
-    }
-
-    async loadMetadata() {
-        try {
-            const response = await fetch('index-metadata.json');
-            if (!response.ok) throw new Error('Failed to load metadata');
-            this.metadata = await response.json();
-            console.log('Loaded metadata with links:', this.metadata.links);
-        } catch (error) {
-            console.error('Error loading metadata:', error);
-            throw error;
-        }
-    }
-
-    async loadCategoryLinks() {
-        try {
-            const response = await fetch('category-links.json');
-            if (!response.ok) throw new Error('Failed to load category links');
-            this.categoryLinks = await response.json();
-            console.log('Loaded category links:', this.categoryLinks);
-        } catch (error) {
-            console.error('Error loading category links:', error);
-            throw error;
-        }
-    }
-
-    async loadTechnicalTerms() {
-        try {
-            const response = await fetch('technical-terms.json');
-            if (!response.ok) throw new Error('Failed to load technical terms');
-            this.technicalTerms = await response.json();
-            // Sort by word count (descending) to prioritize longer phrases
-            this.technicalTerms.multiWordTerms.sort((a, b) => {
-                const aWords = a.split(/\s+/).length;
-                const bWords = b.split(/\s+/).length;
-                return bWords - aWords;
-            });
-            console.log(`Loaded ${this.technicalTerms.multiWordTerms.length} technical terms`);
-        } catch (error) {
-            console.error('Error loading technical terms:', error);
-            // Continue without technical terms if file not found
-            this.technicalTerms = { multiWordTerms: [] };
-        }
-    }
-
-    initializeMiniSearch() {
-        this.updateProgress(10, 'Indexing knowledge base...');
-        
-        // Create MiniSearch instance
-        this.miniSearch = new MiniSearch({
-            fields: ['heading', 'content', 'keywords', 'category'],
-            storeFields: ['id', 'category', 'file', 'heading', 'content', 'summary', 'keywords'],
-            searchOptions: {
-                boost: { heading: 3, keywords: 2, category: 1.5, content: 1 },
-                fuzzy: 0.2,
-                prefix: true
-            }
-        });
-        
-        // Add documents to MiniSearch
-        this.miniSearch.addAll(this.indexData);
-        console.log('MiniSearch initialized with', this.indexData.length, 'documents');
     }
 
     async initializeWebLLM() {
@@ -318,284 +262,157 @@ Guidelines:
         textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
     }
 
-    extractKeywords(text) {
-        // Use Compromise.js to extract important keywords
-        const doc = nlp(text);
-        
-        // Extract nouns, adjectives, and important terms
-        const nouns = doc.nouns().out('array');
-        const adjectives = doc.adjectives().out('array');
-        const topics = doc.topics().out('array');
-        
-        // Combine and deduplicate
-        const keywords = [...new Set([...nouns, ...adjectives, ...topics])]
-            .map(k => k.toLowerCase())
-            .filter(k => k.length > 2); // Filter short words
-        
-        console.log('Extracted keywords:', keywords);
-        return keywords;
-    }
-
-    summarizeWithTextRank(text, maxSentences = 5, queryTerms = []) {
-        // Use Compromise.js to split text into sentences
-        const doc = nlp(text);
-        const sentences = doc.sentences().out('array');
-        
-        if (sentences.length <= maxSentences) {
-            return text; // Already short enough
-        }
-        
-        // Calculate sentence scores based on word frequency (simplified TextRank)
-        const words = text.toLowerCase()
-            .replace(/[^\w\s]/g, ' ')
-            .split(/\s+/)
-            .filter(w => w.length > 3); // Filter short words
-        
-        const wordFreq = {};
-        words.forEach(word => {
-            wordFreq[word] = (wordFreq[word] || 0) + 1;
-        });
-        
-        // Score each sentence by sum of word frequencies
-        const sentenceScores = sentences.map(sentence => {
-            const sentenceWords = sentence.toLowerCase()
-                .replace(/[^\w\s]/g, ' ')
-                .split(/\s+/)
-                .filter(w => w.length > 3);
-            
-            const score = sentenceWords.reduce((sum, word) => {
-                return sum + (wordFreq[word] || 0);
-            }, 0) / (sentenceWords.length || 1); // Average score
-            
-            // Track which query terms this sentence contains
-            let queryBoost = 1;
-            let matchingTerms = [];
-            if (queryTerms.length > 0) {
-                const sentenceLower = sentence.toLowerCase();
-                matchingTerms = queryTerms.filter(term => sentenceLower.includes(term));
-                if (matchingTerms.length > 0) {
-                    // Heavy boost for sentences with multiple query terms
-                    queryBoost = 1 + (matchingTerms.length * 2); // 3x for 1 term, 5x for 2 terms, etc.
-                }
-            }
-            
-            return { sentence, score: score * queryBoost, matchingTerms: matchingTerms.length };
-        });
-        
-        // Sort by score and take top sentences
-        sentenceScores.sort((a, b) => b.score - a.score);
-        
-        // If we have query terms, ensure at least one sentence with a query term is included
-        let topSentences = [];
-        if (queryTerms.length > 0) {
-            // First, find the best sentence with query terms
-            const sentencesWithTerms = sentenceScores.filter(s => s.matchingTerms > 0);
-            
-            if (sentencesWithTerms.length > 0) {
-                // Start with the best sentence containing query terms
-                topSentences.push(sentencesWithTerms[0].sentence);
-                
-                // Fill remaining slots with other top sentences (may or may not have query terms)
-                for (let i = 0; i < sentenceScores.length && topSentences.length < maxSentences; i++) {
-                    if (!topSentences.includes(sentenceScores[i].sentence)) {
-                        topSentences.push(sentenceScores[i].sentence);
-                    }
-                }
-            } else {
-                // No sentences with query terms, just use top sentences
-                topSentences = sentenceScores.slice(0, maxSentences).map(s => s.sentence);
-            }
-        } else {
-            // No query terms provided, just use top sentences
-            topSentences = sentenceScores.slice(0, maxSentences).map(s => s.sentence);
-        }
-        
-        // Return sentences in original order
-        const result = sentences
-            .filter(s => topSentences.includes(s))
-            .join(' ');
-        
-        return result;
-    }
-
     performSearch(userQuestion) {
-        const lowerQuestion = userQuestion.toLowerCase();
+        const lowerQuestion = userQuestion.toLowerCase().trim();
         
-        // Detect multi-word technical phrases, prioritizing longer phrases
-        // If "large language model" is found, don't also include "language model"
-        const detectedPhrases = [];
-        const coveredPositions = new Set();
+        // Normalize the question: remove punctuation, extra spaces
+        const normalizedQuestion = lowerQuestion.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+        const words = normalizedQuestion.split(' ');
         
-        if (this.technicalTerms && this.technicalTerms.multiWordTerms) {
-            // Terms are already sorted by word count (descending)
-            for (const phrase of this.technicalTerms.multiWordTerms) {
-                let searchPos = 0;
-                while (true) {
-                    const pos = lowerQuestion.indexOf(phrase, searchPos);
-                    if (pos === -1) break;
-                    
-                    // Check if this position overlaps with an already-detected phrase
-                    const phraseEnd = pos + phrase.length;
-                    let overlaps = false;
-                    for (let i = pos; i < phraseEnd; i++) {
-                        if (coveredPositions.has(i)) {
-                            overlaps = true;
-                            break;
-                        }
-                    }
-                    
-                    if (!overlaps) {
-                        // Mark these positions as covered
-                        for (let i = pos; i < phraseEnd; i++) {
-                            coveredPositions.add(i);
-                        }
-                        detectedPhrases.push(phrase);
-                    }
-                    
-                    searchPos = pos + 1;
+        // Extract all n-grams (trigrams, bigrams, unigrams)
+        const nGrams = [];
+        
+        // Trigrams (3-word phrases)
+        for (let i = 0; i <= words.length - 3; i++) {
+            nGrams.push({
+                text: words.slice(i, i + 3).join(' '),
+                length: 3
+            });
+        }
+        
+        // Bigrams (2-word phrases)
+        for (let i = 0; i <= words.length - 2; i++) {
+            nGrams.push({
+                text: words.slice(i, i + 2).join(' '),
+                length: 2
+            });
+        }
+        
+        // Unigrams (single words) - filter out very short words and common stop words
+        const stopWords = ['what', 'is', 'are', 'the', 'a', 'an', 'how', 'does', 'do', 'can', 'about', 'tell', 'me', 'explain', 'describe', 'show', 'give'];
+        words.forEach(word => {
+            if (word.length >= 2 && !stopWords.includes(word)) {
+                nGrams.push({
+                    text: word,
+                    length: 1
+                });
+            }
+        });
+        
+        console.log('Extracted n-grams:', nGrams.map(ng => `"${ng.text}" (${ng.length})`));
+        
+        // Match n-grams to keywords in the index
+        const matchedKeywords = new Set();
+        const documentMatches = new Map(); // doc id -> {doc, category, link, matchedKeywords[]}
+        
+        nGrams.forEach(ngram => {
+            const match = this.keywordMap.get(ngram.text);
+            if (match) {
+                matchedKeywords.add(ngram.text);
+                
+                const docId = match.document.id;
+                if (!documentMatches.has(docId)) {
+                    documentMatches.set(docId, {
+                        document: match.document,
+                        category: match.category,
+                        link: match.link,
+                        matchedKeywords: []
+                    });
+                }
+                documentMatches.get(docId).matchedKeywords.push(ngram.text);
+            }
+        });
+        
+        // Filter out keywords that are subsets of longer matched keywords
+        // Example: if "large language model" is matched, remove "language model" and "language"
+        const filteredKeywords = new Set();
+        const sortedKeywords = Array.from(matchedKeywords).sort((a, b) => {
+            const aWords = a.split(' ').length;
+            const bWords = b.split(' ').length;
+            return bWords - aWords; // Longer phrases first
+        });
+        
+        sortedKeywords.forEach(keyword => {
+            // Check if this keyword is a subset of any already-added keyword
+            let isSubset = false;
+            for (const existing of filteredKeywords) {
+                if (existing !== keyword && existing.includes(keyword)) {
+                    isSubset = true;
+                    break;
                 }
             }
-        }
-        
-        // Extract significant terms from the query (ignore stop words)
-        let queryTerms = userQuestion.toLowerCase()
-            .replace(/[^a-z0-9\s]/g, ' ')  // Remove punctuation
-            .split(/\s+/)
-            .filter(term => term.length > 3 && !['what', 'when', 'where', 'which', 'who', 'how', 'does', 'between', 'difference', 'explain', 'tell', 'about', 'work'].includes(term));
-        
-        // Remove individual words that are part of detected phrases
-        // This prevents "language" and "model" from being included when "large language model" is detected
-        if (detectedPhrases.length > 0) {
-            const phraseWords = new Set();
-            detectedPhrases.forEach(phrase => {
-                phrase.split(/\s+/).forEach(word => {
-                    if (word.length > 3) phraseWords.add(word);
-                });
-            });
-            
-            // Filter out words that are part of detected phrases
-            queryTerms = queryTerms.filter(term => !phraseWords.has(term));
-        }
-        
-        // Add hyphenated versions of detected phrases to query terms
-        detectedPhrases.forEach(phrase => {
-            const hyphenated = phrase.replace(/\s+/g, '-');
-            queryTerms.push(hyphenated);
+            if (!isSubset) {
+                filteredKeywords.add(keyword);
+            }
         });
         
-        console.log('Query terms:', queryTerms);
-        if (detectedPhrases.length > 0) {
-            console.log('Detected multi-word phrases:', detectedPhrases);
-        }
+        console.log('Matched keywords (before filtering):', Array.from(matchedKeywords));
+        console.log('Filtered keywords (after removing subsets):', Array.from(filteredKeywords));
         
-        // Detect acronyms (2-5 uppercase letters or known lowercase acronyms)
-        const acronyms = userQuestion.match(/\b[A-Z]{2,5}\b/g) || [];
-        const isAcronymQuery = acronyms.length > 0 && userQuestion.trim().split(/\s+/).length <= 3;
-        
-        // Search using MiniSearch with adjusted fuzzy matching for short queries
-        const isShortQuery = userQuestion.trim().split(/\s+/).length <= 3;
-        
-        let searchResults = this.miniSearch.search(userQuestion, {
-            boost: { heading: 3, keywords: 2, category: 1.5 },
-            fuzzy: isAcronymQuery ? 0 : (isShortQuery ? 0.1 : 0.2), // No fuzzy for acronyms
-            prefix: !isShortQuery && !isAcronymQuery // No prefix for acronyms
+        // Rebuild document matches using only filtered keywords
+        const finalDocumentMatches = [];
+        documentMatches.forEach((match, docId) => {
+            // Only include if at least one of its keywords survived filtering
+            const validKeywords = match.matchedKeywords.filter(kw => filteredKeywords.has(kw));
+            if (validKeywords.length > 0) {
+                finalDocumentMatches.push({
+                    ...match,
+                    matchedKeywords: validKeywords
+                });
+            }
         });
         
-        // Apply simplified boosting: heading matches and multi-term matches
-        if (queryTerms.length >= 1) {
-            searchResults = searchResults.map(result => {
-                let termMatchCount = 0;
-                let headingMatchCount = 0;
-                const resultKeywords = result.keywords.map(k => k.toLowerCase());
-                const resultHeading = result.heading.toLowerCase();
-                const resultContent = result.content.toLowerCase();
-                
-                queryTerms.forEach(term => {
-                    // Check for flexible matching in keywords, heading, and content
-                    const foundInKeywords = resultKeywords.some(k => k.includes(term) || term.includes(k));
-                    const foundInHeading = resultHeading.includes(term);
-                    const foundInContent = resultContent.includes(term);
-                    
-                    if (foundInKeywords || foundInHeading || foundInContent) {
-                        termMatchCount++;
-                    }
-                    
-                    if (foundInHeading) {
-                        headingMatchCount++;
-                    }
-                });
-                
-                // Check if any multi-word phrases appear in heading or content
-                let phraseBoost = 1;
-                detectedPhrases.forEach(phrase => {
-                    if (resultHeading.includes(phrase) || resultContent.includes(phrase)) {
-                        phraseBoost *= 2; // 2x boost for exact phrase match
-                    }
-                });
-                
-                // Simple boosting: multi-term match bonus and heading match bonus
-                let boost = phraseBoost;
-                
-                // Multi-term match: +50% per matching term beyond the first
-                if (termMatchCount >= 2) {
-                    boost *= (1 + (termMatchCount - 1) * 0.5);
-                }
-                
-                // Heading match: 2x per term in heading
-                if (headingMatchCount > 0) {
-                    boost *= (1 + headingMatchCount);
-                }
-                
-                return { ...result, score: result.score * boost, matchedTerms: termMatchCount, headingMatches: headingMatchCount };
-            });
+        console.log(`Found ${finalDocumentMatches.length} matching documents`);
+        if (finalDocumentMatches.length > 0) {
+            console.log('Matched documents:', finalDocumentMatches.map(m => ({
+                id: m.document.id,
+                title: m.document.title,
+                category: m.category,
+                keywords: m.matchedKeywords
+            })));
         }
         
-        // Sort by score, then by heading matches, then by document ID
-        searchResults.sort((a, b) => {
-            if (Math.abs(b.score - a.score) > 0.1) return b.score - a.score;
-            if (b.headingMatches !== a.headingMatches) return (b.headingMatches || 0) - (a.headingMatches || 0);
-            return a.id - b.id;
-        });
-        
-        console.log(`Found ${searchResults.length} results`);
-        
-        if (searchResults.length === 0) {
-            return { context: null, categories: [], results: [] };
-        }
-        
-        // Log top results
-        console.log('Top 3 results:', searchResults.slice(0, 3).map(r => ({ 
-            id: r.id, 
-            heading: r.heading, 
-            category: r.category, 
-            score: r.score.toFixed(2) 
-        })));
-        
-        return { results: searchResults, queryTerms };
+        return {
+            matches: finalDocumentMatches,
+            matchedKeywords: Array.from(filteredKeywords)
+        };
     }
     
     searchContext(userQuestion) {
-        const { results, queryTerms } = this.performSearch(userQuestion);
+        const { matches, matchedKeywords } = this.performSearch(userQuestion);
         
-        if (!results || results.length === 0) {
+        // If no matches, fall back to AI Concepts category
+        if (matches.length === 0) {
             this.elements.searchStatus.textContent = '🔍 No specific context found';
-            return { context: null, categories: [] };
+            const aiConceptsCategory = this.indexData.find(cat => cat.category === 'AI Concepts');
+            if (aiConceptsCategory && aiConceptsCategory.documents.length > 0) {
+                const fallbackDoc = aiConceptsCategory.documents[0];
+                return {
+                    context: `[${aiConceptsCategory.category}]\n${fallbackDoc.content}`,
+                    categories: [aiConceptsCategory.category],
+                    links: [aiConceptsCategory.link],
+                    documents: [fallbackDoc]
+                };
+            }
+            return { context: null, categories: [], links: [], documents: [] };
         }
         
-        // Take top 2 results for context
-        const topResults = results.slice(0, 2);
-        
-        // Build context using summaries
-        const contextParts = topResults.map(result => {
-            return `[${result.category} - ${result.heading}]\n${result.summary}`;
+        // Build context from all matched documents - use full content, no summarization
+        const contextParts = matches.map(match => {
+            return `[${match.category} - ${match.document.title}]\n${match.document.content}`;
         });
         
-        const categories = [...new Set(topResults.map(r => r.category))];
+        const categories = [...new Set(matches.map(m => m.category))];
+        const links = [...new Set(matches.map(m => m.link))];
+        const documents = matches.map(m => m.document);
+        
         this.elements.searchStatus.textContent = `🔍 Found context in: ${categories.join(', ')}`;
         
-        return { 
+        return {
             context: contextParts.join('\n\n'),
-            categories: categories
+            categories: categories,
+            links: links,
+            documents: documents
         };
     }
 
@@ -738,7 +555,7 @@ Guidelines:
             return;
         }
         
-        const { context, categories } = searchResult;
+        const { context, categories, links } = searchResult;
         
         this.isGenerating = true;
         this.stopRequested = false;
@@ -798,7 +615,7 @@ Guidelines:
             }
             
             // Add learn more links
-            if (categories && categories.length > 0) {
+            if (links && links.length > 0 && categories && categories.length > 0) {
                 // Store original message without learn more for conversation history
                 const originalMessage = assistantMessage;
                 
@@ -808,12 +625,12 @@ Guidelines:
                 // Format the message
                 let formattedMessage = this.formatResponse(assistantMessage);
                 
-                // Replace placeholder with actual HTML links
-                const learnMoreHtml = this.buildLearnMoreLinks(categories);
-                if (learnMoreHtml) {
-                    const linksOnly = learnMoreHtml.replace(/---\s*\n\n\*\*Learn more:\*\*\s*/, '');
-                    formattedMessage = formattedMessage.replace(/\[\[LEARN_MORE_LINKS\]\]/g, linksOnly);
-                }
+                // Build HTML links with category names
+                const linkHtml = links.map((link, index) => {
+                    const categoryName = categories[Math.min(index, categories.length - 1)];
+                    return `<a href="${link}" target="_blank" rel="noopener noreferrer">${categoryName}</a>`;
+                }).join(' • ');
+                formattedMessage = formattedMessage.replace(/\[\[LEARN_MORE_LINKS\]\]/g, linkHtml);
                 
                 messageTextDiv.innerHTML = formattedMessage;
                 
@@ -908,122 +725,77 @@ Guidelines:
     }
 
     generateSimpleResponse(userMessage, searchResult) {
-        const { context, categories } = searchResult || { context: null, categories: [] };
+        const { context, categories, links, documents } = searchResult || { context: null, categories: [], links: [], documents: [] };
         
-        // Use unified search
-        const { results, queryTerms } = this.performSearch(userMessage);
-        
-        if (!results || results.length === 0) {
-            const message = this.addMessage('assistant', "I don't have specific information about that in my knowledge base. Could you try rephrasing your question or asking about a different AI topic?");
-            this.addCategoryLinks(message, []);
+        // If no matches, use the fallback from searchContext (AI Concepts category)
+        if (!documents || documents.length === 0) {
+            let fallbackResponse = "I don't have specific information about that in my knowledge base. Could you try rephrasing your question or asking about a different AI topic?";
+            
+            // If we have fallback content from AI Concepts, use it
+            if (context) {
+                fallbackResponse = context;
+            }
+            
+            // Add learn more link if available
+            if (links && links.length > 0) {
+                fallbackResponse += '\n\n---\n\n**Learn more:** [[LEARN_MORE_LINKS]]';
+            }
+            
+            // Add AI mode note
+            fallbackResponse += "\n\n*Note: You're using Simple mode. Switch to [[AI_MODE_LINK]] for more detailed explanations.*";
+            
+            // Format the response
+            let formattedResponse = this.formatResponse(fallbackResponse);
+            
+            // Replace placeholders
+            if (links && links.length > 0 && categories && categories.length > 0) {
+                const linkHtml = links.map((link, index) => {
+                    const categoryName = categories[Math.min(index, categories.length - 1)];
+                    return `<a href="${link}" target="_blank" rel="noopener noreferrer">${categoryName}</a>`;
+                }).join(' • ');
+                formattedResponse = formattedResponse.replace('[[LEARN_MORE_LINKS]]', linkHtml);
+            }
+            formattedResponse = formattedResponse.replace(
+                '[[AI_MODE_LINK]]',
+                '<a href="#" class="ai-mode-link" onclick="window.askAndrew.showAiModeModal(); return false;">AI mode</a>'
+            );
+            
+            this.addMessage('assistant', formattedResponse);
             return;
         }
         
-        console.log('Top 5 Simple mode results:', results.slice(0, 5).map(r => ({ 
-            id: r.id, 
-            heading: r.heading, 
-            category: r.category, 
-            score: r.score.toFixed(2),
-            headingMatches: r.headingMatches || 0
-        })));
+        console.log('Simple mode - returning full content for', documents.length, 'documents');
         
-        const topResults = results.slice(0, 3);
+        // Build response from full document content (no summarization)
+        let response = "";
         
-        if (topResults.length === 0) {
-            // No results found - show fallback link
-            let fallbackMessage = "I couldn't find any relevant information in my knowledge base for that question. ";
+        documents.forEach((doc, index) => {
+            response += doc.content;
             
-            if (this.categoryLinks && this.categoryLinks.fallbackLink) {
-                const fallback = this.categoryLinks.fallbackLink;
-                fallbackMessage += `You might find this helpful:\n\n<a href="${fallback.url}" target="_blank" rel="noopener noreferrer">${fallback.name}</a>`;
-            } else {
-                fallbackMessage += "Please try rephrasing or ask about AI, Machine Learning, Speech, Computer Vision, or Information Extraction topics.";
+            // Add spacing between multiple documents
+            if (index < documents.length - 1) {
+                response += "\n\n";
             }
-            
-            this.addMessage('assistant', fallbackMessage);
-            return;
-        }
-        
-        // Build response from TextRank summaries of content
-        let response = "Here's what I found:\n\n";
-        
-        // Filter results to only include those where we can generate a relevant summary
-        // Only apply strict filtering when we have multiple query terms (looking for relationships)
-        const relevantResults = [];
-        topResults.forEach(result => {
-            // Get the full content from the original indexData
-            const fullEntry = this.indexData.find(item => item.id === result.id);
-            const content = fullEntry ? fullEntry.content : result.content;
-            
-            // If we have MULTIPLE query terms, check if any sentences contain at least one
-            if (queryTerms.length >= 2) {
-                const doc = nlp(content);
-                const sentences = doc.sentences().out('array');
-                const hasSentenceWithTerms = sentences.some(sentence => {
-                    const sentenceLower = sentence.toLowerCase();
-                    return queryTerms.some(term => sentenceLower.includes(term));
-                });
-                
-                // Skip this result if no sentences contain any query terms
-                if (!hasSentenceWithTerms) {
-                    console.log(`Skipping result "${result.heading}" - no sentences contain query terms`);
-                    return;
-                }
-            }
-            
-            relevantResults.push(result);
         });
         
-        // Use only the relevant results
-        const finalResults = relevantResults.slice(0, 3);
-        
-        if (finalResults.length === 0 && queryTerms.length >= 2) {
-            // No results with relevant sentences found
-            let fallbackMessage = "I couldn't find any content that specifically discusses those terms together. ";
-            
-            if (this.categoryLinks && this.categoryLinks.fallbackLink) {
-                const fallback = this.categoryLinks.fallbackLink;
-                fallbackMessage += `You might find this helpful:\n\n<a href="${fallback.url}" target="_blank" rel="noopener noreferrer">${fallback.name}</a>`;
-            }
-            
-            this.addMessage('assistant', fallbackMessage);
-            return;
-        }
-        
-        finalResults.forEach((result, index) => {
-            // Get the full content from the original indexData
-            const fullEntry = this.indexData.find(item => item.id === result.id);
-            const content = fullEntry ? fullEntry.content : result.content;
-            
-            // Use TextRank to summarize the content (2-3 sentences), boosting sentences with query terms
-            const summary = this.summarizeWithTextRank(content, 2, queryTerms);
-            
-            response += `**${index + 1}. ${result.heading}** (${result.category})\n`;
-            response += `${summary}\n\n`;
-        });
-        
-        // Get unique categories from results
-        const resultCategories = [...new Set(finalResults.map(r => r.category))];
-        
-        // Build learn more links (will be injected after formatting)
-        const learnMoreHtml = this.buildLearnMoreLinks(resultCategories);
-        
-        // Add learn more placeholder
-        if (learnMoreHtml) {
+        // Add learn more links
+        if (links && links.length > 0) {
             response += '---\n\n**Learn more:** [[LEARN_MORE_LINKS]]\n\n';
         }
         
-        // Add note with placeholder for AI mode link
+        // Add note about AI mode
         response += "*Note: You're using Simple mode. Switch to [[AI_MODE_LINK]] for more detailed explanations.*";
         
-        // Format and add the message
+        // Format the response
         let formattedResponse = this.formatResponse(response);
         
         // Replace placeholders with actual HTML
-        if (learnMoreHtml) {
-            // Extract just the links part from the buildLearnMoreLinks output
-            const linksOnly = learnMoreHtml.replace(/---\s*\n\n\*\*Learn more:\*\*\s*/, '');
-            formattedResponse = formattedResponse.replace('[[LEARN_MORE_LINKS]]', linksOnly);
+        if (links && links.length > 0 && categories && categories.length > 0) {
+            const linkHtml = links.map((link, index) => {
+                const categoryName = categories[Math.min(index, categories.length - 1)];
+                return `<a href="${link}" target="_blank" rel="noopener noreferrer">${categoryName}</a>`;
+            }).join(' • ');
+            formattedResponse = formattedResponse.replace('[[LEARN_MORE_LINKS]]', linkHtml);
         }
         
         formattedResponse = formattedResponse.replace(
@@ -1034,29 +806,12 @@ Guidelines:
         this.addMessage('assistant', formattedResponse);
         
         // Update search status
-        this.elements.searchStatus.textContent = `🔍 Found in: ${resultCategories.join(', ')}`;
-        
-        setTimeout(() => {
-            this.elements.searchStatus.textContent = '';
-        }, 3000);
-    }
-
-    buildLearnMoreLinks(categories) {
-        if (!categories || categories.length === 0 || !this.categoryLinks || !this.categoryLinks.categoryLinks) {
-            return '';
+        if (categories.length > 0) {
+            this.elements.searchStatus.textContent = `🔍 Found in: ${categories.join(', ')}`;
+            setTimeout(() => {
+                this.elements.searchStatus.textContent = '';
+            }, 3000);
         }
-        
-        const links = categories.map(category => {
-            const link = this.categoryLinks.categoryLinks[category];
-            if (link) {
-                return `<a href="${link}" target="_blank" rel="noopener noreferrer">${category}</a>`;
-            }
-            return null;
-        }).filter(link => link !== null);
-        
-        if (links.length === 0) return '';
-        
-        return `---\n\n**Learn more:** ${links.join(' • ')}`;
     }
 
     scrollToBottom() {
