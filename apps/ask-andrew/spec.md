@@ -1,10 +1,6 @@
 This is a spec for a chat application named "Ask Andrew" that answers user questions about the topics indexed in the JSON files.
 
-The app should use the following technologies:
-
-- WebLLM with the Microsoft Phi-3-mini-4k-instruct-q4f16_1-MLC model to enable language understanding and generation for the chat application.
-- MiniSearch.js to search the indexed content and implement a RAG pattern for the Phi model.
-- Compromise.js to extract keywords from user questions for chat.
+The app should use WebLLM with the Microsoft Phi-3-mini-4k-instruct-q4f16_1-MLC model to enable language understanding and generation for the chat application.
 
 The app should have a typical chat interface with a box for users to enter prompts. The conversation history should be shown as speech bubbles between "Andrew" (the AI agent) and the user.
 
