@@ -740,29 +740,20 @@ Guidelines:
                 fallbackResponse = context;
             }
             
+            // Build HTML response directly
+            let formattedResponse = `<p>${this.escapeHtml(fallbackResponse).replace(/\n/g, '<br>')}</p>`;
+            
             // Add learn more link if available
-            if (links && links.length > 0) {
-                fallbackResponse += '\n\n---\n\n**Learn more:** [[LEARN_MORE_LINKS]]';
-            }
-            
-            // Add AI mode note
-            fallbackResponse += "\n\n*Note: You're using Simple mode. Switch to [[AI_MODE_LINK]] for more detailed explanations.*";
-            
-            // Format the response
-            let formattedResponse = this.formatResponse(fallbackResponse);
-            
-            // Replace placeholders
             if (links && links.length > 0 && categories && categories.length > 0) {
                 const linkHtml = links.map((link, index) => {
                     const categoryName = categories[Math.min(index, categories.length - 1)];
                     return `<a href="${link}" target="_blank" rel="noopener noreferrer">${categoryName}</a>`;
                 }).join(' • ');
-                formattedResponse = formattedResponse.replace('[[LEARN_MORE_LINKS]]', linkHtml);
+                formattedResponse += `<hr style="margin: 15px 0; border: none; border-top: 1px solid #e0e0e0;"><p><strong>Learn more:</strong> ${linkHtml}</p>`;
             }
-            formattedResponse = formattedResponse.replace(
-                '[[AI_MODE_LINK]]',
-                '<a href="#" class="ai-mode-link" onclick="window.askAndrew.showAiModeModal(); return false;">AI mode</a>'
-            );
+            
+            // Add AI mode note
+            formattedResponse += `<p style="font-style: italic; color: #666; font-size: 0.9em; margin-top: 10px;">Note: You're using Simple mode. Switch to <a href="#" class="ai-mode-link" onclick="window.askAndrew.showAiModeModal(); return false;">AI mode</a> for more detailed explanations.</p>`;
             
             this.addMessage('assistant', formattedResponse);
             return;
@@ -782,30 +773,20 @@ Guidelines:
             }
         });
         
+        // Build the formatted response HTML directly (don't use formatResponse which escapes HTML)
+        let formattedResponse = `<p>${this.escapeHtml(response).replace(/\n/g, '<br>')}</p>`;
+        
         // Add learn more links
-        if (links && links.length > 0) {
-            response += '---\n\n**Learn more:** [[LEARN_MORE_LINKS]]\n\n';
-        }
-        
-        // Add note about AI mode
-        response += "*Note: You're using Simple mode. Switch to [[AI_MODE_LINK]] for more detailed explanations.*";
-        
-        // Format the response
-        let formattedResponse = this.formatResponse(response);
-        
-        // Replace placeholders with actual HTML
         if (links && links.length > 0 && categories && categories.length > 0) {
             const linkHtml = links.map((link, index) => {
                 const categoryName = categories[Math.min(index, categories.length - 1)];
                 return `<a href="${link}" target="_blank" rel="noopener noreferrer">${categoryName}</a>`;
             }).join(' • ');
-            formattedResponse = formattedResponse.replace('[[LEARN_MORE_LINKS]]', linkHtml);
+            formattedResponse += `<hr style="margin: 15px 0; border: none; border-top: 1px solid #e0e0e0;"><p><strong>Learn more:</strong> ${linkHtml}</p>`;
         }
         
-        formattedResponse = formattedResponse.replace(
-            '[[AI_MODE_LINK]]',
-            '<a href="#" class="ai-mode-link" onclick="window.askAndrew.showAiModeModal(); return false;">AI mode</a>'
-        );
+        // Add note about AI mode
+        formattedResponse += `<p style="font-style: italic; color: #666; font-size: 0.9em; margin-top: 10px;">Note: You're using Simple mode. Switch to <a href="#" class="ai-mode-link" onclick="window.askAndrew.showAiModeModal(); return false;">AI mode</a> for more detailed explanations.</p>`;
         
         this.addMessage('assistant', formattedResponse);
         
