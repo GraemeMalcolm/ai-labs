@@ -133,6 +133,19 @@
                     "vectors"
                 ],
                 "content": "Large Language Models (LLMs) are a type of artificial intelligence model designed to understand and generate human language. They are built using transformer architectures that utilize attention mechanisms to process and generate text. LLMs work by converting tokens (words or parts of words) into embeddings, which are vectors with multiple numeric 'dimensions', allowing the model to capture semantic meaning and context. These models are capable of performing a wide range of natural language processing tasks, including translation, summarization, and question-answering."
+            },
+            {
+                "id": 26,
+                "title": "AI Agents",
+                "keywords": [
+                    "agents",
+                    "agent",
+                    "agentic ai",
+                    "ai agent",
+                    "ai agents",
+                    "multi-agent"
+                ],
+                "content": "A agents are AI systems designed to autonomously perform tasks or make decisions on behalf of users. They can operate independently or collaboratively in multi-agent systems to achieve complex objectives. AI agents typically consist of (a.) a large language model (LLM) that acts as the agent's 'brain', (b.) instructions that define the agent's job description and expected behavior, and (c.) tools that the agent can use to interact with external systems to retrieve information or initiate tasks."
             }
         ]
     },
