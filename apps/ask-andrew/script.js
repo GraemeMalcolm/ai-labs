@@ -36,8 +36,7 @@ Your role:
 - Use simple language suitable for learners in a conversational, friendly tone
 
 Guidelines:
-- IMPORTANT: Only use information from the context provided with each question
-- If the context doesn't contain enough information, say so rather than improvising
+- If the context includes "Sorry, I couldn't find any specific information on that topic. Please try rephrasing your question or explore other AI concepts.", use that exact phrasing to indicate lack of information
 - Do not start responses with "A:"
 - Do not call the user "Andrew" (that's you!)
 - Format responses with paragraphs for readability
@@ -728,7 +727,31 @@ Guidelines:
         return div.innerHTML;
     }
 
-    generateSimpleResponse(userMessage, searchResult) {
+    async animateTyping(element, htmlContent, speed = 5) {
+        // Parse HTML to extract text while preserving structure
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = htmlContent;
+        
+        // For simple animation, just show the content progressively
+        element.innerHTML = '';
+        const words = htmlContent.split(' ');
+        
+        for (let i = 0; i < words.length; i++) {
+            if (this.stopRequested) break;
+            
+            element.innerHTML = words.slice(0, i + 1).join(' ');
+            this.scrollToBottom();
+            
+            // Small delay between words
+            await new Promise(resolve => setTimeout(resolve, speed));
+        }
+        
+        // Ensure final content is complete
+        element.innerHTML = htmlContent;
+        this.scrollToBottom();
+    }
+
+    async generateSimpleResponse(userMessage, searchResult) {
         const { context, categories, links, documents } = searchResult || { context: null, categories: [], links: [], documents: [] };
         
         // If no matches, use the fallback from searchContext (AI Concepts category)
@@ -755,10 +778,10 @@ Guidelines:
             // Add AI mode note
             formattedResponse += `<p style="font-style: italic; color: #666; font-size: 0.9em; margin-top: 10px;">Note: You're using Simple mode. Switch to <a href="#" class="ai-mode-link" onclick="window.askAndrew.showAiModeModal(); return false;">AI mode</a> for more detailed explanations.</p>`;
             
-            // Add message with placeholder, then update with HTML content
-            const messageDiv = this.addMessage('assistant', 'Loading...');
+            // Add message with typing animation
+            const messageDiv = this.addMessage('assistant', '', true);
             const messageText = messageDiv.querySelector('.message-text');
-            messageText.innerHTML = formattedResponse;
+            await this.animateTyping(messageText, formattedResponse);
             return;
         }
         
@@ -791,10 +814,10 @@ Guidelines:
         // Add note about AI mode
         formattedResponse += `<p style="font-style: italic; color: #666; font-size: 0.9em; margin-top: 10px;">Note: You're using Simple mode. Switch to <a href="#" class="ai-mode-link" onclick="window.askAndrew.showAiModeModal(); return false;">AI mode</a> for more detailed explanations.</p>`;
         
-        // Add message with placeholder, then update with HTML content
-        const messageDiv = this.addMessage('assistant', 'Loading...');
+        // Add message with typing animation
+        const messageDiv = this.addMessage('assistant', '', true);
         const messageText = messageDiv.querySelector('.message-text');
-        messageText.innerHTML = formattedResponse;
+        await this.animateTyping(messageText, formattedResponse);
         
         // Update search status
         if (categories.length > 0) {
