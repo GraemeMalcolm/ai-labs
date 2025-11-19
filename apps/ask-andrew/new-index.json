@@ -1,7 +1,7 @@
 [
     {
         "category": "AI Overview",
-        "link": "https://aka.ms/mslearn-ai-concepts",
+        "link": "https://aka.ms/aisn-ai-concepts-mod",
         "documents": [
             {
                 "id": 1,
@@ -34,7 +34,7 @@
     },
     {
         "category": "Machine Learning",
-        "link": "https://aka.ms/mslearn-ml-concepts",
+        "link": "https://aka.ms/aisn-ml-concepts-mod",
         "documents": [
             {
                 "id": 3,
@@ -102,8 +102,8 @@
         ]
     },
     {
-        "category": "Generative AI",
-        "link": "https://aka.ms/mslearn-intro-gen-ai",
+        "category": "Generative AI and Agents",
+        "link": "https://aka.ms/aisn-gen-ai-concepts-mod",
         "documents": [
             {
                 "id": 8,
@@ -152,7 +152,7 @@
     },
     {
         "category": "Text Analysis",
-        "link": "https://aka.ms/mslearn-nlp",
+        "link": "https://aka.ms/aisn-nlp-concepts-mod",
         "documents": [
             {
                 "id": 10,
@@ -218,7 +218,7 @@
     },
     {
         "category": "Speech",
-        "link": "https://aka.ms/mslearn-ai-speech",
+        "link": "https://aka.ms/aisn-speech-concepts-mod",
         "documents": [
             {
                 "id": 14,
@@ -275,7 +275,7 @@
     },
     {
         "category": "Computer Vision",
-        "link": "https://aka.ms/mslearn-vision",
+        "link": "https://aka.ms/aisn-vision-concepts-mod",
         "documents": [
             {
                 "id": 17,
@@ -366,7 +366,7 @@
     },
     {
         "category": "Information Extraction",
-        "link": "https://aka.ms/mslearn-ai-info",
+        "link": "https://aka.ms/aisn-info-extract-concepts-mod",
         "documents": [
             {
                 "id": 22,
@@ -413,7 +413,7 @@
     },
     {
         "category": "AI Concepts",
-        "link": "https://aka.ms/mslearn-ai-introduction",
+        "link": "https://aka.ms/aisn-intro-ai-azure-lp",
         "documents": [
             {
                 "id": 25,
