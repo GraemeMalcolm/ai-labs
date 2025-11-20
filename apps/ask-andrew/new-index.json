@@ -482,6 +482,21 @@
             }
         ]
     },
+     {
+        "category": "Microsoft Foundry",
+        "link": "https://aka.ms/aisn-intro-ai-azure-lp",
+        "documents": [
+            {
+                "id": 32,
+                "title": "Microsoft Foundry",
+                "keywords": [
+                    "Foundry",
+                    "Azure"
+                ],
+                "content": "Microsoft Foundry is a comprehensive platform designed to accelerate the development, deployment, and management of AI apps and agents on Microsoft Azure. It provides tools and services that enable organizations to build scalable AI models, integrate them into applications, and monitor their performance. Foundry supports collaboration across teams, ensuring that AI initiatives align with business goals and compliance requirements. By leveraging Microsoft Foundry, businesses can streamline their AI workflows, reduce time-to-market, and enhance the reliability and effectiveness of their AI-driven applications."
+            }
+        ]
+    },
     {
         "category": "AI Concepts",
         "link": "https://aka.ms/aisn-intro-ai-azure-lp",
@@ -491,15 +506,6 @@
                 "title": "Introduction to AI Concepts",
                 "keywords": [],
                 "content": "Sorry, I couldn't find any specific information on that topic. Please try rephrasing your question or explore other AI concepts."
-            },
-            {
-                "id": 32,
-                "title": "Microsoft Foundry",
-                "keywords": [
-                    "Foundry",
-                    "Azure"
-                ],
-                "content": "Microsoft Foundry is a comprehensive platform designed to accelerate the development, deployment, and management of AI apps and agents on Microsoft Azure. It provides tools and services that enable organizations to build scalable AI models, integrate them into applications, and monitor their performance. Foundry supports collaboration across teams, ensuring that AI initiatives align with business goals and compliance requirements. By leveraging Microsoft Foundry, businesses can streamline their AI workflows, reduce time-to-market, and enhance the reliability and effectiveness of their AI-driven applications."
             }
         ]
     }
