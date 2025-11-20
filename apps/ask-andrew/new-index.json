@@ -9,6 +9,8 @@
                 "keywords": [
                     "artificial intelligence",
                     "what is ai",
+                    "explain ai",
+                    "define ai",
                     "cognitive computing"
                 ],
                 "content": "Artificial Intelligence (AI) refers to the simulation of human intelligence in machines that are programmed to think, learn, and solve problems. It encompasses a broad range of technologies and approaches aimed at enabling computers to perform tasks that typically require human cognition. AI is built on the foundation of machine learning, and includes sub-areas such as generative AI, text analysis, speech, computer vision, and information extraction."
@@ -125,12 +127,7 @@
                     "large language models",
                     "llm",
                     "llms",
-                    "gpt",
-                    "transformer",
-                    "attention",
-                    "embeddings",
-                    "tokens",
-                    "vectors"
+                    "gpt"
                 ],
                 "content": "Large Language Models (LLMs) are a type of artificial intelligence model designed to understand and generate human language. They are built using transformer architectures that utilize attention mechanisms to process and generate text. LLMs work by converting tokens (words or parts of words) into embeddings, which are vectors with multiple numeric 'dimensions', allowing the model to capture semantic meaning and context. These models are capable of performing a wide range of natural language processing tasks, including translation, summarization, and question-answering."
             },
@@ -147,6 +144,80 @@
                     "multi-agent"
                 ],
                 "content": "AI agents are generative AI apps designed to autonomously perform tasks or make decisions on behalf of users. They can operate independently or collaboratively in multi-agent systems to achieve complex objectives. AI agents typically consist of (a.) a large language model (LLM) that acts as the agent's 'brain', (b.) instructions that define the agent's job description and expected behavior, and (c.) tools that the agent can use to interact with external systems to retrieve information or initiate tasks. For example, an AI agent might be designed to assist with finding information about expense limits and policies, and submitting expense claims."
+            },
+            {
+                "id": 27,
+                "title": "Transformer models and Attention",
+                "keywords": [
+                    "transformer",
+                    "transformers",
+                    "attention",
+                    "self-attention",
+                    "multi-head attention",
+                    "encoder",
+                    "decoder",
+                    "encoder-decoder",
+                    "embedding",
+                    "embeddings",
+                    "vectors",
+                    "vector",
+                    "tokens",
+                    "token"
+                ],
+                "content": "Transformer models evolved from natural language processing (NLP) and are now widely used in generative AI applications. They work by decomposing training data into 'tokens' (often words, or parts of words) and mapping the tokens to vectors (like [120, 245, 89, ...]) in which each numeric dimension represents a semantic characteristic of the token. The vectors are calculated based on how the tokens appear in context to one another using self-attention mechanisms that allow the model to weigh the influence of each token on the tokens around it This process embeds semantic meaning into the vectors, so they're generally referred to as 'embeddings'. Multi-head attention enables the model to focus on multiple aspects of the input simultaneously, improving its ability to capture complex relationships. Transformers consist of encoder and decoder components that work together to process input data and generate outputs. This architecture has revolutionized AI by enabling more effective handling of sequential data and long-range dependencies when making 'next word' predictions."
+            },
+            {
+                "id": 28,
+                "title": "Prompt Engineering",
+                "keywords": [
+                    "prompt engineering",
+                    "prompt",
+                    "prompts",
+                    "instruction",
+                    "instructions",
+                    "few shot learning",
+                    "zero shot learning"
+                ],
+                "content": "Prompt Engineering is the process of designing and refining input prompts to effectively communicate with generative AI models, such as large language models (LLMs). A well-crafted prompt can significantly influence the quality and relevance of the model's output. Prompt engineering involves techniques such as providing clear instructions, using examples (few-shot learning), and structuring prompts to guide the model's response. Few-shot learning involves including a few examples in the prompt to help the model understand the desired output format, while zero-shot learning relies on the model's pre-existing knowledge without any examples. Effective prompt engineering is essential for maximizing the capabilities of generative AI models across various applications."
+            },
+            {
+                "id": 29,
+                "title": "Fine-tuning and Custom Models",
+                "keywords": [
+                    "fine tuning",
+                    "fine-tune",
+                    "custom model",
+                    "custom models",
+                    "transfer learning"
+                ],
+                "content": "Fine-tuning is the process of adapting a pre-trained large language model (LLM) to a specific task or domain by training it on a smaller, task-specific dataset. This approach leverages the general knowledge and language understanding already learned by the base model, allowing it to perform well on specialized tasks with less data and computational resources. Custom models are created through fine-tuning to meet specific requirements, such as industry-specific terminology or unique use cases. Transfer learning is a related concept where knowledge gained from one task is applied to improve performance on another related task. Fine-tuning and custom models enable organizations to tailor generative AI capabilities to their specific needs while benefiting from the strengths of large pre-trained models."
+            },
+            {
+                "id": 30,
+                "title": "Evaluation of Generative AI Models",
+                "keywords": [
+                    "evaluation",
+                    "evaluate",
+                    "model evaluation",
+                    "generative ai evaluation",
+                    "accuracy",
+                    "coherence",
+                    "relevance",
+                    "diversity"
+                ],
+                "content": "Evaluating generative AI models is crucial to ensure their outputs are accurate, coherent, relevant, and diverse. Common evaluation metrics include accuracy (how well the model's outputs match expected results), coherence (the logical flow and consistency of generated content), relevance (the degree to which outputs address the input prompt), and diversity (the variety of outputs produced by the model). Evaluation can be performed using automated metrics, human judgment, or a combination of both. Continuous evaluation helps in refining models, improving performance, and ensuring that generative AI systems meet user expectations and application requirements."
+            },
+            {
+                "id": 31,
+                "title": "Retrieval-Augmented Generation (RAG)",
+                "keywords": [
+                    "retrieval augmented generation",
+                    "rag",
+                    "knowledge retrieval",
+                    "external knowledge",
+                    "contextual information"
+                ],
+                "content": "Retrieval-Augmented Generation (RAG) combines generative AI models with external knowledge sources to improve the accuracy and relevance of generated content. By retrieving relevant information from databases, documents, or the web; and using it to augment the prompt, RAG systems provide contextual information that enhances the model's responses. This approach is particularly useful for tasks requiring up-to-date or domain-specific knowledge, enabling more informed and reliable outputs. RAG integrates retrieval mechanisms with generation capabilities, offering a powerful solution for applications like question answering, summarization, and personalized content creation."
             }
         ]
     },
@@ -420,6 +491,15 @@
                 "title": "Introduction to AI Concepts",
                 "keywords": [],
                 "content": "Sorry, I couldn't find any specific information on that topic. Please try rephrasing your question or explore other AI concepts."
+            },
+            {
+                "id": 32,
+                "title": "Microsoft Foundry",
+                "keywords": [
+                    "Foundry",
+                    "Azure"
+                ],
+                "content": "Microsoft Foundry is a comprehensive platform designed to accelerate the development, deployment, and management of AI apps and agents on Microsoft Azure. It provides tools and services that enable organizations to build scalable AI models, integrate them into applications, and monitor their performance. Foundry supports collaboration across teams, ensuring that AI initiatives align with business goals and compliance requirements. By leveraging Microsoft Foundry, businesses can streamline their AI workflows, reduce time-to-market, and enhance the reliability and effectiveness of their AI-driven applications."
             }
         ]
     }
