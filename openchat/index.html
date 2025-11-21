@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenChat - AI Learning Environment</title>
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- PyScript -->
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.4.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.4.1/core.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>OpenChat</h1>
+            <div class="header-controls">
+                <input type="text" id="filename" placeholder="script.py" value="chat_example.py">
+                <button id="saveBtn" class="btn btn-primary" disabled>Save</button>
+                <button id="loadBtn" class="btn btn-secondary">Load</button>
+                <button id="newBtn" class="btn btn-secondary" disabled>New</button>
+                <button id="runBtn" class="btn btn-success" disabled>Run</button>
+            </div>
+        </header>
+
+        <div class="editor-container">
+            <div class="editor-header">
+                <span class="editor-title">Python Editor</span>
+            </div>
+            <textarea id="codeEditor" spellcheck="false"># OpenChat - Learn to build chatbots with OpenAI syntax
+# Import the openai_shim module (behaves like the openai SDK)
+import openai_shim as openai
+
+# Create a simple chat
+messages = [
+    {"role": "system", "content": "You are a helpful assistant."},
+    {"role": "user", "content": "What is artificial intelligence?"}
+]
+
+response = openai.chat.completions.create(
+    model="wiked",
+    messages=messages
+)
+
+print(response.choices[0].message.content)
+</textarea>
+        </div>
+
+        <div class="terminal-container">
+            <div class="terminal-header">
+                <span class="terminal-title">Terminal</span>
+                <button id="clearTerminal" class="btn btn-small">Clear</button>
+            </div>
+            <script id="pyTerminal" type="py" terminal worker env="openchat" src="terminal_init.py"></script>
+        </div>
+
+        <div id="status" class="status-bar">Ready</div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

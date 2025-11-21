@@ -1,0 +1,222 @@
+/* OpenChat - Dark Theme inspired by Monaco Editor */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* Header */
+header {
+    background-color: #2d2d30;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #3e3e42;
+}
+
+header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #cccccc;
+}
+
+.header-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+#filename {
+    background-color: #3c3c3c;
+    border: 1px solid #555555;
+    color: #cccccc;
+    padding: 6px 12px;
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 13px;
+    min-width: 200px;
+}
+
+#filename:focus {
+    outline: none;
+    border-color: #007acc;
+}
+
+/* Buttons */
+.btn {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 3px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background-color 0.2s;
+}
+
+.btn-primary {
+    background-color: #0e639c;
+    color: #ffffff;
+}
+
+.btn-primary:hover {
+    background-color: #1177bb;
+}
+
+.btn-secondary {
+    background-color: #3c3c3c;
+    color: #cccccc;
+}
+
+.btn-secondary:hover {
+    background-color: #505050;
+}
+
+.btn-success {
+    background-color: #0e7d1e;
+    color: #ffffff;
+}
+
+.btn-success:hover {
+    background-color: #13a830;
+}
+
+.btn-small {
+    padding: 4px 10px;
+    font-size: 11px;
+}
+
+/* Editor Container */
+.editor-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid #3e3e42;
+}
+
+.editor-header {
+    background-color: #252526;
+    padding: 8px 15px;
+    border-bottom: 1px solid #3e3e42;
+}
+
+.editor-title {
+    font-size: 12px;
+    color: #cccccc;
+    font-weight: 500;
+}
+
+#codeEditor {
+    flex: 1;
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    border: none;
+    padding: 15px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    resize: none;
+    tab-size: 4;
+}
+
+#codeEditor:focus {
+    outline: none;
+}
+
+/* Terminal Container */
+.terminal-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #1e1e1e;
+}
+
+.terminal-header {
+    background-color: #252526;
+    padding: 8px 15px;
+    border-bottom: 1px solid #3e3e42;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.terminal-title {
+    font-size: 12px;
+    color: #cccccc;
+    font-weight: 500;
+}
+
+/* PyScript terminal - let it fill the container */
+#pyTerminal {
+    flex: 1;
+    display: flex !important;
+    flex-direction: column;
+}
+
+/* XTerm styling */
+.xterm {
+    height: 100% !important;
+    padding: 10px;
+}
+
+.xterm-viewport {
+    background-color: #1e1e1e !important;
+}
+
+.xterm-screen {
+    background-color: #1e1e1e !important;
+}
+
+/* Status Bar */
+.status-bar {
+    background-color: #007acc;
+    color: #ffffff;
+    padding: 4px 15px;
+    font-size: 12px;
+    border-top: 1px solid #3e3e42;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+}
+
+::-webkit-scrollbar-track {
+    background-color: #1e1e1e;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #424242;
+    border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #4e4e4e;
+}
+
+/* PyScript Terminal Customization */
+py-terminal {
+    display: block;
+}
+
+py-terminal pre {
+    margin: 0;
+    padding: 0;
+    font-family: inherit;
+}
