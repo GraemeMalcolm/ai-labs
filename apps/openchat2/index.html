@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenChat - AI Learning Environment</title>
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Pyodide -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+    
+    <!-- WebLLM -->
+    <script type="module">
+        import * as webllm from "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.46/+esm";
+        window.webllm = webllm;
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="editor-section">
+            <div class="editor-header">
+                <span class="title">Python Editor</span>
+                <div class="controls">
+                    <input type="text" id="filename" placeholder="script.py" value="chat_example.py">
+                    <button id="newBtn" class="btn">New</button>
+                    <button id="saveBtn" class="btn">Save</button>
+                    <button id="loadBtn" class="btn">Load</button>
+                </div>
+            </div>
+            <textarea id="codeEditor" spellcheck="false"># Import the openai module (a shim that behaves like the openai SDK)
+import openai
+
+# Create a simple chat
+messages = [
+    {"role": "system", "content": "You are a helpful assistant."}
+]
+
+while True:
+    # Get input text
+    print("Enter the prompt (or type 'quit' to exit)")
+    input_text = input("> ")
+    if input_text.lower() == "quit":
+        break
+    if len(input_text) == 0:
+        print("Please enter a prompt.")
+        continue
+            
+    # Get a chat completion
+    messages.append({"role": "user", "content": input_text})
+
+    response = openai.chat.completions.create(
+        model="wiked",
+        messages=messages
+    )
+
+    completion = response.choices[0].message.content
+    print("\n" + completion + "\n")
+    messages.append({"role": "assistant", "content": completion})
+
+print(messages)
+</textarea>
+        </div>
+
+        <div class="terminal-section">
+            <div class="terminal-header">
+                <span class="title">Terminal</span>
+            </div>
+            <div id="terminalOutput"></div>
+            <div class="terminal-input-line">
+                <span class="prompt">>>> </span>
+                <input type="text" id="terminalInput" autocomplete="off">
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
