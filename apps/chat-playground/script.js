@@ -1,5 +1,12 @@
 import * as webllm from "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.46/+esm";
 
+// Utility function to escape HTML and prevent XSS
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 class ChatPlayground {
     constructor() {
         // Core state
@@ -13,6 +20,7 @@ class ChatPlayground {
         this.typingState = null;
         this.currentSystemMessage = "You are an AI assistant that helps people find information.";
         this.currentModelId = null;
+        this.wikipediaRequestCount = 0; // Track Wikipedia requests in fallback mode
 
         // Configuration objects
         this.config = {
@@ -344,6 +352,9 @@ class ChatPlayground {
             valueDisplay.textContent = value;
             slider.setAttribute('aria-valuetext', value.toString());
             this.showToast(`${displayName}: ${value}`);
+            
+            // Also update modal slider if it exists
+            updateModalSliderFromSource(id, valueId, value);
         });
     }
     
@@ -402,7 +413,7 @@ class ChatPlayground {
         this.setElementText('fileName', file.name);
         this.setElementText('fileSize', `${(file.size / 1024).toFixed(1)}KB`);
         this.setElementStyle('fileInfo', 'display', 'flex');
-        this.setElementText('addDataBtn', ChatPlayground.MESSAGES.UI.REPLACE_DATA_SOURCE);
+        this.hideElement('addDataBtn');
     }
     
     removeFile() {
@@ -413,7 +424,7 @@ class ChatPlayground {
         // Update UI using utility functions
         this.hideElement('fileInfo');
         this.setElementProperty('fileInput', 'value', '');
-        this.setElementText('addDataBtn', ChatPlayground.MESSAGES.UI.ADD_DATA_SOURCE);
+        this.showElement('addDataBtn');
         
         this.showToast(ChatPlayground.MESSAGES.SUCCESS.FILE_REMOVED);
         this.restartConversation('file-remove');
@@ -1233,15 +1244,19 @@ class ChatPlayground {
             
             // Enable UI for Wikipedia fallback mode
             setTimeout(() => {
-                this.updateProgress(0, 'AI model unavailable. Using Wikipedia search fallback mode.');
+                this.updateProgress(0, 'AI model unavailable. Using Wikipedia search fallback mode - <a href="#" onclick="openAboutModal(); return false;" style="color: #0078d4; text-decoration: underline; cursor: pointer;">More info...</a>', true);
                 this.enableUI();
             }, 2000);
         }
     }
     
-    updateProgress(percentage, text) {
+    updateProgress(percentage, text, useHTML = false) {
         this.progressFill.style.width = `${percentage}%`;
-        this.progressText.textContent = text;
+        if (useHTML) {
+            this.progressText.innerHTML = text;
+        } else {
+            this.progressText.textContent = text;
+        }
     }
     
     enableUI() {
@@ -1485,6 +1500,25 @@ class ChatPlayground {
             if (!this.webllmAvailable) {
                 // Wikipedia fallback mode
                 console.log('Using Wikipedia fallback mode');
+                
+                // Check Wikipedia request quota
+                if (this.wikipediaRequestCount >= 15) {
+                    // Remove typing indicator
+                    typingIndicator.remove();
+                    
+                    // Add quota exceeded message
+                    const assistantMessageEl = this.addMessage('assistant', 'Quota exceeded. Only 15 requests are permitted.');
+                    
+                    // Add to conversation history
+                    this.conversationHistory.push({ role: "user", content: userMessage });
+                    this.conversationHistory.push({ role: "assistant", content: 'Quota exceeded. Only 15 requests are permitted.' });
+                    
+                    return;
+                }
+                
+                // Increment Wikipedia request counter
+                this.wikipediaRequestCount++;
+                console.log(`Wikipedia request count: ${this.wikipediaRequestCount}/15`);
                 
                 // Remove typing indicator
                 typingIndicator.remove();
@@ -1847,7 +1881,7 @@ class ChatPlayground {
                 <div class="message-avatar ${role}-avatar">${avatar}</div>
                 <div class="message-role">${roleName}</div>
             </div>
-            <div class="message-content">${content}</div>
+            <div class="message-content">${escapeHtml(content)}</div>
         `;
         
         // Add image if provided
@@ -2467,6 +2501,163 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
+// Parameters Modal Functions
+window.openParametersModal = function() {
+    const modal = document.getElementById('parameters-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        // Sync modal sliders with current values from left pane
+        syncParametersToModal();
+        // Add click-outside-to-close
+        modal.addEventListener('click', handleParametersModalClick);
+    }
+};
+
+window.closeParametersModal = function() {
+    const modal = document.getElementById('parameters-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.removeEventListener('click', handleParametersModalClick);
+    }
+};
+
+function handleParametersModalClick(e) {
+    const modal = document.getElementById('parameters-modal');
+    if (e.target === modal) {
+        window.closeParametersModal();
+    }
+}
+
+function updateModalSliderFromSource(sourceId, sourceValueId, value) {
+    // Map source IDs to modal IDs
+    const modalId = sourceId.replace('-slider', '') === sourceId.replace('-slider', '') ? 'modal-' + sourceId : 'modal-' + sourceId;
+    const modalValueId = 'modal-' + sourceValueId;
+    
+    const modalSlider = document.getElementById(modalId);
+    const modalValue = document.getElementById(modalValueId);
+    
+    if (modalSlider && modalValue) {
+        modalSlider.value = value;
+        modalValue.textContent = value;
+        modalSlider.setAttribute('aria-valuetext', value.toString());
+    }
+}
+
+function syncParametersToModal() {
+    // Get values from the left pane sliders
+    const sourceIds = [
+        { source: 'temperature-slider', target: 'modal-temperature-slider', value: 'modal-temperature-value' },
+        { source: 'top-p-slider', target: 'modal-top-p-slider', value: 'modal-top-p-value' },
+        { source: 'max-tokens-slider', target: 'modal-max-tokens-slider', value: 'modal-max-tokens-value' },
+        { source: 'repetition-penalty-slider', target: 'modal-repetition-penalty-slider', value: 'modal-repetition-penalty-value' }
+    ];
+    
+    sourceIds.forEach(({ source, target, value }) => {
+        const sourceEl = document.getElementById(source);
+        const targetEl = document.getElementById(target);
+        const valueEl = document.getElementById(value);
+        
+        if (sourceEl && targetEl && valueEl) {
+            const currentValue = sourceEl.value;
+            targetEl.value = currentValue;
+            valueEl.textContent = currentValue;
+            targetEl.setAttribute('aria-valuetext', currentValue);
+        }
+    });
+    
+    // Add event listeners to modal sliders
+    ['modal-temperature-slider', 'modal-top-p-slider', 'modal-max-tokens-slider', 'modal-repetition-penalty-slider'].forEach(sliderId => {
+        const slider = document.getElementById(sliderId);
+        if (slider) {
+            slider.addEventListener('input', handleModalParameterChange);
+        }
+    });
+}
+
+function handleModalParameterChange(e) {
+    const slideId = e.target.id;
+    const value = e.target.value;
+    const valueId = slideId.replace('-slider', '-value');
+    const valueEl = document.getElementById(valueId);
+    
+    if (valueEl) {
+        valueEl.textContent = value;
+        e.target.setAttribute('aria-valuetext', value);
+    }
+    
+    // Also update the left pane slider
+    const sourceId = slideId.replace('modal-', '');
+    const sourceEl = document.getElementById(sourceId);
+    if (sourceEl) {
+        sourceEl.value = value;
+        const sourceValueId = sourceId.replace('-slider', '-value');
+        const sourceValueEl = document.getElementById(sourceValueId);
+        if (sourceValueEl) {
+            sourceValueEl.textContent = value;
+            sourceEl.setAttribute('aria-valuetext', value);
+        }
+    }
+    
+    // Update app config
+    if (window.chatPlaygroundApp) {
+        const paramName = slideId.replace('modal-', '').replace('-slider', '');
+        const paramKey = paramName === 'top-p' ? 'top_p' : 
+                        paramName === 'max-tokens' ? 'max_tokens' : 
+                        paramName === 'repetition-penalty' ? 'repetition_penalty' : paramName;
+        window.chatPlaygroundApp.config.modelParameters[paramKey] = parseFloat(value);
+    }
+}
+
+window.resetParametersFromModal = function() {
+    const defaults = {
+        temperature: 0.7,
+        top_p: 0.9,
+        max_tokens: 1000,
+        repetition_penalty: 1.1
+    };
+    
+    // Update modal sliders
+    const updates = [
+        { slider: 'modal-temperature-slider', value: 'modal-temperature-value', param: 'temperature' },
+        { slider: 'modal-top-p-slider', value: 'modal-top-p-value', param: 'top_p' },
+        { slider: 'modal-max-tokens-slider', value: 'modal-max-tokens-value', param: 'max_tokens' },
+        { slider: 'modal-repetition-penalty-slider', value: 'modal-repetition-penalty-value', param: 'repetition_penalty' }
+    ];
+    
+    updates.forEach(({ slider, value, param }) => {
+        const sliderEl = document.getElementById(slider);
+        const valueEl = document.getElementById(value);
+        const defaultVal = defaults[param];
+        
+        if (sliderEl && valueEl) {
+            sliderEl.value = defaultVal;
+            valueEl.textContent = defaultVal;
+            sliderEl.setAttribute('aria-valuetext', defaultVal.toString());
+        }
+        
+        // Also update left pane
+        const sourceId = slider.replace('modal-', '');
+        const sourceEl = document.getElementById(sourceId);
+        const sourceValueId = sourceId.replace('-slider', '-value');
+        const sourceValueEl = document.getElementById(sourceValueId);
+        
+        if (sourceEl && sourceValueEl) {
+            sourceEl.value = defaultVal;
+            sourceValueEl.textContent = defaultVal;
+            sourceEl.setAttribute('aria-valuetext', defaultVal.toString());
+        }
+    });
+    
+    // Update app config
+    if (window.chatPlaygroundApp) {
+        window.chatPlaygroundApp.config.modelParameters = { ...defaults };
+    }
+    
+    if (window.chatPlaygroundApp && window.chatPlaygroundApp.showToast) {
+        window.chatPlaygroundApp.showToast('Parameters reset to defaults');
+    }
+};
+
 // Focus trap functionality for modal accessibility
 window.trapFocus = function(modal) {
     const focusableElements = modal.querySelectorAll(
@@ -2517,12 +2708,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Close modal with Escape key
+    // Add parameters modal click-outside-to-close functionality
+    const parametersModal = document.getElementById('parameters-modal');
+    if (parametersModal) {
+        parametersModal.addEventListener('click', (e) => {
+            if (e.target === parametersModal) {
+                window.closeParametersModal();
+            }
+        });
+    }
+    
+    // Close modals with Escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            const modal = document.getElementById('chat-capabilities-modal');
-            if (modal && modal.style.display !== 'none') {
+            const capabilitiesModal = document.getElementById('chat-capabilities-modal');
+            if (capabilitiesModal && capabilitiesModal.style.display !== 'none') {
                 window.closeChatCapabilitiesModal();
+            }
+            const parametersModal = document.getElementById('parameters-modal');
+            if (parametersModal && parametersModal.style.display !== 'none') {
+                window.closeParametersModal();
             }
         }
     });

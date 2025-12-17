@@ -17,6 +17,31 @@
     border: 0;
 }
 
+/* Highlighted note styling */
+.highlighted-note {
+    background-color: #fff4ce;
+    border: 1px solid #ffc107;
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+}
+
+.highlighted-note p {
+    margin: 0;
+    font-size: 14px;
+    color: #333;
+}
+
+.highlighted-note a {
+    color: #0078d4;
+    text-decoration: underline;
+    font-weight: 500;
+}
+
+.highlighted-note a:hover {
+    color: #005a9e;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background-color: #f5f5f5;
@@ -122,19 +147,55 @@ header h1 {
     font-size: 14px;
 }
 
+.model-select-wrapper {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+    align-items: center;
+}
+
 #model-select {
-    width: 100%;
+    flex: 1;
     padding: 8px 12px;
     border: 1px solid #d1d1d1;
     border-radius: 4px;
     font-size: 14px;
     background: white;
-    margin-bottom: 15px;
 }
 
 #model-select:disabled {
     background: #f5f5f5;
     color: #666;
+}
+
+.parameters-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid #d1d1d1;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.parameters-btn:hover {
+    background: #f5f5f5;
+    border-color: #b3b3b3;
+}
+
+.parameters-btn:active {
+    background: #e6e6e6;
+}
+
+.parameters-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .progress-container {
@@ -355,9 +416,9 @@ header h1 {
 }
 
 .add-data-btn {
-    background: #0078d4;
-    border: 1px solid #0078d4;
-    color: white;
+    background: white;
+    border: 1px solid #d1d1d1;
+    color: #333;
     padding: 8px 16px;
     border-radius: 4px;
     font-size: 13px;
@@ -368,18 +429,19 @@ header h1 {
     align-items: center;
     justify-content: center;
     gap: 6px;
+    transition: all 0.2s ease;
 }
 
 .add-data-btn:hover {
-    background: #106ebe;
-    border-color: #106ebe;
+    background: #fafafa;
+    border-color: #999;
 }
 
 .add-data-btn:disabled {
-    background: #d1d1d1;
+    background: #f5f5f5;
     border-color: #d1d1d1;
     cursor: not-allowed;
-    color: #666;
+    color: #999;
 }
 
 .file-info {
