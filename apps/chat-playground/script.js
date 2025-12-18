@@ -1977,7 +1977,7 @@ class ChatPlayground {
         this.chatMessages.innerHTML = `
             <div class="welcome-message">
                 <div class="chat-icon">💬</div>
-                <h3>Start with a prompt</h3>
+                <h3>What do you want to chat about?</h3>
             </div>
         `;
         this.updateTokenCount();
