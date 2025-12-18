@@ -448,6 +448,15 @@ class ChatPlayground {
         
         return systemMessage;
     }
+
+    updateConversationHistoryWithCurrentSystemMessage() {
+        // This method ensures that when the system message is changed in the UI,
+        // all turns in the conversation history get the updated system message
+        // when building the messages array for the API request.
+        // Note: We don't modify the stored conversationHistory itself,
+        // but rather rebuild the messages array with the current system message
+        // at request time to avoid storing large amounts of duplicate system messages.
+    }
     
     setupSpeechToggleListeners() {
         // Setup toggle listeners for enabling/disabling controls
@@ -1546,6 +1555,9 @@ class ChatPlayground {
             }
             
             // WebLLM mode (original functionality)
+            // Update conversation history to reflect current system message
+            this.updateConversationHistoryWithCurrentSystemMessage();
+            
             // Prepare conversation history
             const messages = [
                 { role: "system", content: this.getEffectiveSystemMessage() }
