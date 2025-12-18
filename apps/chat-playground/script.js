@@ -1731,12 +1731,13 @@ class ChatPlayground {
             }
         }
         
-        // Append file attribution if a file is uploaded (after streaming completes)
+        // Append file attribution if a file is uploaded (for display only, after streaming completes)
+        let displayResponse = fullResponse;
         if (hasStartedOutput && this.config.fileUpload.fileName && fullResponse.trim()) {
             const attribution = `\n(Ref: ${this.config.fileUpload.fileName})`;
-            fullResponse += attribution;
+            displayResponse = fullResponse + attribution;
             // Update the typing content to include attribution
-            this.updateTypingContent(fullResponse);
+            this.updateTypingContent(displayResponse);
         }
         
         // Handle case where response is shorter than buffer size
@@ -1745,8 +1746,8 @@ class ChatPlayground {
             thinkingIndicator.remove();
             
             if (fullResponse.trim()) {
-                // Append file attribution if a file is uploaded
-                let displayResponse = fullResponse;
+                // Append file attribution if a file is uploaded (for display only)
+                displayResponse = fullResponse;
                 if (this.config.fileUpload.fileName) {
                     displayResponse += `\n(Ref: ${this.config.fileUpload.fileName})`;
                 }
@@ -1765,7 +1766,7 @@ class ChatPlayground {
             }
         }
         
-        // Add to conversation history
+        // Add to conversation history (without file attribution, to prevent cumulative citations)
         this.conversationHistory.push({ role: "user", content: userMessage });
         this.conversationHistory.push({ role: "assistant", content: fullResponse });
         
@@ -2143,7 +2144,7 @@ class ChatPlayground {
         
         // Check if system message includes "short" or "concise"
         const systemMessageLower = this.currentSystemMessage.toLowerCase();
-        if (systemMessageLower.includes('short') || systemMessageLower.includes('concise')) {
+        if (systemMessageLower.includes('short') || systemMessageLower.includes('concise') || systemMessageLower.includes('concise')) {
             // Return only the first sentence
             const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
             return sentences[0].trim() + '\n(Ref: Wikipedia)';
