@@ -1567,9 +1567,26 @@ class ChatPlayground {
             const recentHistory = this.conversationHistory.slice(-20); // 10 pairs = 20 messages
             messages.push(...recentHistory);
             
+            // Add reinforcing instruction right before user message to make system message more prominent
+            // This helps override any anchoring from conversation history
+            const reinforcingInstruction = `**IMPORTANT - Follow these instructions strictly: ${this.currentSystemMessage}**\n\nUser message:`;
+            
             // Add user message with image analysis if available
-            const finalUserMessage = userMessage + imageAnalysis;
+            const finalUserMessage = reinforcingInstruction + '\n' + userMessage + imageAnalysis;
             messages.push({ role: "user", content: finalUserMessage });
+            
+            // Log the complete prompt being sent to the model
+            console.log('=== COMPLETE PROMPT BEING SENT TO MODEL ===');
+            console.log('Current System Message (from UI):', this.currentSystemMessage);
+            console.log('Effective System Message (with TTS/file data):', this.getEffectiveSystemMessage());
+            console.log('Model:', this.currentModelId);
+            console.log('Total messages:', messages.length);
+            console.log('Messages:');
+            messages.forEach((msg, index) => {
+                console.log(`\n[${index}] Role: ${msg.role}`);
+                console.log(`Content: ${msg.content}`);
+            });
+            console.log('\n=== END PROMPT ===\n');
             
             // Remove typing indicator
             typingIndicator.remove();
