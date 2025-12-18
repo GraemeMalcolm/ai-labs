@@ -110,10 +110,6 @@ class ChatPlayground {
             SYSTEM_MESSAGE_UPDATED: 'System message updated',
             PARAMETERS_RESET: 'Parameters reset to defaults',
             SETTINGS_UPDATED: 'Chat settings updated'
-        },
-        UI: {
-            ADD_DATA_SOURCE: '📁 Add data source',
-            REPLACE_DATA_SOURCE: '📁 Replace data source'
         }
     };
 
@@ -140,7 +136,6 @@ class ChatPlayground {
             // Model and system elements
             modelSelect: 'model-select',
             systemMessage: 'system-message',
-            applyBtn: 'apply-btn',
             
             // Chat elements
             chatMessages: 'chat-messages',
@@ -192,7 +187,6 @@ class ChatPlayground {
 
         this.modelSelect = this.elements.modelSelect;
         this.systemMessage = this.elements.systemMessage;
-        this.applyBtn = this.elements.applyBtn;
         this.chatMessages = this.elements.chatMessages;
         this.userInput = this.elements.userInput;
         this.sendBtn = this.elements.sendBtn;
@@ -1107,12 +1101,9 @@ class ChatPlayground {
             }
         });
         
-        this.applyBtn.addEventListener('click', () => {
+        // Dynamic system message update
+        this.systemMessage.addEventListener('input', () => {
             this.currentSystemMessage = this.systemMessage.value;
-            this.showToast('System message updated');
-            
-            // Restart conversation to apply the new system message
-            this.restartConversation('system-message');
         });
         
         this.stopBtn.addEventListener('click', () => this.stopGeneration());
@@ -1263,7 +1254,6 @@ class ChatPlayground {
         this.isModelLoaded = true;
         this.modelSelect.disabled = false;
         this.systemMessage.disabled = false;
-        this.applyBtn.disabled = false;
         this.userInput.disabled = false;
         this.sendBtn.disabled = false;
         this.userInput.focus();
@@ -1432,6 +1422,9 @@ class ChatPlayground {
         let userMessage = this.userInput.value.trim();
         if (!userMessage && !this.pendingImage) return;
         if (!userMessage) userMessage = ""; // Allow empty message if there's an image
+        
+        // Log the current system prompt to console
+        console.log('Current system prompt:', this.currentSystemMessage);
         
         // Process pending image if exists
         let imageAnalysis = '';
@@ -1873,14 +1866,7 @@ class ChatPlayground {
         const messageEl = document.createElement('div');
         messageEl.className = `message ${role}-message`;
         
-        const avatar = role === 'user' ? '👤' : '🤖';
-        const roleName = role === 'user' ? 'You' : 'Assistant';
-        
         messageEl.innerHTML = `
-            <div class="message-header">
-                <div class="message-avatar ${role}-avatar">${avatar}</div>
-                <div class="message-role">${roleName}</div>
-            </div>
             <div class="message-content">${escapeHtml(content)}</div>
         `;
         
@@ -1900,10 +1886,6 @@ class ChatPlayground {
         const typingEl = document.createElement('div');
         typingEl.className = 'message assistant-message';
         typingEl.innerHTML = `
-            <div class="message-header">
-                <div class="message-avatar assistant-avatar">🤖</div>
-                <div class="message-role">Assistant</div>
-            </div>
             <div class="message-content">
                 <div class="typing-indicator">
                     <div class="typing-dot"></div>
@@ -2130,6 +2112,14 @@ class ChatPlayground {
         console.log('Summarizing text, length:', text.length);
         console.log('Text to summarize:', text.substring(0, 300));
         
+        // Check if system message includes "short" or "concise"
+        const systemMessageLower = this.currentSystemMessage.toLowerCase();
+        if (systemMessageLower.includes('short') || systemMessageLower.includes('concise')) {
+            // Return only the first sentence
+            const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+            return sentences[0].trim() + '\n(Ref: Wikipedia)';
+        }
+        
         // Since we're already limiting content in searchWikipedia,
         // just add the reference and return
         if (text.length < 800) {
@@ -2238,7 +2228,12 @@ class ChatPlayground {
             const articleText = await this.searchWikipedia(keywords);
 
             // Summarize the article
-            const summary = await this.summarizeText(articleText);
+            let summary = await this.summarizeText(articleText);
+
+            // Apply temperature-based randomization if temperature is 2
+            if (this.config.modelParameters.temperature === 2) {
+                summary = this.applyTemperatureRandomization(summary);
+            }
 
             return summary;
 
@@ -2247,28 +2242,34 @@ class ChatPlayground {
             return 'Sorry, I encountered an error while processing your request. Please try again.';
         }
     }
+
+    applyTemperatureRandomization(text) {
+        const randomWords = ['helicopter', 'squirrel', 'wibble', 'flub', 'dingbat', 'bagel'];
+        
+        // Split text into words while preserving structure
+        const words = text.split(/(\s+)/);
+        
+        // Randomly replace some words (approximately 20% of non-whitespace words)
+        const result = words.map(word => {
+            // Skip whitespace and punctuation-only content
+            if (/^\s+$/.test(word) || /^[^a-zA-Z0-9]+$/.test(word)) {
+                return word;
+            }
+            
+            // 20% chance to replace a word
+            if (Math.random() < 0.2) {
+                const randomWord = randomWords[Math.floor(Math.random() * randomWords.length)];
+                return randomWord;
+            }
+            
+            return word;
+        });
+        
+        return result.join('');
+    }
 }
 
 // Global functions for UI interactions
-window.toggleSetup = function() {
-    const setupPanel = document.querySelector('.setup-panel');
-    const hideBtn = document.querySelector('.hide-btn');
-    
-    const isCollapsed = setupPanel.classList.contains('collapsed');
-    
-    if (isCollapsed) {
-        setupPanel.classList.remove('collapsed');
-        hideBtn.textContent = '📦 Hide';
-        hideBtn.setAttribute('aria-expanded', 'true');
-        hideBtn.setAttribute('aria-label', 'Hide setup panel');
-    } else {
-        setupPanel.classList.add('collapsed');
-        hideBtn.textContent = '📦 Show';
-        hideBtn.setAttribute('aria-expanded', 'false');
-        hideBtn.setAttribute('aria-label', 'Show setup panel');
-    }
-};
-
 window.toggleSection = function(sectionId) {
     const content = document.getElementById(sectionId);
     const button = content.previousElementSibling;
