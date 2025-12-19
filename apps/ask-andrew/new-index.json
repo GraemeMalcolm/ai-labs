@@ -245,6 +245,15 @@
                 "content": "Text Analysis encompasses various techniques for processing and extracting insights from textual data. Term Frequency (TF) measures how often a term appears in a document, while TF-IDF (Term Frequency-Inverse Document Frequency) weighs terms by their importance across a corpus of documents. Stemming and lemmatization are techniques for reducing words to their base or root form (for example, 'running' to 'run'), helping to normalize text for analysis. Parts-of-speech (POS) tagging identifies the grammatical role of each word in a sentence (noun, verb, adjective, etc.), which is useful for understanding sentence structure and meaning."
             },
             {
+                "id": 33,
+                "title": "Natural Language Processing",
+                "keywords": [
+                    "natural language processing",
+                    "nlp"
+                ],
+                "content": "Natural Language Processing (NLP) is a field of artificial intelligence that focuses on the interaction between computers and human language. It involves the development of algorithms and models that enable machines to understand, interpret, and generate human language in a meaningful way; including generative AI large language models. NLP techniques are used in various text analysis applications such as keyword extraction, sentiment analysis, and summarization."
+            },
+            {
                 "id": 11,
                 "title": "Text Summarization",
                 "keywords": [
