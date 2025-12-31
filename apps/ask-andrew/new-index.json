@@ -52,7 +52,7 @@
                     "features",
                     "label"
                 ],
-                "content": "Machine Learning (ML) is a subset of artificial intelligence that focuses on the development of algorithms and statistical models that enable computers to learn from and make predictions or decisions based on data. The input values for a machine learning model are 'features' of an observed entity (for example, the number of rooms in a house and its size in square feet). The mode encapsulates a mathematical function that is applied to the features to calculate a predicted 'label' (for example, the price of the house). ML can be broadly categorized into two types: supervised learning, where models are trained on labeled data; and unsupervised learning, which involves finding patterns in unlabeled data."
+                "content": "Machine Learning (ML) is the foundation for modern AI. It's a subset of data science that focuses on the development of algorithms and statistical models that enable computers to learn from and make predictions or decisions based on data. The input values for a machine learning model are 'features' of an observed entity (for example, the number of rooms in a house and its size in square feet). The mode encapsulates a mathematical function that is applied to the features to calculate a predicted 'label' (for example, the price of the house). ML can be broadly categorized into two types: supervised learning, where models are trained on labeled data; and unsupervised learning, which involves finding patterns in unlabeled data."
             },
             {
                 "id": 4,
