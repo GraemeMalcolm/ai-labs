@@ -5,7 +5,7 @@ class AskAndrew {
         this.engine = null;
         this.conversationHistory = [];
         this.isGenerating = false;
-        this.indexData = null; // Now contains the category structure from new-index.json
+        this.indexData = null; // Contains the category structure from index.json
         this.stopRequested = false;
         this.currentStream = null;
         this.webGPUAvailable = false;
@@ -63,7 +63,7 @@ IMPORTANT: Follow these guidelines when responding:
     async loadIndex() {
         try {
             this.updateProgress(5, 'Loading knowledge base...');
-            const response = await fetch('new-index.json');
+            const response = await fetch('index.json');
             if (!response.ok) throw new Error('Failed to load index');
             this.indexData = await response.json();
             console.log('Loaded index with', this.indexData.length, 'categories');
