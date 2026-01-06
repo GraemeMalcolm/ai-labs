@@ -478,9 +478,11 @@ class ChatPlayground {
         // Update UI to show listening state
         const startBtn = document.getElementById('start-btn');
         const cancelBtn = document.getElementById('cancel-btn');
+        const chatIcon = document.querySelector('.chat-icon');
 
         if (startBtn) startBtn.style.display = 'none';
         if (cancelBtn) cancelBtn.style.display = 'inline-block';
+        if (chatIcon) chatIcon.style.animation = 'pulse 1s infinite';
         
         this.updateWelcomeState('Listening...', 'Speak now..');
 
@@ -504,11 +506,9 @@ class ChatPlayground {
 
     handleSpokenInput(transcript) {
         // Update UI - show processing state
-        const chatIcon = document.querySelector('.chat-icon');
         const startBtn = document.getElementById('start-btn');
         const cancelBtn = document.getElementById('cancel-btn');
 
-        if (chatIcon) chatIcon.style.animation = 'pulse 1s infinite';
         if (startBtn) startBtn.style.display = 'none';
         if (cancelBtn) cancelBtn.style.display = 'inline-block';
         
@@ -803,7 +803,7 @@ class ChatPlayground {
         const startBtn = document.getElementById('start-btn');
         const cancelBtn = document.getElementById('cancel-btn');
 
-        if (chatIcon) chatIcon.style.animation = 'pulse 2s infinite';
+        if (chatIcon) chatIcon.style.animation = 'none';
         if (startBtn) startBtn.style.display = 'inline-block';
         if (cancelBtn) cancelBtn.style.display = 'none';
         
