@@ -17,7 +17,6 @@ class ChatPlayground {
         this.isGenerating = false;
         this.isSpeaking = false;
         this.isListening = false;
-        this.stopRequested = false;
         this.currentSystemMessage = "You are a helpful AI assistant that answers spoken questions with vocalized responses. IMPORTANT: Make your responses brief and to the point.";
         this.currentModelId = null;
         this.wikipediaRequestCount = 0;
@@ -42,18 +41,6 @@ class ChatPlayground {
                 top_p: 0.9,
                 max_tokens: 1000,
                 repetition_penalty: 1.1
-            },
-            fileUpload: {
-                content: null,
-                fileName: null,
-                maxSize: 3 * 1024,
-                allowedTypes: ['.txt']
-            },
-            speechSettings: {
-                speechToText: true,
-                textToSpeech: true,
-                voice: '',
-                speed: '1x'
             }
         };
 
@@ -66,9 +53,9 @@ class ChatPlayground {
         };
 
         // Speech and vision state
-        this.mobileNetModel = null;
         this.recognition = null;
         this.voicesAvailable = false;
+        this.voicesLoaded = false;
 
         // Initialize DOM element registry
         this.elements = {};
@@ -81,12 +68,21 @@ class ChatPlayground {
     // Constants for messages
     static MESSAGES = {
         ERRORS: {
-            SPEECH_NOT_AVAILABLE: 'Speech recognition not available',
-            SPEECH_ERROR: 'Speech recognition error. Please try again',
-            VOICE_INPUT_FAILED: 'Could not start voice input. Please try again'
+            SPEECH_NOT_AVAILABLE: 'Speech recognition not available'
         },
-        SUCCESS: {
-            SYSTEM_MESSAGE_UPDATED: 'System message updated'
+        TOAST: {
+            CHAT_CLEARED: 'Chat cleared',
+            MODEL_CHANGED: 'Model changed to Wikipedia fallback',
+            VOICE_APPLIED: 'Voice setting applied',
+            INSTRUCTIONS_UPDATED: 'Instructions updated',
+            SETTINGS_RESET: 'Settings reset to defaults',
+            SPEECH_UNAVAILABLE: 'Speech recognition not available.',
+            VOICE_INPUT_FAILED: 'Could not start voice input.',
+            RESPONSE_ERROR: 'Error generating response. Please try again.',
+            MODEL_LOAD_ERROR: 'Error loading models. Using Wikipedia mode.',
+            LOADING_MODEL: (modelId) => `Loading ${modelId}...`,
+            MODEL_LOADED: 'Model loaded successfully!',
+            MODEL_LOAD_FALLBACK: 'Failed to load model. Using Wikipedia fallback.'
         }
     };
 
@@ -129,25 +125,16 @@ class ChatPlayground {
     }
 
     attachEventListeners() {
-        // Handle system message changes
+        // Handle system message changes (both change and input events)
         if (this.systemMessage) {
-            this.addEventListenerTracked(this.systemMessage, 'change', (e) => {
+            const updateSystemMessage = (e) => {
                 this.pendingSystemMessage = e.target.value;
-                // Enable Apply button if system message differs from applied message
                 if (this.pendingSystemMessage !== this.appliedSystemMessage) {
                     this.hasUnappliedChanges = true;
                     this.updateApplyButtonState();
                 }
-            });
-            // Also track input event for real-time changes
-            this.addEventListenerTracked(this.systemMessage, 'input', (e) => {
-                this.pendingSystemMessage = e.target.value;
-                // Enable Apply button if system message differs from applied message
-                if (this.pendingSystemMessage !== this.appliedSystemMessage) {
-                    this.hasUnappliedChanges = true;
-                    this.updateApplyButtonState();
-                }
-            });
+            };
+            this.addEventListenerTracked(this.systemMessage, 'input', updateSystemMessage);
         }
 
         // Handle clear chat button
@@ -164,7 +151,7 @@ class ChatPlayground {
                         </div>
                     `;
                 }
-                this.showToast('Chat cleared');
+                this.showToast(ChatPlayground.MESSAGES.TOAST.CHAT_CLEARED);
             });
         }
 
@@ -209,6 +196,14 @@ class ChatPlayground {
                 }
             });
         }
+
+        // Handle preview voice button
+        const previewBtn = document.getElementById('preview-voice-btn');
+        if (previewBtn) {
+            this.addEventListenerTracked(previewBtn, 'click', () => {
+                this.previewVoice();
+            });
+        }
     }
 
     applySettings() {
@@ -218,7 +213,7 @@ class ChatPlayground {
                 this.webllmAvailable = false;
                 this.engine = null;
                 this.appliedModelId = 'none';
-                this.showToast('Model changed to Wikipedia fallback');
+                this.showToast(ChatPlayground.MESSAGES.TOAST.MODEL_CHANGED);
             } else {
                 this.appliedModelId = this.pendingModelId;
                 this.loadModel(this.pendingModelId);
@@ -229,14 +224,14 @@ class ChatPlayground {
         if (this.pendingVoice !== null && this.pendingVoice !== this.appliedVoice) {
             this.speechSettings.voice = this.pendingVoice;
             this.appliedVoice = this.pendingVoice;
-            this.showToast('Voice setting applied');
+            this.showToast(ChatPlayground.MESSAGES.TOAST.VOICE_APPLIED);
         }
 
         // Apply system message change if pending
         if (this.pendingSystemMessage !== null && this.pendingSystemMessage !== this.appliedSystemMessage) {
             this.appliedSystemMessage = this.pendingSystemMessage;
             this.currentSystemMessage = this.pendingSystemMessage + ' IMPORTANT: Make your responses brief and to the point.';
-            this.showToast('Instructions updated');
+            this.showToast(ChatPlayground.MESSAGES.TOAST.INSTRUCTIONS_UPDATED);
         }
 
         // Clear unapplied changes flag and disable Apply button
@@ -249,6 +244,16 @@ class ChatPlayground {
         if (applyBtn) {
             applyBtn.disabled = !this.hasUnappliedChanges;
         }
+    }
+
+    updateWelcomeState(heading, subheading, chatIconAnimation = null) {
+        const welcomeHeading = document.querySelector('.welcome-message h3');
+        const welcomeParagraph = document.querySelector('.welcome-message p');
+        const chatIcon = document.querySelector('.chat-icon');
+
+        if (welcomeHeading) welcomeHeading.textContent = heading;
+        if (welcomeParagraph) welcomeParagraph.textContent = subheading;
+        if (chatIconAnimation && chatIcon) chatIcon.style.animation = chatIconAnimation;
     }
 
     resetSettings() {
@@ -273,7 +278,7 @@ class ChatPlayground {
             this.pendingSystemMessage = defaultSystemMessage;
         }
 
-        this.showToast('Settings reset to defaults');
+        this.showToast(ChatPlayground.MESSAGES.TOAST.SETTINGS_RESET);
     }
 
     getElement(id) {
@@ -332,6 +337,12 @@ class ChatPlayground {
             const voices = speechSynthesis.getVoices();
             const englishVoices = voices.filter(voice => voice && voice.lang && voice.lang.startsWith('en'));
 
+            // If voices have already been loaded, preserve the current dropdown selection
+            if (this.voicesLoaded) {
+                return; // Already loaded, don't rebuild
+            }
+            
+            this.voicesLoaded = true;
             voiceSelect.innerHTML = '';
 
             if (englishVoices.length > 0) {
@@ -355,6 +366,10 @@ class ChatPlayground {
                     this.pendingVoice = englishVoices[0].name;
                 }
                 voiceSelect.disabled = false;
+                
+                // Enable preview button
+                const previewBtn = document.getElementById('preview-voice-btn');
+                if (previewBtn) previewBtn.disabled = false;
             } else {
                 this.voicesAvailable = false;
                 const option = document.createElement('option');
@@ -447,7 +462,7 @@ class ChatPlayground {
 
     startVoiceInput() {
         if (!this.recognition) {
-            this.showToast('Speech recognition not available.');
+            this.showToast(ChatPlayground.MESSAGES.TOAST.SPEECH_UNAVAILABLE);
             return;
         }
 
@@ -463,13 +478,11 @@ class ChatPlayground {
         // Update UI to show listening state
         const startBtn = document.getElementById('start-btn');
         const cancelBtn = document.getElementById('cancel-btn');
-        const welcomeHeading = document.querySelector('.welcome-message h3');
-        const welcomeParagraph = document.querySelector('.welcome-message p');
 
         if (startBtn) startBtn.style.display = 'none';
         if (cancelBtn) cancelBtn.style.display = 'inline-block';
-        if (welcomeHeading) welcomeHeading.textContent = 'Listening...';
-        if (welcomeParagraph) welcomeParagraph.textContent = 'Speak now..';
+        
+        this.updateWelcomeState('Listening...', 'Speak now..');
 
         try {
             try {
@@ -485,23 +498,21 @@ class ChatPlayground {
             console.error('Error starting speech recognition:', error);
             this.isListening = false;
             this.updateStartButton();
-            this.showToast('Could not start voice input.');
+            this.showToast(ChatPlayground.MESSAGES.TOAST.VOICE_INPUT_FAILED);
         }
     }
 
     handleSpokenInput(transcript) {
         // Update UI - show processing state
         const chatIcon = document.querySelector('.chat-icon');
-        const welcomeHeading = document.querySelector('.welcome-message h3');
-        const welcomeParagraph = document.querySelector('.welcome-message p');
         const startBtn = document.getElementById('start-btn');
         const cancelBtn = document.getElementById('cancel-btn');
 
         if (chatIcon) chatIcon.style.animation = 'pulse 1s infinite';
-        if (welcomeHeading) welcomeHeading.textContent = 'Processing...';
-        if (welcomeParagraph) welcomeParagraph.textContent = 'This can take some time...';
         if (startBtn) startBtn.style.display = 'none';
         if (cancelBtn) cancelBtn.style.display = 'inline-block';
+        
+        this.updateWelcomeState('Processing...', 'This can take some time...');
 
         // Store the messages to display later after speaking
         this.pendingUserMessage = transcript;
@@ -549,10 +560,7 @@ class ChatPlayground {
 
             // Update UI to "Speaking..." state only if voices are available
             if (this.voicesAvailable) {
-                const welcomeHeading = document.querySelector('.welcome-message h3');
-                const welcomeParagraph = document.querySelector('.welcome-message p');
-                if (welcomeHeading) welcomeHeading.textContent = 'Speaking...';
-                if (welcomeParagraph) welcomeParagraph.textContent = 'Adjust volume as necessary.';
+                this.updateWelcomeState('Speaking...', 'Adjust volume as necessary.');
             }
 
             // Speak the response (or skip to displaying if no voices)
@@ -565,7 +573,7 @@ class ChatPlayground {
             );
         } catch (error) {
             console.error('Error generating response:', error);
-            this.showToast('Error generating response. Please try again.');
+            this.showToast(ChatPlayground.MESSAGES.TOAST.RESPONSE_ERROR);
             this.resetToWelcomeState();
         } finally {
             this.isGenerating = false;
@@ -749,6 +757,31 @@ class ChatPlayground {
         speechSynthesis.speak(utterance);
     }
 
+    previewVoice() {
+        const voices = speechSynthesis.getVoices();
+        const voiceSelect = this.elements.voiceSelect;
+        const selectedVoiceName = voiceSelect ? voiceSelect.value : this.pendingVoice;
+
+        if (!selectedVoiceName) {
+            this.showToast('Please select a voice first');
+            return;
+        }
+
+        // Cancel any ongoing speech
+        speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance('This is my voice.');
+        utterance.text = 'This is my voice.';
+        
+        const selectedVoice = voices.find(voice => voice.name === selectedVoiceName);
+        if (selectedVoice) {
+            utterance.voice = selectedVoice;
+        }
+        
+        utterance.rate = 1;
+        speechSynthesis.speak(utterance);
+    }
+
     onSpeechComplete() {
         // Display the pending messages now that speaking is complete
         if (this.pendingUserMessage) {
@@ -767,16 +800,14 @@ class ChatPlayground {
 
     resetToWelcomeState() {
         const chatIcon = document.querySelector('.chat-icon');
-        const welcomeHeading = document.querySelector('.welcome-message h3');
-        const welcomeParagraph = document.querySelector('.welcome-message p');
         const startBtn = document.getElementById('start-btn');
         const cancelBtn = document.getElementById('cancel-btn');
 
         if (chatIcon) chatIcon.style.animation = 'pulse 2s infinite';
-        if (welcomeHeading) welcomeHeading.textContent = "Let's talk";
-        if (welcomeParagraph) welcomeParagraph.textContent = 'Talk like you would to a person. The agent listens and responds.';
         if (startBtn) startBtn.style.display = 'inline-block';
         if (cancelBtn) cancelBtn.style.display = 'none';
+        
+        this.updateWelcomeState("Let's talk", 'Talk like you would to a person. The agent listens and responds.');
     }
 
     updateStartButton() {
@@ -843,7 +874,7 @@ class ChatPlayground {
             
         } catch (error) {
             console.error('Error initializing models:', error);
-            this.showToast('Error loading models. Using Wikipedia mode.');
+            this.showToast(ChatPlayground.MESSAGES.TOAST.MODEL_LOAD_ERROR);
             this.webllmAvailable = false;
         }
     }
@@ -853,7 +884,7 @@ class ChatPlayground {
 
         try {
             console.log(`Trying to load model: ${modelId}`);
-            this.showToast(`Loading ${modelId}...`);
+this.showToast(ChatPlayground.MESSAGES.TOAST.LOADING_MODEL(modelId));
 
             this.engine = await webllm.CreateMLCEngine(
                 modelId,
@@ -877,13 +908,13 @@ class ChatPlayground {
             this.appliedModelId = modelId;
             this.webllmAvailable = true;
             this.hideElement('progressContainer');
-            this.showToast('Model loaded successfully!');
+            this.showToast(ChatPlayground.MESSAGES.TOAST.MODEL_LOADED);
             this.allowInteraction();
         } catch (error) {
             console.error(`Error loading model ${modelId}:`, error);
             this.webllmAvailable = false;
             this.engine = null;
-            this.showToast('Failed to load model. Using Wikipedia fallback.');
+            this.showToast(ChatPlayground.MESSAGES.TOAST.MODEL_LOAD_FALLBACK);
             // Allow interaction with fallback mode
             this.appliedModelId = 'none';
             this.allowInteraction();
@@ -912,14 +943,6 @@ class ChatPlayground {
         }, 3000);
     }
 
-    cleanup() {
-        this.eventListeners.forEach(({ element, event, handler, options }) => {
-            if (element && element.removeEventListener) {
-                element.removeEventListener(event, handler, options);
-            }
-        });
-        this.eventListeners = [];
-    }
 }
 
 // Global functions for UI interactions

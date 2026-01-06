@@ -44,9 +44,12 @@
                     
                     <div class="voice-config">
                         <label for="voice-select">Voice</label>
-                        <select id="voice-select" class="form-select" disabled aria-describedby="voice-select-desc" tabindex="3">
-                            <option value="">Loading voices...</option>
-                        </select>
+                        <div class="voice-controls">
+                            <button id="preview-voice-btn" class="preview-btn" title="Preview selected voice" aria-label="Preview the selected voice with sample text" disabled>&#9657;</button>
+                            <select id="voice-select" class="form-select" disabled aria-describedby="voice-select-desc" tabindex="3">
+                                <option value="">Loading voices...</option>
+                            </select>
+                        </div>
                         <div id="voice-select-desc" class="sr-only">Choose the voice for text-to-speech output. This voice will be used to read responses aloud</div>
                     </div>
                     
