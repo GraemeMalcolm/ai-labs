@@ -122,6 +122,11 @@ class ChatPlayground {
         this.modelSelect = this.elements.modelSelect;
         this.systemMessage = this.elements.systemMessage;
         this.chatMessages = this.elements.chatMessages;
+        this.voiceSelect = this.elements.voiceSelect;
+        this.startBtn = this.elements.startBtn;
+        this.cancelBtn = this.elements.cancelBtn;
+        this.applySettingsBtn = this.elements.applySettingsBtn;
+        this.resetSettingsBtn = this.elements.resetSettingsBtn;
     }
 
     attachEventListeners() {
@@ -365,11 +370,6 @@ class ChatPlayground {
                     this.speechSettings.voice = englishVoices[0].name;
                     this.pendingVoice = englishVoices[0].name;
                 }
-                voiceSelect.disabled = false;
-                
-                // Enable preview button
-                const previewBtn = document.getElementById('preview-voice-btn');
-                if (previewBtn) previewBtn.disabled = false;
             } else {
                 this.voicesAvailable = false;
                 const option = document.createElement('option');
@@ -392,16 +392,31 @@ class ChatPlayground {
     }
 
     disallowInteraction() {
-        // Disable all interactive buttons until model loads
+        // Disable all UI elements until model loads
+        if (this.elements.modelSelect) this.elements.modelSelect.disabled = true;
+        if (this.elements.systemMessage) this.elements.systemMessage.disabled = true;
+        if (this.elements.voiceSelect) this.elements.voiceSelect.disabled = true;
         if (this.elements.startBtn) this.elements.startBtn.disabled = true;
         if (this.elements.applySettingsBtn) this.elements.applySettingsBtn.disabled = true;
         if (this.elements.resetSettingsBtn) this.elements.resetSettingsBtn.disabled = true;
+        
+        // Disable preview button
+        const previewBtn = document.getElementById('preview-voice-btn');
+        if (previewBtn) previewBtn.disabled = true;
     }
 
     allowInteraction() {
-        // Enable interactive buttons when model is loaded
+        // Enable UI elements when model is loaded or fallback selected
+        if (this.elements.modelSelect) this.elements.modelSelect.disabled = false;
+        if (this.elements.systemMessage) this.elements.systemMessage.disabled = false;
+        if (this.elements.voiceSelect) this.elements.voiceSelect.disabled = false;
         if (this.elements.startBtn) this.elements.startBtn.disabled = false;
         if (this.elements.resetSettingsBtn) this.elements.resetSettingsBtn.disabled = false;
+        
+        // Enable preview button
+        const previewBtn = document.getElementById('preview-voice-btn');
+        if (previewBtn && this.voicesAvailable) previewBtn.disabled = false;
+        
         // Apply button is only enabled if there are unapplied changes
         this.updateApplyButtonState();
     }
@@ -618,13 +633,42 @@ class ChatPlayground {
         console.log('Tokens:', tokens);
         
         // Remove common stop words only
-        const stopWords = new Set([
-            'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from',
-            'has', 'he', 'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the',
-            'to', 'was', 'will', 'with', 'what', 'when', 'where', 'who', 'why',
-            'how', 'can', 'could', 'should', 'would', 'i', 'you', 'me', 'my', 'make',
-            'your', 'about', 'tell', 'give', 'show', 'find', 'get', 'do', 'does'
+        const stopWords = new Set(["a", "about", "above", "after", "again", "against", "all", "am",
+        "an", "and", "any", "are", "aren't", "as", "at",
+        "be", "because", "been", "before", "being", "below", "between", "both",
+        "but", "by",
+        "can't", "cannot", "could", "couldn't",
+        "did", "didn't", "do", "does", "doesn't", "doing", "don't", "down", "during",
+        "each",
+        "few", "for", "from", "further",
+        "had", "hadn't", "has", "hasn't", "have", "haven't", "having",
+        "he", "he'd", "he'll", "he's",
+        "her", "here", "here's", "hers", "herself",
+        "him", "himself", "his",
+        "how", "how's",
+        "i", "i'd", "i'll", "i'm", "i've",
+        "if", "in", "into", "is", "isn't", "it", "it's", "its", "itself",
+        "let's",
+        "me", "more", "most", "mustn't", "my", "myself",
+        "no", "nor", "not",
+        "of", "off", "on", "once", "only", "or", "other", "ought", "our", "ours",
+        "ourselves", "out", "over", "own",
+        "same", "shan't", "she", "she'd", "she'll", "she's",
+        "should", "shouldn't",
+        "so", "some", "such",
+        "than", "that", "that's", "the", "their", "theirs", "them", "themselves",
+        "then", "there", "there's", "these", "they", "they'd", "they'll", "they're",
+        "they've", "this", "those", "through", "to", "too",
+        "under", "until", "up",
+        "very",
+        "was", "wasn't", "we", "we'd", "we'll", "we're", "we've",
+        "were", "weren't", "what", "what's", "when", "when's", "where", "where's",
+        "which", "while", "who", "who's", "whom", "why", "why's",
+        "with", "won't", "would", "wouldn't",
+        "you", "you'd", "you'll", "you're", "you've", "your", "yours",
+        "yourself", "yourselves"
         ]);
+
 
         // Keep all words that aren't stop words and are longer than 1 character
         const keywords = tokens.filter(word => 
@@ -705,13 +749,53 @@ class ChatPlayground {
             // Search Wikipedia with keywords
             console.log('Searching Wikipedia with:', keywords);
             const articleText = await this.searchWikipedia(keywords);
+            
+            // Summarize the text to keep it concise
+            const summary = await this.summarizeText(articleText);
 
-            return articleText;
+            return summary;
 
         } catch (error) {
             console.error('Wikipedia fallback error:', error);
             return 'Sorry, I encountered an error while processing your request. Please try again.';
         }
+    }
+
+    async summarizeText(text) {
+        console.log('Summarizing text, length:', text.length);
+        console.log('Text to summarize:', text.substring(0, 300));
+        
+        // Since we're already limiting content in searchWikipedia,
+        // just return the text
+        if (text.length < 800) {
+            return text;
+        }
+
+        // For longer content, check if it has list-like structure
+        const lines = text.split('\n');
+        const hasShortLines = lines.filter(l => l.length > 0 && l.length < 100).length > 3;
+        
+        if (hasShortLines) {
+            // Looks like a list - return first ~600 chars
+            let summary = '';
+            for (const line of lines) {
+                if (summary.length + line.length < 600) {
+                    summary += (summary ? '\n' : '') + line;
+                } else {
+                    break;
+                }
+            }
+            return summary;
+        }
+
+        // For regular narrative text, return first 2-3 sentences
+        const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+        if (sentences.length <= 2) {
+            return text;
+        }
+
+        const summaryLength = Math.min(3, sentences.length);
+        return sentences.slice(0, summaryLength).join(' ').trim();
     }
 
     speakResponse(text) {
@@ -850,8 +934,6 @@ class ChatPlayground {
                 phiOption.value = 'Phi-3-mini-4k-instruct-q4f16_1-MLC';
                 phiOption.textContent = 'Phi-3-mini-4k-instruct-q4f16_1-MLC';
                 modelSelect.appendChild(phiOption);
-
-                modelSelect.disabled = false;
             }
 
             // Load default model (Phi-3-mini-4k-instruct)
