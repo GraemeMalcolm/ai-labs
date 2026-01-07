@@ -1,7 +1,7 @@
 [
     {
         "category": "AI Overview",
-        "link": "https://aka.ms/aisn-ai-concepts-mod",
+        "link": "https://aka.ms/mslearn-ai-concepts",
         "documents": [
             {
                 "id": 1,
@@ -36,7 +36,7 @@
     },
     {
         "category": "Machine Learning",
-        "link": "https://aka.ms/aisn-ml-concepts-mod",
+        "link": "https://aka.ms/mslearn-ml-concepts",
         "documents": [
             {
                 "id": 3,
@@ -105,7 +105,7 @@
     },
     {
         "category": "Generative AI and Agents",
-        "link": "https://aka.ms/aisn-gen-ai-concepts-mod",
+        "link": "https://aka.ms/mslearn-intro-gen-ai",
         "documents": [
             {
                 "id": 8,
@@ -223,7 +223,7 @@
     },
     {
         "category": "Text Analysis",
-        "link": "https://aka.ms/aisn-nlp-concepts-mod",
+        "link": "https://aka.ms/mslearn-nlp",
         "documents": [
             {
                 "id": 10,
@@ -298,7 +298,7 @@
     },
     {
         "category": "Speech",
-        "link": "https://aka.ms/aisn-speech-concepts-mod",
+        "link": "https://aka.ms/mslearn-ai-speech",
         "documents": [
             {
                 "id": 14,
@@ -355,7 +355,7 @@
     },
     {
         "category": "Computer Vision",
-        "link": "https://aka.ms/aisn-vision-concepts-mod",
+        "link": "https://aka.ms/mslearn-vision",
         "documents": [
             {
                 "id": 17,
@@ -446,7 +446,7 @@
     },
     {
         "category": "Information Extraction",
-        "link": "https://aka.ms/aisn-info-extract-concepts-mod",
+        "link": "https://aka.ms/mslearn-ai-info",
         "documents": [
             {
                 "id": 22,
@@ -493,7 +493,7 @@
     },
      {
         "category": "Microsoft Foundry",
-        "link": "https://aka.ms/aisn-intro-ai-azure-lp",
+        "link": "https://aka.ms/mslearn-start-foundry",
         "documents": [
             {
                 "id": 32,
@@ -508,7 +508,7 @@
     },
     {
         "category": "AI Concepts",
-        "link": "https://aka.ms/aisn-intro-ai-azure-lp",
+        "link": "https://aka.ms/mslearn-ai-concepts-intro",
         "documents": [
             {
                 "id": 25,

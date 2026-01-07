@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Analyzer - Analyze sentiment, detect language, extract key phrases and entities</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="top-header">
+        <div class="header-content">
+            <h1>Text Analyzer</h1>
+            <div class="ai-toggle-container">
+                <label class="toggle-switch" for="aiToggle">
+                    <span class="toggle-label">Use AI Analysis</span>
+                    <input type="checkbox" id="aiToggle" checked aria-label="Toggle AI-powered analysis">
+                    <span class="toggle-slider"></span>
+                </label>
+                <small class="ai-transparency-note">
+                    <a href="https://microsoftlearning.github.io/ai-apps/" target="_blank" rel="noopener noreferrer">AI transparency notes</a>
+                </small>
+            </div>
+        </div>
+    </header>
+
+    <main class="container" role="main">
+        <div class="options-grid" role="tablist" aria-label="Analysis options">
+            <!-- Analyze sentiment card (active) -->
+            <div class="option-card active" data-option="sentiment" role="tab" aria-selected="true" aria-controls="workspace" tabindex="0">
+                <div class="card-icon" aria-hidden="true">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sentiment analysis icon showing document with happy face">
+                        <title>Sentiment analysis</title>
+                        <line x1="20" y1="35" x2="35" y2="35" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="20" y1="45" x2="35" y2="45" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="20" y1="55" x2="28" y2="55" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <circle cx="65" cy="40" r="15" fill="#FFF3E0"/>
+                        <circle cx="60" cy="38" r="2" fill="#FF9800"/>
+                        <circle cx="70" cy="38" r="2" fill="#FF9800"/>
+                        <path d="M 58,46 Q 65,50 72,46" stroke="#FF9800" stroke-width="2" fill="none"/>
+                    </svg>
+                </div>
+                <h3>Analyze sentiment</h3>
+                <p>Detect positive, negative and neutral sentiment in text. Get more insights by mining opinions.</p>
+            </div>
+
+            <!-- Detect language card -->
+            <div class="option-card" data-option="language" role="tab" aria-selected="false" aria-controls="workspace" tabindex="-1">
+                <div class="card-icon" aria-hidden="true">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Language detection icon showing document with multilingual characters">
+                        <title>Language detection</title>
+                        <line x1="20" y1="35" x2="35" y2="35" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="20" y1="45" x2="35" y2="45" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="20" y1="55" x2="28" y2="55" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <text x="55" y="42" font-size="16" fill="#1E88E5" font-weight="bold">{ع}</text>
+                        <text x="55" y="58" font-size="16" fill="#1E88E5" font-weight="bold">{あ}</text>
+                    </svg>
+                </div>
+                <h3>Detect language</h3>
+                <p>Evaluate text and detect a wide range of languages, variants, dialects.</p>
+            </div>
+
+            <!-- Extract key phrases card -->
+            <div class="option-card" data-option="keyphrases" role="tab" aria-selected="false" aria-controls="workspace" tabindex="-1">
+                <div class="card-icon" aria-hidden="true">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Key phrase extraction icon showing document with highlighted phrases">
+                        <title>Key phrase extraction</title>
+                        <line x1="20" y1="35" x2="35" y2="35" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="20" y1="45" x2="35" y2="45" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="20" y1="55" x2="28" y2="55" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <rect x="55" y="35" width="25" height="10" rx="5" fill="#9C27B0" opacity="0.7"/>
+                        <rect x="55" y="50" width="20" height="10" rx="5" fill="#9C27B0" opacity="0.5"/>
+                    </svg>
+                </div>
+                <h3>Extract key phrases</h3>
+                <p>Identify the most important points in a piece of text.</p>
+            </div>
+
+            <!-- Extract named entities card -->
+            <div class="option-card" data-option="entities" role="tab" aria-selected="false" aria-controls="workspace" tabindex="-1">
+                <div class="card-icon" aria-hidden="true">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Entity extraction icon showing document with categorized entities">
+                        <title>Named entity extraction</title>
+                        <line x1="20" y1="35" x2="35" y2="35" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="20" y1="45" x2="35" y2="45" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="20" y1="55" x2="28" y2="55" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <rect x="52" y="33" width="8" height="8" fill="#1E88E5"/>
+                        <rect x="63" y="33" width="8" height="8" fill="#1E88E5"/>
+                        <rect x="74" y="33" width="8" height="8" fill="#1E88E5"/>
+                        <rect x="52" y="48" width="8" height="8" fill="#1E88E5"/>
+                        <rect x="63" y="48" width="8" height="8" fill="#1E88E5"/>
+                    </svg>
+                </div>
+                <h3>Extract named entities</h3>
+                <p>Identify different entities in text and categorize them into pre-defined types.</p>
+            </div>
+
+            <!-- Summarize text card -->
+            <div class="option-card" data-option="summarize" role="tab" aria-selected="false" aria-controls="workspace" tabindex="-1">
+                <div class="card-icon" aria-hidden="true">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Text summarization icon showing document being condensed">
+                        <title>Text summarization</title>
+                        <line x1="20" y1="35" x2="35" y2="35" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="20" y1="45" x2="35" y2="45" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="20" y1="55" x2="28" y2="55" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="45" y1="30" x2="45" y2="65" stroke="#BDBDBD" stroke-width="2"/>
+                        <path d="M 58,38 Q 60,33 62,38" stroke="#1E88E5" stroke-width="2" fill="none" stroke-linecap="round"/>
+                        <polygon points="62,38 65,36 63,40" fill="#1E88E5"/>
+                        <path d="M 62,52 Q 60,57 58,52" stroke="#1E88E5" stroke-width="2" fill="none" stroke-linecap="round"/>
+                        <polygon points="58,52 55,54 57,50" fill="#1E88E5"/>
+                        <line x1="55" y1="42" x2="57" y2="48" stroke="#1E88E5" stroke-width="1.5" stroke-dasharray="2,2"/>
+                        <line x1="63" y1="42" x2="61" y2="48" stroke="#1E88E5" stroke-width="1.5" stroke-dasharray="2,2"/>
+                    </svg>
+                </div>
+                <h3>Summarize text</h3>
+                <p>Summarize and extract key information at scale from text</p>
+            </div>
+        </div>
+
+        <!-- Workspace -->
+        <div class="workspace" id="workspace" role="tabpanel">
+            <div class="text-input-section">
+                <label for="textInput" class="visually-hidden">Text to analyze</label>
+                <textarea id="textInput" 
+                          placeholder="Select a sample, upload a file or enter your text here" 
+                          aria-label="Enter text to analyze"
+                          aria-describedby="charCount"></textarea>
+                <div class="input-footer">
+                    <span id="charCount" class="char-count" aria-live="polite">0 / 5000</span>
+                    <div class="action-buttons">
+                        <label for="fileInput" class="icon-btn" title="Upload text file">
+                            <span class="visually-hidden">Upload text file</span>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path d="M9 3v8H6l4 4 4-4h-3V3H9zm8 11v3H3v-3H1v3c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-3h-2z"/>
+                            </svg>
+                            <input type="file" id="fileInput" accept=".txt" style="display: none;" aria-label="Upload text file">
+                        </label>
+                        <button id="runBtn" class="run-btn" disabled aria-label="Run text analysis">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                                <path d="M4 2v12l10-6z"/>
+                            </svg>
+                            Run
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="results-panel" role="region" aria-label="Analysis results">
+                <h2>Details</h2>
+                <div id="resultsContent" class="results-content" aria-live="polite">
+                    <p class="placeholder-text">Your details will appear after you enter or upload some text and press Run.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // UI Elements
+        const textInput = document.getElementById('textInput');
+        const runBtn = document.getElementById('runBtn');
+        const fileInput = document.getElementById('fileInput');
+        const resultsContent = document.getElementById('resultsContent');
+        const charCount = document.getElementById('charCount');
+        const optionCards = document.querySelectorAll('.option-card');
+
+        let currentOption = 'sentiment';
+        const MAX_CHARS = 5000;
+
+        // Character counter
+        textInput.addEventListener('input', () => {
+            const count = textInput.value.length;
+            charCount.textContent = `${count} / ${MAX_CHARS}`;
+            runBtn.disabled = count === 0;
+        });
+
+        // Option card switching
+        optionCards.forEach(card => {
+            card.addEventListener('click', () => {
+                optionCards.forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                currentOption = card.dataset.option;
+            });
+
+            card.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    card.click();
+                }
+            });
+        });
+
+        // File upload
+        const uploadLabel = document.querySelector('label[for="fileInput"]');
+        uploadLabel.addEventListener('click', (e) => {
+            if (e.target.closest('.icon-btn')) {
+                fileInput.click();
+            }
+        });
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const text = await file.text();
+                textInput.value = text;
+                charCount.textContent = `${text.length} / ${MAX_CHARS}`;
+                runBtn.disabled = text.length === 0;
+            }
+        });
+
+        // Text Analyzer using JavaScript libraries
+        const analyzer = {
+            // Sentiment Analysis using simple word-based approach
+            async analyzeSentiment(text) {
+                try {
+                    const positiveWords = new Set([
+                        'good', 'great', 'excellent', 'amazing', 'wonderful', 'fantastic', 'awesome',
+                        'brilliant', 'love', 'best', 'perfect', 'beautiful', 'happy', 'glad', 'delighted',
+                        'pleased', 'outstanding', 'superb', 'nice', 'lovely', 'incredible', 'admirable',
+                        'favorable', 'enjoy', 'enjoyed', 'enjoyable', 'positive', 'successful', 'superior',
+                        'terrific', 'splendid', 'magnificent', 'marvelous', 'worthy', 'fine', 'impressive'
+                    ]);
+                    
+                    const negativeWords = new Set([
+                        'bad', 'terrible', 'awful', 'horrible', 'dreadful', 'poor', 'hate', 'worst',
+                        'disgusting', 'ugly', 'sad', 'angry', 'upset', 'disappointed', 'displeased',
+                        'nasty', 'despicable', 'abominable', 'atrocious', 'adverse', 'appalling',
+                        'bleak', 'depressed', 'dismal', 'distressing', 'evil', 'gloomy', 'grim', 'harsh',
+                        'hateful', 'horrid', 'ill', 'inferior', 'loathsome', 'malicious', 'mean',
+                        'miserable', 'morose', 'obnoxious', 'painful', 'pathetic', 'pitiful', 'putrid'
+                    ]);
+
+                    const words = text.toLowerCase().match(/\b\w+\b/g) || [];
+                    const positiveCount = words.filter(w => positiveWords.has(w)).length;
+                    const negativeCount = words.filter(w => negativeWords.has(w)).length;
+                    const totalSentimentWords = positiveCount + negativeCount;
+
+                    let sentiment = 'Neutral';
+                    let score = 0;
+
+                    if (totalSentimentWords > 0) {
+                        score = (positiveCount - negativeCount) / totalSentimentWords;
+                        if (score > 0.1) {
+                            sentiment = 'Positive';
+                        } else if (score < -0.1) {
+                            sentiment = 'Negative';
+                        }
+                    }
+
+                    return {
+                        sentiment,
+                        score: Math.round(score * 1000) / 1000,
+                        subjectivity: Math.round((positiveCount + negativeCount) / words.length * 1000) / 1000 || 0,
+                        details: `Positive words: ${positiveCount} | Negative words: ${negativeCount}`
+                    };
+                } catch (error) {
+                    return { error: error.message };
+                }
+            },
+
+            // Language Detection
+            detectLanguage(text) {
+                try {
+                    const languagePatterns = {
+                        'English': ['the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i'],
+                        'Spanish': ['de', 'que', 'y', 'a', 'en', 'un', 'ser', 'se', 'no', 'haber'],
+                        'French': ['de', 'le', 'et', 'a', 'en', 'un', 'etre', 'se', 'pour', 'je'],
+                        'German': ['der', 'die', 'und', 'in', 'den', 'von', 'zu', 'das', 'mit', 'sich'],
+                        'Italian': ['di', 'da', 'e', 'a', 'un', 'il', 'in', 'che', 'per', 'si'],
+                        'Portuguese': ['de', 'a', 'o', 'que', 'e', 'do', 'da', 'em', 'um', 'para']
+                    };
+
+                    if (text.trim().length < 3) {
+                        return { error: 'Text too short' };
+                    }
+
+                    const words = text.toLowerCase().match(/\b\w+\b/g) || [];
+                    const languageScores = {};
+
+                    for (const [lang, commonWords] of Object.entries(languagePatterns)) {
+                        languageScores[lang] = commonWords.filter(w => words.includes(w)).length;
+                    }
+
+                    const detectedLanguage = Object.keys(languageScores).reduce((a, b) =>
+                        languageScores[a] > languageScores[b] ? a : b
+                    );
+
+                    return { language: detectedLanguage };
+                } catch (error) {
+                    return { error: error.message };
+                }
+            },
+
+            // Extract Key Phrases
+            extractKeyphrases(text) {
+                try {
+                    const stopWords = new Set([
+                        'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i', 'it', 'for', 'not',
+                        'on', 'with', 'he', 'as', 'you', 'do', 'at', 'this', 'but', 'his', 'by', 'from', 'is',
+                        'was', 'are', 'been', 'being', 'an', 'or', 'will', 'my', 'one', 'all', 'would', 'there'
+                    ]);
+
+                    const words = text.match(/\b\w+\b/g) || [];
+                    const keyphrases = [];
+
+                    words.forEach(word => {
+                        const lowerWord = word.toLowerCase();
+                        if (word.length > 2 && !stopWords.has(lowerWord) &&
+                            (word[0] === word[0].toUpperCase() || 
+                             word.endsWith('ing') || 
+                             word.endsWith('tion'))) {
+                            if (!keyphrases.includes(word)) {
+                                keyphrases.push(word);
+                            }
+                        }
+                    });
+
+                    return { keyphrases: keyphrases.slice(0, 10) };
+                } catch (error) {
+                    return { error: error.message };
+                }
+            },
+
+            // Extract Named Entities
+            extractEntities(text) {
+                try {
+                    const regex = /\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g;
+                    const entities = regex.exec(text) ? [...text.matchAll(regex)].map(m => m[0]) : [];
+                    const uniqueEntities = [...new Set(entities)];
+
+                    return { entities: uniqueEntities };
+                } catch (error) {
+                    return { error: error.message };
+                }
+            },
+
+            // Text Summarization
+            summarizeText(text) {
+                try {
+                    const sentences = text.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 0);
+
+                    if (sentences.length <= 2) {
+                        return { summary: text, sentenceCount: sentences.length };
+                    }
+
+                    const words = text.toLowerCase().match(/\b\w+\b/g) || [];
+                    const wordFreq = {};
+
+                    words.forEach(word => {
+                        if (word.length > 3) {
+                            wordFreq[word] = (wordFreq[word] || 0) + 1;
+                        }
+                    });
+
+                    const sentenceScores = {};
+                    sentences.forEach(sentence => {
+                        const sentenceWords = sentence.toLowerCase().match(/\b\w+\b/g) || [];
+                        const score = sentenceWords.reduce((sum, word) => sum + (wordFreq[word] || 0), 0);
+                        if (score > 0) sentenceScores[sentence] = score;
+                    });
+
+                    const topCount = Math.max(1, Math.floor(sentences.length / 3));
+                    const topSentences = Object.entries(sentenceScores)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, topCount)
+                        .map(([sentence]) => sentence);
+
+                    const summaryArray = sentences.filter(s => topSentences.includes(s));
+                    const summary = summaryArray.join('. ') + (summaryArray.length > 0 ? '.' : '');
+
+                    return { summary, sentenceCount: summaryArray.length, totalSentences: sentences.length };
+                } catch (error) {
+                    return { error: error.message };
+                }
+            }
+        };
+
+        // Run analysis
+        runBtn.addEventListener('click', async () => {
+            const text = textInput.value.trim();
+            if (!text) {
+                resultsContent.innerHTML = '<p class="placeholder-text">Please enter some text to analyze.</p>';
+                return;
+            }
+
+            runBtn.disabled = true;
+            resultsContent.innerHTML = '<p style="text-align: center; color: #666;">Analyzing...</p>';
+
+            try {
+                let result;
+
+                switch (currentOption) {
+                    case 'sentiment':
+                        result = await analyzer.analyzeSentiment(text);
+                        displaySentiment(result);
+                        break;
+                    case 'language':
+                        result = analyzer.detectLanguage(text);
+                        displayLanguage(result);
+                        break;
+                    case 'keyphrases':
+                        result = analyzer.extractKeyphrases(text);
+                        displayKeyphrases(result);
+                        break;
+                    case 'entities':
+                        result = analyzer.extractEntities(text);
+                        displayEntities(result);
+                        break;
+                    case 'summarize':
+                        result = analyzer.summarizeText(text);
+                        displaySummary(result);
+                        break;
+                }
+            } catch (error) {
+                resultsContent.innerHTML = `<p class="error-text">Error: ${error.message}</p>`;
+            } finally {
+                runBtn.disabled = false;
+            }
+        });
+
+        function displaySentiment(result) {
+            if (result.error) {
+                resultsContent.innerHTML = `<p class="error-text">Error: ${result.error}</p>`;
+                return;
+            }
+
+            const badgeClass = result.sentiment === 'Positive' ? 'sentiment-positive' : 
+                             result.sentiment === 'Negative' ? 'sentiment-negative' : 'sentiment-neutral';
+
+            resultsContent.innerHTML = `
+                <div class="result-section">
+                    <h3>Sentiment Analysis</h3>
+                    <p><span class="sentiment-badge ${badgeClass}">${result.sentiment}</span></p>
+                    <p><strong>Score:</strong> ${result.score}</p>
+                    <p><strong>Subjectivity:</strong> ${result.subjectivity}</p>
+                    <p class="detail-text">${result.details}</p>
+                </div>
+            `;
+        }
+
+        function displayLanguage(result) {
+            if (result.error) {
+                resultsContent.innerHTML = `<p class="error-text">Error: ${result.error}</p>`;
+                return;
+            }
+
+            resultsContent.innerHTML = `
+                <div class="result-section">
+                    <h3>Language Detection</h3>
+                    <p class="language-info"><strong>${result.language}</strong></p>
+                </div>
+            `;
+        }
+
+        function displayKeyphrases(result) {
+            if (result.error) {
+                resultsContent.innerHTML = `<p class="error-text">Error: ${result.error}</p>`;
+                return;
+            }
+
+            const phraseHtml = result.keyphrases.map(phrase =>
+                `<span class="keyphrase-tag">${phrase}</span>`
+            ).join('');
+
+            resultsContent.innerHTML = `
+                <div class="result-section">
+                    <h3>Key Phrases</h3>
+                    <div class="keyphrases-result">${phraseHtml || '<p>No phrases found</p>'}</div>
+                </div>
+            `;
+        }
+
+        function displayEntities(result) {
+            if (result.error) {
+                resultsContent.innerHTML = `<p class="error-text">Error: ${result.error}</p>`;
+                return;
+            }
+
+            const entityHtml = result.entities.map(e =>
+                `<div class="entity-item"><span class="entity-type">ENTITY:</span><span class="entity-value">${e}</span></div>`
+            ).join('');
+
+            resultsContent.innerHTML = `
+                <div class="result-section">
+                    <h3>Named Entities</h3>
+                    <div class="entity-list">${entityHtml || '<p>No entities found</p>'}</div>
+                </div>
+            `;
+        }
+
+        function displaySummary(result) {
+            if (result.error) {
+                resultsContent.innerHTML = `<p class="error-text">Error: ${result.error}</p>`;
+                return;
+            }
+
+            resultsContent.innerHTML = `
+                <div class="result-section">
+                    <h3>Summary</h3>
+                    <div class="summary-result">${result.summary}</div>
+                    <p class="detail-text">Summary: ${result.sentenceCount}/${result.totalSentences} sentences</p>
+                </div>
+            `;
+        }
+
+        console.log('Text Analyzer initialized');
+    </script>
+</body>
+</html>

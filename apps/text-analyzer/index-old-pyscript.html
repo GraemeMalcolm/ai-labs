@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Analyzer - Analyze sentiment, detect language, extract key phrases and entities</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="styles.css">
+    <!-- PyScript -->
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+</head>
+<body>
+    <header class="top-header">
+        <div class="header-content">
+            <h1>Text Analyzer</h1>
+            <div class="ai-toggle-container">
+                <label class="toggle-switch" for="aiToggle">
+                    <span class="toggle-label">Use AI Analysis</span>
+                    <input type="checkbox" id="aiToggle" checked aria-label="Toggle AI-powered analysis">
+                    <span class="toggle-slider"></span>
+                </label>
+                <small class="ai-transparency-note">
+                    <a href="https://microsoftlearning.github.io/ai-apps/" target="_blank" rel="noopener noreferrer">AI transparency notes</a>
+                </small>
+            </div>
+        </div>
+    </header>
+
+    <main class="container" role="main">
+        <!-- Model loading section -->
+        <div id="modelLoadingSection" class="model-loading-section" 
+             role="status" aria-live="polite" aria-label="AI model loading status">
+            <div class="model-loading-content">
+                <div class="loading-spinner" aria-hidden="true"></div>
+                <h3>Loading Python Analysis Engine...</h3>
+                <p id="modelLoadingText">Initializing text analysis with NLTK, please wait...</p>
+                <div class="model-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <div id="modelProgressFill" class="model-progress-fill"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="options-grid" role="tablist" aria-label="Analysis options">
+            <!-- Analyze sentiment card (active) -->
+            <div class="option-card active" data-option="sentiment" role="tab" aria-selected="true" aria-controls="workspace" tabindex="0">
+                <div class="card-icon" aria-hidden="true">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sentiment analysis icon showing document with happy face">
+                        <title>Sentiment analysis</title>
+                        <line x1="20" y1="35" x2="35" y2="35" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="20" y1="45" x2="35" y2="45" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="20" y1="55" x2="28" y2="55" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <circle cx="65" cy="40" r="15" fill="#FFF3E0"/>
+                        <circle cx="60" cy="38" r="2" fill="#FF9800"/>
+                        <circle cx="70" cy="38" r="2" fill="#FF9800"/>
+                        <path d="M 58,46 Q 65,50 72,46" stroke="#FF9800" stroke-width="2" fill="none"/>
+                    </svg>
+                </div>
+                <h3>Analyze sentiment</h3>
+                <p>Detect positive, negative and neutral sentiment in text. Get more insights by mining opinions.</p>
+            </div>
+
+            <!-- Detect language card -->
+            <div class="option-card" data-option="language" role="tab" aria-selected="false" aria-controls="workspace" tabindex="-1">
+                <div class="card-icon" aria-hidden="true">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Language detection icon showing document with multilingual characters">
+                        <title>Language detection</title>
+                        <line x1="20" y1="35" x2="35" y2="35" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="20" y1="45" x2="35" y2="45" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="20" y1="55" x2="28" y2="55" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <text x="55" y="42" font-size="16" fill="#1E88E5" font-weight="bold">{ع}</text>
+                        <text x="55" y="58" font-size="16" fill="#1E88E5" font-weight="bold">{あ}</text>
+                    </svg>
+                </div>
+                <h3>Detect language</h3>
+                <p>Evaluate text and detect a wide range of languages, variants, dialects.</p>
+            </div>
+
+            <!-- Extract key phrases card -->
+            <div class="option-card" data-option="keyphrases" role="tab" aria-selected="false" aria-controls="workspace" tabindex="-1">
+                <div class="card-icon" aria-hidden="true">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Key phrase extraction icon showing document with highlighted phrases">
+                        <title>Key phrase extraction</title>
+                        <line x1="20" y1="35" x2="35" y2="35" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="20" y1="45" x2="35" y2="45" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="20" y1="55" x2="28" y2="55" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <rect x="55" y="35" width="25" height="10" rx="5" fill="#9C27B0" opacity="0.7"/>
+                        <rect x="55" y="50" width="20" height="10" rx="5" fill="#9C27B0" opacity="0.5"/>
+                    </svg>
+                </div>
+                <h3>Extract key phrases</h3>
+                <p>Identify the most important points in a piece of text.</p>
+            </div>
+
+            <!-- Extract named entities card -->
+            <div class="option-card" data-option="entities" role="tab" aria-selected="false" aria-controls="workspace" tabindex="-1">
+                <div class="card-icon" aria-hidden="true">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Entity extraction icon showing document with categorized entities">
+                        <title>Named entity extraction</title>
+                        <line x1="20" y1="35" x2="35" y2="35" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="20" y1="45" x2="35" y2="45" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="20" y1="55" x2="28" y2="55" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <rect x="52" y="33" width="8" height="8" fill="#1E88E5"/>
+                        <rect x="63" y="33" width="8" height="8" fill="#1E88E5"/>
+                        <rect x="74" y="33" width="8" height="8" fill="#1E88E5"/>
+                        <rect x="52" y="48" width="8" height="8" fill="#1E88E5"/>
+                        <rect x="63" y="48" width="8" height="8" fill="#1E88E5"/>
+                    </svg>
+                </div>
+                <h3>Extract named entities</h3>
+                <p>Identify different entities in text and categorize them into pre-defined types.</p>
+            </div>
+
+            <!-- Summarize text card -->
+            <div class="option-card" data-option="summarize" role="tab" aria-selected="false" aria-controls="workspace" tabindex="-1">
+                <div class="card-icon" aria-hidden="true">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Text summarization icon showing document being condensed">
+                        <title>Text summarization</title>
+                        <line x1="20" y1="35" x2="35" y2="35" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="20" y1="45" x2="35" y2="45" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="20" y1="55" x2="28" y2="55" stroke="#7CB342" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="45" y1="30" x2="45" y2="65" stroke="#BDBDBD" stroke-width="2"/>
+                        <path d="M 58,38 Q 60,33 62,38" stroke="#1E88E5" stroke-width="2" fill="none" stroke-linecap="round"/>
+                        <polygon points="62,38 65,36 63,40" fill="#1E88E5"/>
+                        <path d="M 62,52 Q 60,57 58,52" stroke="#1E88E5" stroke-width="2" fill="none" stroke-linecap="round"/>
+                        <polygon points="58,52 55,54 57,50" fill="#1E88E5"/>
+                        <line x1="55" y1="42" x2="57" y2="48" stroke="#1E88E5" stroke-width="1.5" stroke-dasharray="2,2"/>
+                        <line x1="63" y1="42" x2="61" y2="48" stroke="#1E88E5" stroke-width="1.5" stroke-dasharray="2,2"/>
+                    </svg>
+                </div>
+                <h3>Summarize text</h3>
+                <p>Summarize and extract key information at scale from text</p>
+            </div>
+        </div>
+
+        <div class="workspace" id="workspace" role="tabpanel">
+            <div class="text-input-section">
+                <label for="textInput" class="visually-hidden">Text to analyze</label>
+                <textarea id="textInput" 
+                          placeholder="Select a sample, upload a file or enter your text here" 
+                          aria-label="Enter text to analyze"
+                          aria-describedby="charCount"></textarea>
+                <div class="input-footer">
+                    <span id="charCount" class="char-count" aria-live="polite">0 / 5000</span>
+                    <div class="action-buttons">
+                        <label for="fileInput" class="icon-btn" title="Upload text file">
+                            <span class="visually-hidden">Upload text file</span>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path d="M9 3v8H6l4 4 4-4h-3V3H9zm8 11v3H3v-3H1v3c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-3h-2z"/>
+                            </svg>
+                            <input type="file" id="fileInput" accept=".txt" style="display: none;" aria-label="Upload text file">
+                        </label>
+                        <button id="runBtn" class="run-btn" disabled aria-label="Run text analysis">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                                <path d="M4 2v12l10-6z"/>
+                            </svg>
+                            Run
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="results-panel" role="region" aria-label="Analysis results">
+                <h2>Details</h2>
+                <div id="resultsContent" class="results-content" aria-live="polite">
+                    <p class="placeholder-text">Your details will appear after you enter or upload some text and press Run.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- PyScript Python Analysis Engine -->
+    <py-script>
+import re
+import json
+
+print("Loading Python text analysis engine...")
+print("Using pure Python implementations (no external dependencies)")
+
+
+class TextAnalyzer:
+    """Python-based text analysis using built-in algorithms"""
+    
+    def __init__(self):
+        self.is_ready = True
+        self.positive_words = set([
+            'good', 'great', 'excellent', 'amazing', 'wonderful', 'fantastic', 'awesome',
+            'brilliant', 'love', 'best', 'perfect', 'beautiful', 'happy', 'glad', 'delighted',
+            'pleased', 'outstanding', 'superb', 'nice', 'lovely', 'incredible', 'admirable',
+            'favorable', 'enjoy', 'enjoyed', 'enjoyable', 'positive', 'successful', 'superior',
+            'terrific', 'splendid', 'magnificent', 'marvelous', 'worthy', 'fine', 'impressive',
+            'delightful', 'wonderful', 'exceptional', 'outstanding', 'remarkable', 'excellent'
+        ])
+        
+        self.negative_words = set([
+            'bad', 'terrible', 'awful', 'horrible', 'dreadful', 'poor', 'hate', 'worst',
+            'disgusting', 'ugly', 'sad', 'angry', 'upset', 'disappointed', 'displeased',
+            'nasty', 'despicable', 'abominable', 'atrocious', 'adverse', 'appalling',
+            'bleak', 'depressed', 'dismal', 'distressing', 'evil', 'gloomy', 'grim', 'harsh',
+            'hateful', 'horrid', 'ill', 'inferior', 'loathsome', 'malicious', 'mean',
+            'miserable', 'morose', 'obnoxious', 'painful', 'pathetic', 'pitiful', 'putrid',
+            'rancid', 'repellent', 'repugnant', 'repulsive', 'revolting', 'rotten', 'sinister',
+            'somber', 'sordid', 'sour', 'spiteful', 'stinking', 'suffocating', 'sullen',
+            'tedious', 'terrifying', 'toxic', 'uncouth', 'undesirable', 'unfavorable',
+            'unfortunate', 'unhappy', 'unjust', 'unlovely', 'unpleasant', 'vain', 'vexing',
+            'vicious', 'vile', 'villainous', 'vulgar', 'weak', 'weary', 'wicked', 'woeful', 'wretched'
+        ])
+        
+        # Simple stop words
+        self.stop_words = set([
+            'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i', 'it', 'for', 'not',
+            'on', 'with', 'he', 'as', 'you', 'do', 'at', 'this', 'but', 'his', 'by', 'from', 'is',
+            'was', 'are', 'been', 'being', 'an', 'or', 'will', 'my', 'one', 'all', 'would', 'there',
+            'their', 'what', 'so', 'up', 'out', 'if', 'about', 'who', 'get', 'which', 'go', 'me',
+            'when', 'make', 'can', 'like', 'time', 'no', 'just', 'him', 'know', 'take', 'people',
+            'into', 'year', 'your', 'good', 'some', 'could', 'them', 'see', 'other', 'than', 'then',
+            'now', 'look', 'only', 'come', 'its', 'over', 'think', 'also', 'back', 'after', 'use',
+            'two', 'how', 'our', 'work', 'first', 'well', 'way', 'even', 'new', 'want', 'because'
+        ])
+        
+        # Language detection: common words
+        self.language_patterns = {
+            'English': ['the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i'],
+            'Spanish': ['de', 'que', 'y', 'a', 'en', 'un', 'ser', 'se', 'no', 'haber'],
+            'French': ['de', 'le', 'et', 'a', 'en', 'un', 'etre', 'se', 'pour', 'je'],
+            'German': ['der', 'die', 'und', 'in', 'den', 'von', 'zu', 'das', 'mit', 'sich'],
+            'Italian': ['di', 'da', 'e', 'a', 'un', 'il', 'in', 'che', 'per', 'si'],
+            'Portuguese': ['de', 'a', 'o', 'que', 'e', 'do', 'da', 'em', 'um', 'para'],
+        }
+    
+    def tokenize(self, text):
+        """Simple tokenization"""
+        return re.findall(r'\b\w+\b', text.lower())
+    
+    def analyze_sentiment(self, text):
+        """Analyze sentiment using word lists"""
+        try:
+            words = self.tokenize(text)
+            
+            positive_count = sum(1 for word in words if word in self.positive_words)
+            negative_count = sum(1 for word in words if word in self.negative_words)
+            total_sentiment_words = positive_count + negative_count
+            
+            if total_sentiment_words == 0:
+                compound_score = 0.0
+                sentiment = 'Neutral'
+                color = 'gray'
+            else:
+                compound_score = (positive_count - negative_count) / total_sentiment_words
+                
+                if compound_score > 0.1:
+                    sentiment = 'Positive'
+                    color = 'green'
+                elif compound_score < -0.1:
+                    sentiment = 'Negative'
+                    color = 'red'
+                else:
+                    sentiment = 'Neutral'
+                    color = 'gray'
+            
+            positive_ratio = positive_count / len(words) if words else 0
+            
+            return {
+                'sentiment': sentiment,
+                'score': round(compound_score, 3),
+                'subjectivity': round(positive_ratio, 3),
+                'color': color,
+                'details': f"Word List Analysis - Positive: {positive_count}, Negative: {negative_count}",
+                'method': 'Word Lists'
+            }
+        except Exception as e:
+            return {'error': f'Sentiment analysis error: {str(e)}'}
+    
+    def detect_language(self, text):
+        """Detect language using pattern matching"""
+        try:
+            if len(text.strip()) < 3:
+                return {'error': 'Text too short to detect language'}
+            
+            # Pattern matching fallback
+            words = self.tokenize(text)
+            language_scores = {}
+            for lang, common_words in self.language_patterns.items():
+                language_scores[lang] = sum(1 for word in words if word in common_words)
+            
+            detected_language = max(language_scores, key=language_scores.get)
+            
+            language_code_map = {
+                'English': 'en', 'Spanish': 'es', 'French': 'fr', 
+                'German': 'de', 'Italian': 'it', 'Portuguese': 'pt'
+            }
+            
+            language_code = language_code_map.get(detected_language, 'unknown')
+            
+            return {
+                'language': detected_language,
+                'code': language_code,
+                'details': f"Pattern-based detection: {detected_language} ({language_code})",
+                'method': 'Pattern Matching'
+            }
+        except Exception as e:
+            return {'error': f'Language detection error: {str(e)}'}
+    
+    def extract_keyphrases(self, text):
+        """Extract key phrases"""
+        try:
+            words = self.tokenize(text)
+            
+            # Simple approach: find nouns and adjectives (words with capital letters or common patterns)
+            key_phrases = []
+            for word in words:
+                if (len(word) > 2 and word not in self.stop_words and 
+                    (word[0].isupper() or word.endswith('ing') or word.endswith('tion'))):
+                    if word not in key_phrases:
+                        key_phrases.append(word)
+            
+            # Take top 10
+            key_phrases = key_phrases[:10]
+            
+            return {
+                'keyphrases': key_phrases,
+                'count': len(key_phrases),
+                'details': f"Extracted {len(key_phrases)} key phrases"
+            }
+        except Exception as e:
+            return {'error': f'Key phrase extraction error: {str(e)}'}
+    
+    def extract_entities(self, text):
+        """Extract named entities (simple approach)"""
+        try:
+            # Find capitalized words (potential proper nouns)
+            words = re.findall(r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b', text)
+            
+            entities = {
+                'PERSON': [],
+                'LOCATION': [],
+                'ORGANIZATION': [],
+                'OTHER': []
+            }
+            
+            # Very simple categorization based on patterns
+            for word in words:
+                if word not in [e for sublist in entities.values() for e in sublist]:
+                    entities['OTHER'].append(word)
+            
+            # Remove empty categories
+            entities = {k: v for k, v in entities.items() if v}
+            
+            total = sum(len(v) for v in entities.values())
+            
+            return {
+                'entities': entities,
+                'count': total,
+                'details': f"Found {total} named entities"
+            }
+        except Exception as e:
+            return {'error': f'Entity extraction error: {str(e)}'}
+    
+    def summarize_text(self, text):
+        """Summarize text"""
+        try:
+            # Split by sentences
+            sentences = re.split(r'[.!?]+', text)
+            sentences = [s.strip() for s in sentences if s.strip()]
+            
+            if len(sentences) <= 2:
+                return {
+                    'summary': text,
+                    'sentences': len(sentences),
+                    'details': 'Text is too short to summarize'
+                }
+            
+            # Score sentences by word frequency
+            words = self.tokenize(text)
+            word_freq = {}
+            
+            for word in words:
+                if word not in self.stop_words:
+                    word_freq[word] = word_freq.get(word, 0) + 1
+            
+            if not word_freq:
+                return {
+                    'summary': sentences[0],
+                    'sentences': 1,
+                    'details': 'Could not generate summary'
+                }
+            
+            sentence_scores = {}
+            for sentence in sentences:
+                score = 0
+                sentence_words = self.tokenize(sentence)
+                for word in sentence_words:
+                    if word in word_freq:
+                        score += word_freq[word]
+                if score > 0:
+                    sentence_scores[sentence] = score
+            
+            # Get top 1/3 of sentences
+            top_count = max(1, len(sentences) // 3)
+            top_sentences = sorted(sentence_scores, key=sentence_scores.get, reverse=True)[:top_count]
+            
+            # Maintain original order
+            summary_sentences = [s for s in sentences if s in top_sentences]
+            summary = '. '.join(summary_sentences)
+            if summary and not summary.endswith('.'):
+                summary += '.'
+            
+            return {
+                'summary': summary,
+                'sentences': len(summary_sentences),
+                'details': f"Summary: {len(summary_sentences)}/{len(sentences)} sentences"
+            }
+        except Exception as e:
+            return {'error': f'Summarization error: {str(e)}'}
+
+# Create analyzer instance
+try:
+    print("Creating TextAnalyzer instance...")
+    analyzer = TextAnalyzer()
+    print(f"✓ Analyzer created successfully. TextBlob: {analyzer.has_textblob}, langdetect: {analyzer.has_langdetect}")
+except Exception as e:
+    print(f"✗ Error creating analyzer: {e}")
+    import traceback
+    traceback.print_exc()
+    analyzer = None
+
+# JavaScript communication functions
+print("Defining wrapper functions...")
+
+# Define wrapper functions at module level for JavaScript access
+def analyze_sentiment(text):
+    """Wrapper for sentiment analysis"""
+    try:
+        if analyzer is None:
+            return {'error': 'Analyzer not initialized'}
+        result = analyzer.analyze_sentiment(text)
+        print(f"✓ analyze_sentiment result: {result}")
+        # Convert to JavaScript-compatible format
+        from js import Object
+        js_result = Object.fromEntries([list(item) for item in result.items()])
+        return js_result
+    except Exception as e:
+        print(f"✗ Error in analyze_sentiment: {e}")
+        import traceback
+        traceback.print_exc()
+        return {'error': str(e)}
+
+def detect_language(text):
+    """Wrapper for language detection"""
+    try:
+        if analyzer is None:
+            return {'error': 'Analyzer not initialized'}
+        result = analyzer.detect_language(text)
+        print(f"✓ detect_language result: {result}")
+        from js import Object
+        js_result = Object.fromEntries([list(item) for item in result.items()])
+        return js_result
+    except Exception as e:
+        print(f"✗ Error in detect_language: {e}")
+        return {'error': str(e)}
+
+def extract_keyphrases(text):
+    """Wrapper for key phrase extraction"""
+    try:
+        if analyzer is None:
+            return {'error': 'Analyzer not initialized'}
+        result = analyzer.extract_keyphrases(text)
+        print(f"✓ extract_keyphrases result: {result}")
+        from js import Object
+        # Handle list in keyphrases
+        result['keyphrases'] = result.get('keyphrases', [])
+        js_result = Object.fromEntries([list(item) for item in result.items()])
+        return js_result
+    except Exception as e:
+        print(f"✗ Error in extract_keyphrases: {e}")
+        return {'error': str(e)}
+
+def extract_entities(text):
+    """Wrapper for entity extraction"""
+    try:
+        if analyzer is None:
+            return {'error': 'Analyzer not initialized'}
+        result = analyzer.extract_entities(text)
+        print(f"✓ extract_entities result: {result}")
+        from js import Object
+        js_result = Object.fromEntries([list(item) for item in result.items()])
+        return js_result
+    except Exception as e:
+        print(f"✗ Error in extract_entities: {e}")
+        return {'error': str(e)}
+
+def summarize_text(text):
+    """Wrapper for text summarization"""
+    try:
+        if analyzer is None:
+            return {'error': 'Analyzer not initialized'}
+        result = analyzer.summarize_text(text)
+        print(f"✓ summarize_text result: {result}")
+        from js import Object
+        js_result = Object.fromEntries([list(item) for item in result.items()])
+        return js_result
+    except Exception as e:
+        print(f"✗ Error in summarize_text: {e}")
+        return {'error': str(e)}
+
+print("Wrapper functions defined. Attempting to expose to JavaScript...")
+
+# Expose to JavaScript via window object
+try:
+    from js import window
+    print("✓ js.window imported")
+    
+    # Get the current pyodide namespace
+    import sys
+    current_module = sys.modules['__main__']
+    
+    # Expose functions directly
+    window.analyzeTextSentiment = analyze_sentiment
+    window.detectTextLanguage = detect_language
+    window.extractTextKeyphrases = extract_keyphrases
+    window.extractTextEntities = extract_entities
+    window.summarizeTextContent = summarize_text
+    
+    # Also create the object-based interface for compatibility
+    window.pythonAnalyzer = {
+        'analyze_sentiment': analyze_sentiment,
+        'detect_language': detect_language,
+        'extract_keyphrases': extract_keyphrases,
+        'extract_entities': extract_entities,
+        'summarize_text': summarize_text
+    }
+    
+    print("✓ Functions exposed to window")
+    print(f"  - window.analyzeTextSentiment: {type(window.analyzeTextSentiment)}")
+    print(f"  - window.pythonAnalyzer.analyze_sentiment: {type(window.pythonAnalyzer['analyze_sentiment'])}")
+    
+    window.pythonAnalysisReady = True
+    print("✓ pythonAnalysisReady flag set to True")
+    print("✓ Successfully exposed Python analyzer to JavaScript!")
+except Exception as e:
+    print(f"✗ Error exposing to window: {e}")
+    import traceback
+    traceback.print_exc()
+    </py-script>
+    </py-script>
+
+    <!-- JavaScript for UI handling -->
+    <script>
+// UI state
+let currentMode = 'sentiment';
+let pythonReady = false;
+let modelLoadingInterval = null;
+
+// Check if Python analysis is ready
+function checkPythonReady() {
+    if (typeof window.pythonAnalysisReady !== 'undefined' && window.pythonAnalysisReady) {
+        clearInterval(modelLoadingInterval);
+        pythonReady = true;
+        hideModelLoading();
+        document.getElementById('runBtn').disabled = false;
+        console.log('Python analysis engine ready!');
+    }
+}
+
+// Initialize
+window.addEventListener('load', () => {
+    console.log('Page loaded, waiting for Python analysis engine...');
+    showModelLoading();
+    
+    // Check for Python ready every 100ms
+    modelLoadingInterval = setInterval(checkPythonReady, 100);
+    
+    // Timeout after 30 seconds
+    setTimeout(() => {
+        if (!pythonReady) {
+            console.warn('Python engine did not load within 30 seconds');
+            hideModelLoading();
+            updateModelLoadingProgress(0, 'Could not load Python analysis engine. Some features may be limited.');
+        }
+    }, 30000);
+});
+
+function showModelLoading() {
+    const modelLoadingSection = document.getElementById('modelLoadingSection');
+    if (modelLoadingSection) {
+        modelLoadingSection.style.display = 'flex';
+    }
+    
+    const container = document.querySelector('.container');
+    if (container) {
+        container.classList.add('ui-disabled');
+    }
+    
+    updateModelLoadingProgress(25, 'Loading Python libraries...');
+}
+
+function hideModelLoading() {
+    const modelLoadingSection = document.getElementById('modelLoadingSection');
+    if (modelLoadingSection) {
+        modelLoadingSection.style.display = 'none';
+    }
+    
+    const container = document.querySelector('.container');
+    if (container) {
+        container.classList.remove('ui-disabled');
+    }
+}
+
+function updateModelLoadingProgress(percentage, text) {
+    const modelProgressFill = document.getElementById('modelProgressFill');
+    const modelLoadingText = document.getElementById('modelLoadingText');
+    
+    if (modelProgressFill) {
+        modelProgressFill.style.width = `${percentage}%`;
+    }
+    
+    if (modelLoadingText) {
+        modelLoadingText.textContent = text;
+    }
+    
+    const progressBar = document.querySelector('.model-progress-bar');
+    if (progressBar) {
+        progressBar.setAttribute('aria-valuenow', percentage);
+        progressBar.setAttribute('aria-valuetext', `${Math.round(percentage)}% - ${text}`);
+    }
+}
+
+// Text input handling
+const textInput = document.getElementById('textInput');
+const runBtn = document.getElementById('runBtn');
+const charCount = document.getElementById('charCount');
+const fileInput = document.getElementById('fileInput');
+
+textInput.addEventListener('input', (e) => {
+    const length = e.target.value.length;
+    charCount.textContent = `${length} / 5000`;
+    runBtn.disabled = length === 0 || length > 5000;
+});
+
+fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const content = event.target.result;
+            if (content.length <= 5000) {
+                textInput.value = content;
+                charCount.textContent = `${content.length} / 5000`;
+                runBtn.disabled = false;
+            } else {
+                alert('File is too large. Maximum 5000 characters allowed.');
+            }
+        };
+        reader.readAsText(file);
+    }
+});
+
+// Option card selection
+document.querySelectorAll('.option-card').forEach(card => {
+    card.addEventListener('click', () => {
+        document.querySelectorAll('.option-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        
+        const cards = document.querySelectorAll('.option-card');
+        cards.forEach(c => c.setAttribute('aria-selected', 'false'));
+        card.setAttribute('aria-selected', 'true');
+        
+        currentMode = card.dataset.option;
+    });
+    
+    card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            card.click();
+        }
+    });
+});
+
+// Run analysis
+runBtn.addEventListener('click', async () => {
+    const text = textInput.value.trim();
+    if (!text) return;
+    
+    runBtn.disabled = true;
+    const resultsContent = document.getElementById('resultsContent');
+    resultsContent.innerHTML = '<p class="placeholder-text">Analyzing text...</p>';
+    
+    try {
+        // Check if Python analyzer is ready
+        if (!window.pythonAnalysisReady) {
+            throw new Error('Python analyzer not initialized');
+        }
+        
+        let result;
+        
+        switch (currentMode) {
+            case 'sentiment':
+                // Try direct function first, then fallback to object notation
+                if (typeof window.analyzeTextSentiment === 'function') {
+                    result = window.analyzeTextSentiment(text);
+                } else if (window.pythonAnalyzer && typeof window.pythonAnalyzer.analyze_sentiment === 'function') {
+                    result = window.pythonAnalyzer.analyze_sentiment(text);
+                } else {
+                    console.log('Available window properties:', Object.keys(window).filter(k => k.includes('analyze') || k.includes('python')));
+                    throw new Error('analyze_sentiment is not available');
+                }
+                displaySentimentResults(result, resultsContent);
+                break;
+            case 'language':
+                if (typeof window.detectTextLanguage === 'function') {
+                    result = window.detectTextLanguage(text);
+                } else if (window.pythonAnalyzer && typeof window.pythonAnalyzer.detect_language === 'function') {
+                    result = window.pythonAnalyzer.detect_language(text);
+                } else {
+                    throw new Error('detect_language is not available');
+                }
+                displayLanguageResults(result, resultsContent);
+                break;
+            case 'keyphrases':
+                if (typeof window.extractTextKeyphrases === 'function') {
+                    result = window.extractTextKeyphrases(text);
+                } else if (window.pythonAnalyzer && typeof window.pythonAnalyzer.extract_keyphrases === 'function') {
+                    result = window.pythonAnalyzer.extract_keyphrases(text);
+                } else {
+                    throw new Error('extract_keyphrases is not available');
+                }
+                displayKeyphrasesResults(result, resultsContent);
+                break;
+            case 'entities':
+                if (typeof window.extractTextEntities === 'function') {
+                    result = window.extractTextEntities(text);
+                } else if (window.pythonAnalyzer && typeof window.pythonAnalyzer.extract_entities === 'function') {
+                    result = window.pythonAnalyzer.extract_entities(text);
+                } else {
+                    throw new Error('extract_entities is not available');
+                }
+                displayEntitiesResults(result, resultsContent);
+                break;
+            case 'summarize':
+                if (typeof window.summarizeTextContent === 'function') {
+                    result = window.summarizeTextContent(text);
+                } else if (window.pythonAnalyzer && typeof window.pythonAnalyzer.summarize_text === 'function') {
+                    result = window.pythonAnalyzer.summarize_text(text);
+                } else {
+                    throw new Error('summarize_text is not available');
+                }
+                displaySummarizeResults(result, resultsContent);
+                break;
+        }
+    } catch (error) {
+        console.error('Analysis error:', error);
+        resultsContent.innerHTML = `<p class="error-text">Error during analysis: ${error.message}</p>`;
+    }
+    
+    runBtn.disabled = false;
+});
+
+// Display functions for results
+function displaySentimentResults(result, container) {
+    if (result.error) {
+        container.innerHTML = `<p class="error-text">Error: ${result.error}</p>`;
+        return;
+    }
+    
+    container.innerHTML = `
+        <div class="result-section">
+            <h3>Sentiment Analysis</h3>
+            <div class="sentiment-result">
+                <div class="sentiment-badge" style="background-color: ${result.color}">
+                    ${result.sentiment}
+                </div>
+                <p><strong>Score:</strong> ${result.score} (range: -1 to 1)</p>
+                <p><strong>Subjectivity:</strong> ${result.subjectivity} (range: 0 to 1)</p>
+                <p><strong>Method:</strong> ${result.method || 'Unknown'}</p>
+                <p class="detail-text">${result.details}</p>
+            </div>
+        </div>
+    `;
+}
+
+function displayLanguageResults(result, container) {
+    if (result.error) {
+        container.innerHTML = `<p class="error-text">Error: ${result.error}</p>`;
+        return;
+    }
+    
+    container.innerHTML = `
+        <div class="result-section">
+            <h3>Language Detection</h3>
+            <div class="language-result">
+                <p><strong>Language:</strong> ${result.language}</p>
+                <p><strong>Code:</strong> ${result.code}</p>
+                <p><strong>Method:</strong> ${result.method || 'Unknown'}</p>
+                <p class="detail-text">${result.details}</p>
+            </div>
+        </div>
+    `;
+}
+
+function displayKeyphrasesResults(result, container) {
+    if (result.error) {
+        container.innerHTML = `<p class="error-text">Error: ${result.error}</p>`;
+        return;
+    }
+    
+    const phrasesList = result.keyphrases.length > 0
+        ? result.keyphrases.map(phrase => `<span class="keyphrase-tag">${escapeHtml(phrase)}</span>`).join('')
+        : '<p class="placeholder-text">No key phrases found.</p>';
+    
+    container.innerHTML = `
+        <div class="result-section">
+            <h3>Key Phrases (${result.count})</h3>
+            <div class="keyphrases-result">
+                ${phrasesList}
+            </div>
+            <p class="detail-text">${result.details}</p>
+        </div>
+    `;
+}
+
+function displayEntitiesResults(result, container) {
+    if (result.error) {
+        container.innerHTML = `<p class="error-text">Error: ${result.error}</p>`;
+        return;
+    }
+    
+    let entitiesHtml = `<div class="result-section"><h3>Named Entities (${result.count})</h3>`;
+    
+    if (result.count === 0) {
+        entitiesHtml += '<p class="placeholder-text">No entities found.</p>';
+    } else {
+        for (const [category, entities] of Object.entries(result.entities)) {
+            entitiesHtml += `
+                <div class="entity-category">
+                    <h4>${category}</h4>
+                    <div class="entity-list">
+                        ${entities.map(entity => `<span class="entity-tag">${escapeHtml(entity)}</span>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    entitiesHtml += `<p class="detail-text">${result.details}</p></div>`;
+    container.innerHTML = entitiesHtml;
+}
+
+function displaySummarizeResults(result, container) {
+    if (result.error) {
+        container.innerHTML = `<p class="error-text">Error: ${result.error}</p>`;
+        return;
+    }
+    
+    container.innerHTML = `
+        <div class="result-section">
+            <h3>Text Summary (${result.sentences} sentences)</h3>
+            <div class="summary-result">
+                <p>${escapeHtml(result.summary)}</p>
+            </div>
+            <p class="detail-text">${result.details}</p>
+        </div>
+    `;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// AI Toggle (keep for UI consistency, but all analysis uses Python)
+document.getElementById('aiToggle').addEventListener('change', () => {
+    // Python analysis is always available
+    console.log('AI toggle state changed (all analysis uses Python engine)');
+});
+    </script>
+</body>
+</html>
