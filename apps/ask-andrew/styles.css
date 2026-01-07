@@ -4,6 +4,22 @@
     box-sizing: border-box;
 }
 
+/* Accessibility: Skip link for keyboard navigation */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #000;
+    color: white;
+    padding: 8px;
+    text-decoration: none;
+    z-index: 100;
+}
+
+.skip-link:focus {
+    top: 0;
+}
+
 /* Accessibility: Screen reader only content */
 .visually-hidden {
     position: absolute;
@@ -165,7 +181,7 @@ header h1 {
     gap: 10px;
 }
 
-.restart-btn, .mode-toggle-btn {
+.restart-btn, .mode-toggle-btn, .about-btn {
     background: rgba(255,255,255,0.2);
     color: white;
     border: 1px solid rgba(255,255,255,0.3);
@@ -177,12 +193,12 @@ header h1 {
     font-weight: 500;
 }
 
-.restart-btn:hover, .mode-toggle-btn:hover {
+.restart-btn:hover, .mode-toggle-btn:hover, .about-btn:hover {
     background: rgba(255,255,255,0.3);
     transform: translateY(-1px);
 }
 
-.restart-btn:focus, .mode-toggle-btn:focus {
+.restart-btn:focus, .mode-toggle-btn:focus, .about-btn:focus {
     outline: 3px solid #fff;
     outline-offset: 2px;
     background: rgba(255,255,255,0.3);
@@ -782,7 +798,7 @@ footer {
         gap: 6px;
     }
 
-    .restart-btn, .mode-toggle-btn {
+    .restart-btn, .mode-toggle-btn, .about-btn {
         padding: 6px 12px;
         font-size: 0.85em;
     }

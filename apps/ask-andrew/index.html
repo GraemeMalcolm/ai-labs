@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Skip to main content link for keyboard navigation -->
+    <a href="#chat-messages" class="skip-link">Skip to main chat content</a>
+    
     <div class="container" role="main" aria-label="Ask Andrew Chat Application">
         <header role="banner">
             <h1 id="app-title">🎓 Ask Andrew</h1>
@@ -34,6 +37,11 @@
                     <div class="header-content">
                         <h2 id="chat-title">💬 Chat with Andrew</h2>
                         <div class="header-buttons" role="toolbar" aria-label="Chat controls">
+                            <button class="about-btn" id="about-btn" 
+                                    title="About this app" 
+                                    aria-label="Learn about Ask Andrew">
+                                ℹ️ About
+                            </button>
                             <button class="mode-toggle-btn" id="mode-toggle" 
                                     title="Toggle between AI and Simple mode" 
                                     aria-label="Toggle chat mode. Currently in AI mode"
@@ -80,24 +88,30 @@
                         </button>
                     </div>
                     <div class="example-questions">
-                        <p class="example-label">Try asking:</p>
-                        <div class="example-buttons">
-                            <button class="example-btn" data-question="What is generative AI?">
-                                What is generative AI?
-                            </button>
-                            <button class="example-btn" data-question="How does a large language model work?">
-                                How does a large language model work?
-                            </button>
-                            <button class="example-btn" data-question="What is agentic AI?">
-                                What is agentic AI?
-                            </button>
-                            <button class="example-btn" data-question="What's the relationship between machine learning and artificial intelligence?">
+                        <p class="example-label" id="example-label">Try asking:</p>
+                        <div class="example-buttons" role="region" aria-labelledby="example-label">
+                            <button class="example-btn" data-question="What's the relationship between machine learning and artificial intelligence?" 
+                                    aria-label="Ask about the relationship between machine learning and artificial intelligence">
                                 What's the relationship between machine learning and artificial intelligence?
                             </button>
-                            <button class="example-btn" data-question="What is computer vision?">
+                            <button class="example-btn" data-question="What is generative AI?" 
+                                    aria-label="Ask about generative AI">
+                                What is generative AI?
+                            </button>
+                            <button class="example-btn" data-question="How does a large language model work?" 
+                                    aria-label="Ask how a large language model works">
+                                How does a large language model work?
+                            </button>
+                            <button class="example-btn" data-question="What is agentic AI?" 
+                                    aria-label="Ask about agentic AI">
+                                What is agentic AI?
+                            </button>
+                            <button class="example-btn" data-question="What is computer vision?" 
+                                    aria-label="Ask about computer vision">
                                 What is computer vision?
                             </button>
-                            <button class="example-btn" data-question="Tell me about AI speech">
+                            <button class="example-btn" data-question="Tell me about AI speech" 
+                                    aria-label="Ask about AI speech">
                                 Tell me about AI speech
                             </button>
                         </div>
@@ -117,15 +131,44 @@
         </footer>
     </div>
 
+    <!-- About App Modal -->
+    <div id="about-modal" class="modal" role="dialog" aria-labelledby="about-modal-title" aria-modal="true" aria-describedby="about-modal-description" style="display: none;">
+        <div class="modal-overlay" aria-hidden="true"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="about-modal-title">🎓 About Ask Andrew</h2>
+                <button class="modal-close" id="about-modal-close" aria-label="Close about dialog" title="Close" type="button">×</button>
+            </div>
+            <div class="modal-body" id="about-modal-description">
+                <p><strong>Ask Andrew</strong> is a sample AI agent designed to help you understand artificial intelligence concepts and topics.</p>
+                <p>📋 <a href="https://microsoftlearning.github.io/ai-apps/" target="_blank" rel="noopener noreferrer">Important details and AI transparency notes (opens in new window)</a></p>
+                <h3>Features</h3>
+                <ul>
+                    <li><strong>Simple Mode:</strong> Search through a curated knowledge base to find answers to your questions</li>
+                    <li><strong>AI Mode:</strong> Get detailed explanations generated by an AI model running directly in your browser using WebGPU</li>
+                </ul>
+                
+                <h3>How It Works</h3>
+                <p>Ask Andrew uses a local language model that runs entirely in your browser, so your questions remain private. No data is sent to external servers.</p>
+                
+                <h3>Getting Started</h3>
+                <p>Try asking a question like "What is machine learning?" or "Explain artificial intelligence" to get started. You can toggle between Simple and AI mode using the button in the chat header.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" id="about-modal-ok" aria-label="Close about dialog" type="button">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- AI Mode Info Modal -->
-    <div id="ai-mode-modal" class="modal" role="dialog" aria-labelledby="modal-title" aria-modal="true" style="display: none;">
+    <div id="ai-mode-modal" class="modal" role="dialog" aria-labelledby="modal-title" aria-modal="true" aria-describedby="ai-mode-modal-description" style="display: none;">
         <div class="modal-overlay" aria-hidden="true"></div>
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="modal-title">🤖 About AI Mode</h2>
-                <button class="modal-close" id="modal-close" aria-label="Close dialog" title="Close">×</button>
+                <button class="modal-close" id="modal-close" aria-label="Close AI mode dialog" title="Close" type="button">×</button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" id="ai-mode-modal-description">
                 <p>AI mode uses a generative AI model that requires <strong>WebGPU support</strong> in your browser.</p>
                 
                 <p>If you are using a Windows computer with an ARM64 CPU (such as a Snapdragon processor) that has an integrated GPU, you may need to explicitly enable WebGPU support in your browser's settings:</p>
@@ -140,7 +183,7 @@
                 <p>If your computer doesn't have a GPU, AI mode will be unavailable. You can still use Simple mode to search for answers!</p>
             </div>
             <div class="modal-footer">
-                <button class="modal-btn" id="modal-ok" aria-label="Close dialog">Got it!</button>
+                <button class="modal-btn" id="modal-ok" aria-label="Acknowledge AI mode dialog" type="button">Got it!</button>
             </div>
         </div>
     </div>

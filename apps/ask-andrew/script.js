@@ -10,6 +10,9 @@ class AskAndrew {
         this.currentStream = null;
         this.webGPUAvailable = false;
         this.simpleMode = false;
+        this.currentModal = null;
+        this.lastFocusedElement = null;
+        this.modalFocusTrapHandler = null;
         
         this.elements = {
             progressSection: document.getElementById('progress-section'),
@@ -22,12 +25,16 @@ class AskAndrew {
             restartBtn: document.getElementById('restart-btn'),
             searchStatus: document.getElementById('search-status'),
             modeToggle: document.getElementById('mode-toggle'),
+            aboutBtn: document.getElementById('about-btn'),
+            aboutModal: document.getElementById('about-modal'),
+            aboutModalClose: document.getElementById('about-modal-close'),
+            aboutModalOk: document.getElementById('about-modal-ok'),
             aiModeModal: document.getElementById('ai-mode-modal'),
             modalClose: document.getElementById('modal-close'),
             modalOk: document.getElementById('modal-ok')
         };
         
-        this.systemPrompt = `You are a knowledgeable and friendly AI learning assistant who helps students understand AI concepts.
+        this.systemPrompt = `You are Andrew, a knowledgeable and friendly AI learning assistant who helps students understand AI concepts.
 
 IMPORTANT: Follow these guidelines when responding:
 - Explain concepts clearly and concisely in a single paragraph based only on the provided context.
@@ -217,6 +224,28 @@ IMPORTANT: Follow these guidelines when responding:
             this.toggleMode();
         });
         
+        // About button
+        this.elements.aboutBtn.addEventListener('click', () => {
+            this.lastFocusedElement = this.elements.aboutBtn;
+            this.showAboutModal();
+        });
+        
+        // About modal handlers
+        this.elements.aboutModalClose.addEventListener('click', () => {
+            this.hideAboutModal();
+        });
+        
+        this.elements.aboutModalOk.addEventListener('click', () => {
+            this.hideAboutModal();
+        });
+        
+        // Close about modal on overlay click
+        this.elements.aboutModal.addEventListener('click', (e) => {
+            if (e.target === this.elements.aboutModal || e.target.classList.contains('modal-overlay')) {
+                this.hideAboutModal();
+            }
+        });
+        
         // Modal handlers
         this.elements.modalClose.addEventListener('click', () => {
             this.hideAiModeModal();
@@ -235,8 +264,12 @@ IMPORTANT: Follow these guidelines when responding:
         
         // Close modal on Escape key
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.elements.aiModeModal.style.display === 'flex') {
-                this.hideAiModeModal();
+            if (e.key === 'Escape') {
+                if (this.elements.aiModeModal.style.display === 'flex') {
+                    this.hideAiModeModal();
+                } else if (this.elements.aboutModal.style.display === 'flex') {
+                    this.hideAboutModal();
+                }
             }
         });
         
@@ -249,6 +282,14 @@ IMPORTANT: Follow these guidelines when responding:
                 this.elements.userInput.focus();
                 this.autoResizeTextarea();
             });
+        });
+
+        // Dynamic AI mode link keyboard handling (for links added to messages)
+        this.elements.chatMessages.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.target.classList.contains('ai-mode-link')) {
+                e.preventDefault();
+                e.target.click();
+            }
         });
     }
 
@@ -431,7 +472,7 @@ IMPORTANT: Follow these guidelines when responding:
             if (greetingPattern.test(userMessage)) {
                 // Respond with greeting without searching
                 const greetingResponse = "Hello, I'm Andrew. I'm here to help you learn about AI concepts. What would you like to know?";
-                this.addMessage('assistant', this.formatResponse(greetingResponse));
+                this.addMessage('assistant', greetingResponse);
                 return;
             }
         }
@@ -773,7 +814,7 @@ IMPORTANT: Follow these guidelines when responding:
             }
             
             // Add AI mode note
-            formattedResponse += `<p style="font-style: italic; color: #666; font-size: 0.9em; margin-top: 10px;">Note: You're using Simple mode. Switch to <a href="#" class="ai-mode-link" onclick="window.askAndrew.showAiModeModal(); return false;">AI mode</a> for more detailed explanations.</p>`;
+            formattedResponse += `<p style="font-style: italic; color: #666; font-size: 0.9em; margin-top: 10px;">Note: You're using Simple mode. Switch to <a href="#" class="ai-mode-link" onclick="window.askAndrew.lastFocusedElement = document.activeElement; window.askAndrew.showAiModeModal(); return false;" role="button" tabindex="0">AI mode</a> for more detailed explanations.</p>`;
             
             // Add message with typing animation
             const messageDiv = this.addMessage('assistant', '', true);
@@ -809,7 +850,7 @@ IMPORTANT: Follow these guidelines when responding:
         }
         
         // Add note about AI mode
-        formattedResponse += `<p style="font-style: italic; color: #666; font-size: 0.9em; margin-top: 10px;">Note: You're using Simple mode. Switch to <a href="#" class="ai-mode-link" onclick="window.askAndrew.showAiModeModal(); return false;">AI mode</a> for more detailed explanations.</p>`;
+        formattedResponse += `<p style="font-style: italic; color: #666; font-size: 0.9em; margin-top: 10px;">Note: You're using Simple mode. Switch to <a href="#" class="ai-mode-link" onclick="window.askAndrew.lastFocusedElement = document.activeElement; window.askAndrew.showAiModeModal(); return false;" role="button" tabindex="0">AI mode</a> for more detailed explanations.</p>`;
         
         // Add message with typing animation
         const messageDiv = this.addMessage('assistant', '', true);
@@ -847,12 +888,94 @@ IMPORTANT: Follow these guidelines when responding:
     
     showAiModeModal() {
         this.elements.aiModeModal.style.display = 'flex';
-        this.elements.modalClose.focus();
+        this.currentModal = this.elements.aiModeModal;
+        // Announce modal to screen readers
+        this.elements.aiModeModal.setAttribute('aria-hidden', 'false');
+        // Set focus to close button
+        setTimeout(() => {
+            this.elements.modalClose.focus();
+            this.setupModalFocusTrap(this.elements.aiModeModal);
+        }, 100);
     }
     
     hideAiModeModal() {
         this.elements.aiModeModal.style.display = 'none';
-        this.elements.userInput.focus();
+        this.elements.aiModeModal.setAttribute('aria-hidden', 'true');
+        this.removeModalFocusTrap();
+        this.currentModal = null;
+        // Restore focus to the element that opened the modal
+        if (this.lastFocusedElement) {
+            this.lastFocusedElement.focus();
+        } else {
+            this.elements.userInput.focus();
+        }
+    }
+
+    showAboutModal() {
+        this.elements.aboutModal.style.display = 'flex';
+        this.currentModal = this.elements.aboutModal;
+        // Store the previously focused element
+        this.lastFocusedElement = document.activeElement;
+        // Announce modal to screen readers
+        this.elements.aboutModal.setAttribute('aria-hidden', 'false');
+        // Set focus to close button
+        setTimeout(() => {
+            this.elements.aboutModalClose.focus();
+            this.setupModalFocusTrap(this.elements.aboutModal);
+        }, 100);
+    }
+    
+    hideAboutModal() {
+        this.elements.aboutModal.style.display = 'none';
+        this.elements.aboutModal.setAttribute('aria-hidden', 'true');
+        this.removeModalFocusTrap();
+        this.currentModal = null;
+        // Restore focus to the element that opened the modal
+        if (this.lastFocusedElement) {
+            this.lastFocusedElement.focus();
+        } else {
+            this.elements.userInput.focus();
+        }
+    }
+
+    setupModalFocusTrap(modalElement) {
+        // Get all focusable elements within the modal
+        const focusableElements = modalElement.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        
+        if (focusableElements.length === 0) return;
+        
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+        
+        // Store the trap handler for cleanup
+        this.modalFocusTrapHandler = (e) => {
+            if (e.key !== 'Tab') return;
+            
+            if (e.shiftKey) {
+                // Shift+Tab - going backwards
+                if (document.activeElement === firstElement) {
+                    e.preventDefault();
+                    lastElement.focus();
+                }
+            } else {
+                // Tab - going forwards
+                if (document.activeElement === lastElement) {
+                    e.preventDefault();
+                    firstElement.focus();
+                }
+            }
+        };
+        
+        modalElement.addEventListener('keydown', this.modalFocusTrapHandler);
+    }
+
+    removeModalFocusTrap() {
+        if (this.currentModal && this.modalFocusTrapHandler) {
+            this.currentModal.removeEventListener('keydown', this.modalFocusTrapHandler);
+            this.modalFocusTrapHandler = null;
+        }
     }
 }
 
