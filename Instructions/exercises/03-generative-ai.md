@@ -52,12 +52,14 @@ You can use the playground to explore the model by chatting with it and observin
     > **Note**: Generative AI chat applications often include the conversation history in the prompt; so the context of the conversation is retained between messages. In this case, "her" is interpreted as referring to Ada Lovelace.
 
 1. At the top-right of the chat pane, use the **New chat** button to restart the conversation. This removes all conversation history.
-1. Enter a new prompt, such as `What was ENIAC?` and view the response.
+1. Enter a new prompt, such as `Who was Alan Turing?` and view the response.
+1. Continue the conversation with prompts such as `What is the Turing test?` or `What is a Turing machine?`.
 
 ## Experiment with system prompts
 
 A system prompt is used to provide the model with instructions that guide its responses. You can use the system prompt to provide guidelines about format, style, and constraints about what the model should and should not include in its responses.
 
+1. At the top of the chat pane, use the **New chat** button to restart the conversation. Then enter a new prompt, such as `What was ENIAC?` and view the response.
 1. In the pane on the left, in the **Instructions** text area, change the system prompt to `You are an AI assistant that provides short and concise answers using simple language. Limit responses to a single sentence.`
 1. Now try the same prompt as before (`What was ENIAC?`) and review the output.
 1. Continue to experiment with different system prompts to try to influence the kinds of response returned by the model.
