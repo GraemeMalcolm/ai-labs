@@ -112,7 +112,7 @@ As you would expect in a platform for developing cutting edge AI solutions, Micr
 
 1. Enter a prompt such as `What can I do with Microsoft Foundry?` and review the response.
 
-    If you have any questions about some of the things you've epxlored in this exercise, this is the place to ask them!
+    If you have any questions about some of the things you've explored in this exercise, this is the place to ask them!
 
 ## Summary
 
