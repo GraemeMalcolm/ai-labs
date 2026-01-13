@@ -1,57 +1,99 @@
 ---
 lab:
-    title: 'Explore computer vision'
-    description: 'Use image analysis with a generative AI model.'
+    title: 'Get started with computer vision in Microsoft Foundry'
+    description: 'Use generative AI models to interpret and generate visual data.'
 ---
 
-# Explore computer vision
+# Get started with computer vision in Microsoft Foundry
 
-In this exercise, you'll use a chat playground to interact with a generative AI solution that can analyze and interpret images.
+In this exercise, you'll use generative AI models in Microsoft Foundry to work with visual data.
 
-This exercise should take approximately **15** minutes to complete.
+This exercise should take approximately **30** minutes to complete.
 
-## Chat with a model
+## Create a Microsoft Foundry project
 
-Let's start by chatting with a generative AI model. In this exercise, we'll use the **Microsoft Phi 3 Mini model**; a small language model that is useful for general chat solutions in low bandwidth scenarios. The solution also uses the MobileNetV3 computer vision model for image classification.
+Microsoft Foundry uses *projects* to organize models, resources, data, and other assets used to develop an AI solution.
 
-> **Note**: The models will run in your browser, on your local computer. Performance may vary depending on the available memory in your computer and your network bandwidth to download the model. 
+1. In a web browser, open [Microsoft Foundry](https://ai.azure.com){:target="_blank"} at `https://ai.azure.com` and sign in using your Azure credentials. Close any tips or quick start panes that are opened the first time you sign in, and if necessary use the **Foundry** logo at the top left to navigate to the home page.
+1. If it is not already enabled, in the tool bar the top of the page, enable the **New Foundry** option. Then, if prompted, create a new project with a unique name of your choice, using the default options. After creating or selecting a project in the new Foundry portal, it should open in a page similar to the following image:
 
-1. In a web browser, open the **[Chat Playground](https://graememalcolm.github.io/ai-labs/apps/chat-playground/){:target="_blank"}**.
-1. Wait for the model to download and initialize.
+    ![Screenshot of the AI Foundry project home page.](./media/foundry-project.png)
 
-    > **Tip**: The first time you open the chat playground, it may take a few minutes for the model to download. Subsequent downloads will be faster.
+## Use a generative AI model to analyze images
 
-1. When the model is ready, enter a prompt such as `Give me a short tip to improve my cooking.`, and review the response.
-
-    The model should respond with a text-based answer, that hopefully includes some relevant information about learning how to cook.
-
-## Use computer vision to analyze images
-
-Computer vision models enable AI systems to interpret image-based data, such as photographs, videos, and other visual elements. In this exercise, we'll use a small CNN-based image classification model to determine the contents of an image, and a generative AI model to interpret and answer questions about the images.
+Computer vision models enable AI systems to interpret image-based data, such as photographs, videos, and other visual elements. In this exercise, you'll explore how the developer of an AI agent to help aspiring chefs could use a vision-enabled model to interpret images of ingredients and suggest relevant recipes.
 
 1. In a new browser tab, download **[images.zip](https://raw.githubusercontent.com/GraemeMalcolm/ai-labs/refs/heads/main/data/images.zip){:target="_blank"}** to your local computer.
 1. Extract the downloaded archive in a local folder to see the files it contains. These files are the images you will use AI to analyze.
-1. Return to the browser tab containing the chat playground, and at the top-right of the **Chat history** pane, use the **Settings** (**&#x2699;**) button to view the chat capabilities options.
-1. In the **Vision** section, enable **Image analysis**. Then wait for the computer vision model to be downloaded and initialized before saving the changes.
+1. Return to the browser tab containing your Microsoft Foundry project. Then, in the **Start building** menu, select **Browse models** to view the Microsoft Foundry model catalog.
+1. Search for and deploy the `gpt-4.1-mini` model using the default settings. Deployment may take a minute or so.
+1. When the model has been deployed, view the model playground page that is opened, in which you can chat with the model.
 
-   ![Screenshot of the Image analysis option.](./media/vision-01.png)
+    ![Screenshot of the model playground.](./media/model-playground.png)
 
-    Under the chat interface, an **Upload image** (**&#x1F4CE;**) button is enabled.
+1. Use the button at the bottom of the left navigation pane to hide it and give yourself more room to work with.
+1. In the pane on the left, set the **Instructions** to `You are an AI cooking assistant who helps chefs with recipes.`
+1. In the chat pane, use the **Upload image** button to select one of the images you extracted on your computer. The image is added to the prompt area.
 
-1. Click the **Upload image** button, and browse to select one of the images you extracted on your computer.
+    You can select the image you have added to view it.
 
-    A thumbnail of the image is added to the prompt input area.
+   ![Screenshot of a chat with an image in a prompt.](./media/image-input.png)
 
-1. Enter a prompt like `What recipes can I use this in?`. The image is included in the message.
+1. Enter prompt text like `What recipes can I use this in?`and submit the prompt, which contains both the uploaded image and the text.
+1. Review the response, which should include relevant recipe suggestions for the image you uploaded.
 
-   ![Screenshot of the chat app with an image in a prompt.](./media/vision-02.png)
-
-    The MobileNetV3 model is used to determine the likely subject of the image, and the results of that analysis is included in the prompt to the Phi language model. The result should ba a reponse that uses the image information to answer the question.
+   ![Screenshot of the chat app with the response to an image-based prompt.](./media/image-analysis.png)
 
 1. Submit prompts that include the other images, such as `How should I cook this?` or `What desserts could I make with this?`
 
+### View code
+
+## Use a generative AI model to create new images
+
+So far you've explored the ability of a generative AI model to process visual input. Now let's suppose we want some appropriate images on a web site to support the AI chef agent. Let's see how a model can generate visual output.
+
+1. Use the "back" arrow next to the **gpt-4.1-mini** header (or select the **Models** page in the navigation pane) to view the model deployments in your project.
+1. Select **Deploy a base model** to open the model catalog.
+1. In the **Collections** drop-down list, select **Direct from Azure**, and in the **Inference tasks** drop-down list, select **Text to image**. Then view the available models for image generation.
+
+   ![Screenshot of image-generation models in the model catalog.](./media/image-generation-models.png)
+
+    > **Note**: The available models in your subscription may vary. Additionally, the ability to deploy models depends on regional availabilty and quota.
+
+1. Select the **FLUX-1-Kontext-pro** model and deploy it.
+
+    *If you are unable to deploy the model in your subscription, try one of the other image-generation models.*
+
+1. When the model has been deployed, it opens in the image playground.
+1. Enter a prompt describing a desired image; for example `A chef preparing a meal.` Then review the generated image.
+
+   ![Screenshot of the image playground with a generated image.](./media/generated-image.png)
+
+### View code
+
+## Use a generative AI model to create video
+
+In addition to static images, you may want to include video content on the AI Chef agent web site.
+
+1. Use the "back" arrow next to the image-generation model header (or select the **Models** page in the navigation pane) to view the model deployments in your project.
+1. Select **Deploy a base model** to open the model catalog.
+1. In the **Collections** drop-down list, select **Direct from Azure**, and in the **Inference tasks** drop-down list, select **TVideo generation**. Then view the available models for video generation.
+
+   ![Screenshot of video-generation models in the model catalog.](./media/video-generation-models.png)
+
+    > **Note**: The available models in your subscription may vary. Additionally, the ability to deploy models depends on regional availabilty and quota.
+
+1. Select the **Sora** model and deploy it.
+
+    *If you are unable to deploy the model in your subscription, try one of the other image-generation models.*
+
+1. When the model has been deployed, it opens in the video playground.
+1. Enter a prompt describing a desired video; for example `A chef in a busy kitchen.` Then review the generated image.
+
+   ![Screenshot of the video playground with a generated video.](./media/generated-video.png)
+
+### View code
+
 ## Summary
 
-in this exercise, you explored the use of computer vision with a generative AI model in a chat playground. 
-
-Some models are *multimodal*, and natively support image-based input; while other solutions rely on using a separate image classification or object detection model. Azure AI Foundry supports multimodal models, and also provides Azure AI Speech; which includes a wide range of services you can use to build vision-capable AI apps and agents.
+in this exercise, you explored the use of vision-enabled models in Microsoft Foundry, including models that can accept vision data as input, models that can generate static images based on text descriptions, and models that can generate video.
