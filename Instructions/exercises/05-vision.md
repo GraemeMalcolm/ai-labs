@@ -39,7 +39,7 @@ Computer vision models enable AI systems to interpret image-based data, such as 
 
    ![Screenshot of a chat with an image in a prompt.](./media/image-input.png)
 
-1. Enter prompt text like `What recipes can I use this in?`and submit the prompt, which contains both the uploaded image and the text.
+1. Enter prompt text like `What recipes can I use this in?` and submit the prompt, which contains both the uploaded image and the text.
 1. Review the response, which should include relevant recipe suggestions for the image you uploaded.
 
    ![Screenshot of the chat app with the response to an image-based prompt.](./media/image-analysis.png)
@@ -47,6 +47,45 @@ Computer vision models enable AI systems to interpret image-based data, such as 
 1. Submit prompts that include the other images, such as `How should I cook this?` or `What desserts could I make with this?`
 
 ### View code
+
+To develop a client app or agent that can use the model to interpret images, you can use the OpenAI **Responses** API.
+
+1. In the **Chat** pane, select the **Code** tab to view sample code.
+1. Select the following code options:
+    - **API**: Responses API
+    - **Language**: Python
+    - **SDK**: OpenAI SDK
+    - **Authentication**: Key authentication
+
+    The default sample code includes only a text-based prompt. To submit a prompt that analyzes an image, you can modify the **input** parameter to include both text and image content, as shown here:
+
+    ```python
+    from openai import OpenAI
+    
+    endpoint = "https://your-project-resource.openai.azure.com/openai/v1/"
+    deployment_name = "gpt-4.1-mini"
+    api_key = "<your-api-key>"
+    
+    client = OpenAI(
+        base_url=endpoint,
+        api_key=api_key
+    )
+    
+    response = client.responses.create(
+        model=deployment_name,
+        input=[{
+            "role": "user",
+            "content": [
+                {"type": "input_text", "text": "what's in this image?"},
+                {"type": "input_image", "image_url": "https://an-online-image.jpg>"},
+            ],
+        }],
+    )
+    
+    print(f"answer: {response.output[0]}")
+    ```
+
+    > **Tip**: If you are using a work or school account to sign into Azure, and you have sufficient permissions in the Azure subscription, you can open the sample code in VS Code for Web to experiment with image-based input content. You can obtain the **key** for your service in the **Code** tab of the model playground (above the sample code) and you can use the image at `https://graememalcolm.github.io/ai-labs/data/orange.jpg`. To learn more about using rhe OpenAI API to analyze images, see the [OpenAI documentation](https://platform.openai.com/docs/guides/images-vision#analyze-images).
 
 ## Use a generative AI model to create new images
 
@@ -71,13 +110,48 @@ So far you've explored the ability of a generative AI model to process visual in
 
 ### View code
 
+If you want to develop a client app or agent that generates images using your model, you can use the OpenAI API.
+
+1. In the **Chat** pane, select the **Code** tab to view sample code.
+1. Select the following code options:
+    - **Language**: Python
+    - **SDK**: OpenAI SDK
+    - **Authentication**: Key authentication
+
+    The default sample code should look similar to this:
+
+    ```python
+    import base64
+    from openai import OpenAI
+    
+    endpoint = "https://your-project-resource.openai.azure.com/openai/v1/"
+    deployment_name = "FLUX.1-Kontext-pro"
+    api_key = "<your-api-key>"
+    
+    client = OpenAI(
+        base_url=endpoint,
+        api_key=api_key
+    )
+    
+    img = client.images.generate(
+        model=deployment_name,
+        prompt="A cute baby polar bear",
+        n=1,
+        size="1024x1024",
+    )
+    
+    image_bytes = base64.b64decode(img.data[0].b64_json)
+    with open("output.png", "wb") as f:
+        f.write(image_bytes)
+    ```
+
 ## Use a generative AI model to create video
 
 In addition to static images, you may want to include video content on the AI Chef agent web site.
 
 1. Use the "back" arrow next to the image-generation model header (or select the **Models** page in the navigation pane) to view the model deployments in your project.
 1. Select **Deploy a base model** to open the model catalog.
-1. In the **Collections** drop-down list, select **Direct from Azure**, and in the **Inference tasks** drop-down list, select **TVideo generation**. Then view the available models for video generation.
+1. In the **Collections** drop-down list, select **Direct from Azure**, and in the **Inference tasks** drop-down list, select **Video generation**. Then view the available models for video generation.
 
    ![Screenshot of video-generation models in the model catalog.](./media/video-generation-models.png)
 
@@ -85,7 +159,7 @@ In addition to static images, you may want to include video content on the AI Ch
 
 1. Select the **Sora** model and deploy it.
 
-    *If you are unable to deploy the model in your subscription, try one of the other image-generation models.*
+    *If you are unable to deploy the model in your subscription, try one of the other video-generation models.*
 
 1. When the model has been deployed, it opens in the video playground.
 1. Enter a prompt describing a desired video; for example `A chef in a busy kitchen.` Then review the generated image.
@@ -93,6 +167,26 @@ In addition to static images, you may want to include video content on the AI Ch
    ![Screenshot of the video playground with a generated video.](./media/generated-video.png)
 
 ### View code
+
+If you want to develop a client app or agent that generates videos using your model, you can use the REST API.
+
+1. In the **Chat** pane, select the **Code** tab to view sample code.
+
+    The default sample code uses the *curl** command to call the REST endpoint, and should look similar to this:
+
+    ```bash
+    curl -X POST "https://your-project-resource.openai.azure.com/openai/v1/video/generations/jobs" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $AZURE_API_KEY" \
+    -d '{
+        "prompt" : "A video of a cat",
+         "height" : "1080",
+         "width" : "1080",
+         "n_seconds" : "5",
+         "n_variants" : "1",
+        "model": "sora"
+        }'
+    ```
 
 ## Summary
 
