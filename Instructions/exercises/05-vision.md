@@ -172,7 +172,7 @@ If you want to develop a client app or agent that generates videos using your mo
 
 1. In the **Chat** pane, select the **Code** tab to view sample code.
 
-    The default sample code uses the *curl** command to call the REST endpoint, and should look similar to this:
+    The default sample code uses the *curl* command to call the REST endpoint, and should look similar to this:
 
     ```bash
     curl -X POST "https://your-project-resource.openai.azure.com/openai/v1/video/generations/jobs" \
