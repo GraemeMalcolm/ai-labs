@@ -77,7 +77,7 @@ To develop a client app or agent that can use the model to interpret images, you
             "role": "user",
             "content": [
                 {"type": "input_text", "text": "what's in this image?"},
-                {"type": "input_image", "image_url": "https://an-online-image.jpg>"},
+                {"type": "input_image", "image_url": "https://an-online-image.jpg"},
             ],
         }],
     )
