@@ -19,7 +19,7 @@ Microsoft Foundry uses *projects* to organize models, resources, data, and other
 
     ![Screenshot of the AI Foundry project home page.](./media/foundry-project.png)
 
-    The project has an *endpoint* and *key*, which can be used to securely access models, agents, and other resources in the project from client applications. The project is also associated with a specific *region*, which may affect the specific models and services available to it.
+    The project has an *endpoint* and *key*, which can be used to securely access models, agents, and other assets in the project from client applications. The project is also associated with a specific *region*, which may affect the specific models and services available to it.
 
 ## View Azure resources for Microsoft Foundry
 
@@ -37,7 +37,7 @@ Microsoft Foundry projects are based on resources in your Azure subscription. Le
     ![Screenshot of Azure portal search results.](./media/azure-portal-search.png)
 
 1. Select the **Foundry** resource that matches your parent resource name to open it.
-1. In the page for your Foundry resource, view the **Rerource Visualizer** page to see the relationship between the resource and its child project(s).
+1. In the page for your Foundry resource, view the **Resource Visualizer** page to see the relationship between the resource and its child project(s).
 
     ![Screenshot of Azure portal resource visualizer.](./media/azure-resource-visualizer.png)
 
