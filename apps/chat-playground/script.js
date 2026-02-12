@@ -718,8 +718,8 @@ class ChatPlayground {
         // Clear chat button (New Chat icon in header)
         const newChatBtn = document.querySelector('.chat-controls .icon-btn:not(.help-btn)');
         if (newChatBtn) {
-            newChatBtn.addEventListener('click', () => {
-                this.clearChat();
+            newChatBtn.addEventListener('click', async () => {
+                await this.clearChat();
             });
         }
         
@@ -960,7 +960,7 @@ class ChatPlayground {
             
             // Clear chat and restart conversation
             if (previousMode !== this.usingWllama) {
-                this.clearChat();
+                await this.clearChat();
                 this.showToast('Switched to Phi-3 (GPU) - Conversation restarted');
             }
             
@@ -986,7 +986,7 @@ class ChatPlayground {
                     this.usingWllama = true;
                     
                     // Clear chat and restart conversation
-                    this.clearChat();
+                    await this.clearChat();
                     this.showToast('Switched to SmolLM2 (CPU) - Conversation restarted');
                     
                     console.log('Switched to SmolLM2 (CPU) mode');
@@ -1002,7 +1002,7 @@ class ChatPlayground {
                 
                 // Clear chat and restart conversation
                 if (previousMode !== this.usingWllama) {
-                    this.clearChat();
+                    await this.clearChat();
                     this.showToast('Switched to SmolLM2 (CPU) - Conversation restarted');
                 }
                 
@@ -1101,7 +1101,7 @@ class ChatPlayground {
     async handleSendMessage() {
         // If already generating, stop instead of sending
         if (this.isGenerating) {
-            this.stopGeneration();
+            await this.stopGeneration();
             return;
         }
         
@@ -1338,6 +1338,82 @@ class ChatPlayground {
         this.conversationHistory.push({ role: "assistant", content: fullResponse });
     }
     
+    // Helper function to build ChatML formatted prompt for SmolLM2
+    buildChatMLPrompt(userMessage, imageAnalysis = '', fileContent = '') {
+        let prompt = '';
+        
+        // Get the last turn of conversation history (if exists)
+        let previousUserMessage = '';
+        let previousAssistantResponse = '';
+        
+        if (this.conversationHistory.length >= 2) {
+            // Get the last pair (user message and assistant response)
+            previousAssistantResponse = this.conversationHistory[this.conversationHistory.length - 1].content;
+            previousUserMessage = this.conversationHistory[this.conversationHistory.length - 2].content;
+            // Clean any image classification from previous user message
+            previousUserMessage = previousUserMessage.replace(/\n\n\[Current image shows:.*?\]$/s, '');
+        }
+        
+        // Determine which format to use
+        if (imageAnalysis) {
+            // Format for image analysis
+            prompt = '<|im_start|>system\n';
+            prompt += 'You are a rules‑driven assistant. Your highest priority is to follow the instructions exactly as written and answer questions based on the information below.\n\n';
+            prompt += 'Instructions:\n';
+            prompt += this.currentSystemMessage + '\n\n';
+            prompt += 'Information:\n';
+            prompt += 'The user has uploaded an image containing a ' + imageAnalysis + '. Their question relates to this image.\n\n';
+            prompt += 'Acknowledge these rules by answering the user\'s question correctly based on the information above.\n';
+            prompt += '<|im_end|>\n\n';
+            
+            // Add previous user message only (not response) if exists
+            if (previousUserMessage) {
+                prompt += '<|im_start|>user\n' + previousUserMessage + '\n<|im_end|>\n\n';
+            }
+            
+            // Add current user message
+            prompt += '<|im_start|>user\n' + userMessage + '\n<|im_end|>\n\n';
+            prompt += '<|im_start|>assistant\n';
+            
+        } else if (fileContent) {
+            // Format for file grounding
+            prompt = '<|im_start|>system\n';
+            prompt += 'You are a rules‑driven assistant. Your highest priority is to follow the instructions exactly as written, and answer questions based only on the information provided.\n\n';
+            prompt += 'Instructions:\n';
+            prompt += this.currentSystemMessage + '\n\n';
+            prompt += 'IMPORTANT: You must answer the user\'s specific question concisely, based only on the following information.\n\n';
+            prompt += 'Information:\n';
+            prompt += fileContent + '\n\n';
+            prompt += 'Base your answer on the information above ONLY. Do NOT include any details that are not present in the information above.\n\n';
+            prompt += '<|im_end|>\n\n';
+            
+            // Add current user message
+            prompt += '<|im_start|>user\n' + userMessage + '\n<|im_end|>\n\n';
+            prompt += '<|im_start|>assistant\n';
+            
+        } else {
+            // Default format (no file grounding, no image)
+            prompt = '<|im_start|>system\n';
+            prompt += 'You are a rules‑driven assistant. Your highest priority is to follow the instructions exactly as written.\n\n';
+            prompt += 'Instructions:\n';
+            prompt += this.currentSystemMessage + '\n\n';
+            prompt += 'Acknowledge these rules by answering the user\'s question correctly.\n';
+            prompt += '<|im_end|>\n\n';
+            
+            // Add previous turn if exists
+            if (previousUserMessage) {
+                prompt += '<|im_start|>user\n' + previousUserMessage + '\n<|im_end|>\n\n';
+                prompt += '<|im_start|>assistant\n' + previousAssistantResponse + '\n<|im_end|>\n\n';
+            }
+            
+            // Add current user message
+            prompt += '<|im_start|>user\n' + userMessage + '\n<|im_end|>\n\n';
+            prompt += '<|im_start|>assistant\n';
+        }
+        
+        return prompt;
+    }
+    
     async handleWllamaMode(messages, thinkingIndicator, userMessage, imageAnalysis = '') {
         // Ensure wllama is loaded
         if (!this.wllama) {
@@ -1357,66 +1433,35 @@ class ChatPlayground {
         // Show thinking indicator with CPU mode notice
         contentEl.innerHTML = '<span class="typing-indicator">●●●</span><p style="font-size: 0.85em; color: #666; margin-top: 8px; font-style: italic;">(Responses may be slow in CPU mode. Thanks for your patience!)</p>';
         
-        // SmolLM2 (360M params) - with 2048 token context
-        // Use last 10 messages from history (5 turns) - skip if using file grounding
-        let recentHistory = [];
+        // Build ChatML formatted prompt
+        let fileContentForPrompt = '';
         
-        if (!this.config.fileUpload.content) {
-            // Only include history when NOT using file grounding
-            recentHistory = this.conversationHistory.slice(-10).map(msg => {
-                if (msg.role === 'user') {
-                    return {
-                        ...msg,
-                        content: msg.content.replace(/\n\n\[Current image shows:.*?\]$/s, '')
-                    };
-                }
-                return msg;
-            });
-        }
-        
-        // Build final user message with image analysis and/or file context
-        let finalUserMessage = userMessage;
-        if (imageAnalysis) {
-            finalUserMessage = userMessage + '\n\n[Current image shows: ' + imageAnalysis + ']';
-            console.log('Added image analysis to wllama message:', imageAnalysis);
-        }
-        
-        // If file is uploaded, extract relevant lines and replace message with instruction
+        // If file is uploaded, extract relevant lines
         if (this.config.fileUpload.content) {
             const keywords = this.extractKeywords(userMessage);
             console.log('Extracted keywords from user prompt (wllama):', keywords);
-            console.log('Skipping conversation history to prevent data leak from file');
             
             const relevantLines = this.extractRelevantLines(this.config.fileUpload.content, keywords);
             
             if (relevantLines) {
                 console.log('Found relevant lines from file (' + relevantLines.split('\n').length + ' lines)');
-                console.log('Extracted lines:', relevantLines.substring(0, 200) + '...');
-                finalUserMessage = 'Translate this: "' + relevantLines + '"';
+                fileContentForPrompt = relevantLines;
             } else {
                 console.log('No relevant lines found in file for the given keywords');
+                fileContentForPrompt = this.config.fileUpload.content;
             }
         }
         
-        // For SmolLM2 (360M params), use system message with concise response instructions FIRST
-        let systemMessage = `IMPORTANT: Respond concisely in a single paragraph. Be brief and direct.
-
-${this.currentSystemMessage}`;
+        // Build the ChatML prompt
+        const chatMLPrompt = this.buildChatMLPrompt(userMessage, imageAnalysis, fileContentForPrompt);
         
-        console.log('=== WLLAMA SYSTEM MESSAGE ===');
-        console.log('System message being sent to SmolLM2:');
-        console.log(systemMessage);
-        console.log('=== END WLLAMA SYSTEM MESSAGE ===');
-        
-        // Create message array with minimal history (last turn only) for better performance
-        const wllamaMessages = [
-            { role: 'system', content: systemMessage },
-            ...recentHistory,
-            { role: 'user', content: finalUserMessage }
-        ];
-        
-        console.log('wllama messages (with last 5 turns for context):', wllamaMessages);
-        console.log('SmolLM2 Note: Using last 5 turns in history (2048 token context window).');
+        console.log('=== CHATML PROMPT FOR SMOLLM2 ===');
+        console.log('Conversation history length:', this.conversationHistory.length);
+        console.log('File content included:', !!fileContentForPrompt);
+        console.log('Image analysis included:', !!imageAnalysis);
+        console.log('ChatML prompt:');
+        console.log(chatMLPrompt);
+        console.log('=== END CHATML PROMPT ===');
         
         // Use wllama for generation with streaming
         let fullResponse = '';
@@ -1424,26 +1469,26 @@ ${this.currentSystemMessage}`;
         // Log current model parameters from config
         console.log('Current model parameters from config:', this.config.modelParameters);
         
-        // Clamp temperature for wllama (supports range 0-2, but works best between 0.1-1.5)
-        const wllamaTemp = Math.max(0.1, Math.min(1.5, this.config.modelParameters.temperature));
-        const wllamaTopP = Math.max(0.1, Math.min(1.0, this.config.modelParameters.top_p));
+        // SmolLM2-specific parameters for reduced creativity and more consistent responses
+        const smolLM2Temp = 0.3;
+        const smolLM2TopP = 0.7;
+        
+        // Clamp temperature for wllama (supports range 0-2, but SmolLM2 works best at 0.3)
+        const wllamaTemp = Math.max(0.1, Math.min(1.5, smolLM2Temp));
+        const wllamaTopP = Math.max(0.1, Math.min(1.0, smolLM2TopP));
         const wllamaPenalty = Math.max(1.0, Math.min(2.0, this.config.modelParameters.repetition_penalty));
         
         // Log sampling parameters for debugging
-        console.log('wllama sampling parameters:', {
+        console.log('SmolLM2 sampling parameters (optimized for consistency):', {
             temp: wllamaTemp,
             top_k: 40,
             top_p: wllamaTopP,
             penalty_repeat: wllamaPenalty,
-            original_temp: this.config.modelParameters.temperature
+            note: 'Using reduced temperature (0.3) and top_p (0.7) for SmolLM2 only'
         });
         
         try {
-            // Always clear KV cache before generation to prevent state corruption
-            await this.wllama.kvClear();
-            console.log('Cleared wllama KV cache for fresh generation');
-            
-            const completion = await this.wllama.createChatCompletion(wllamaMessages, {
+            const completion = await this.wllama.createCompletion(chatMLPrompt, {
                 nPredict: 300,  // SmolLM2 has 2048 context window
                 seed: -1,  // Random seed for variation
                 sampling: {
@@ -1471,8 +1516,15 @@ ${this.currentSystemMessage}`;
                 }
             }
             
+            // Only clear cache if generation was stopped (not on normal completion)
+            if (this.stopRequested) {
+                console.log('Clearing KV cache due to stopped generation');
+                await this.wllama.kvClear();
+            }
+            
             // Always add to conversation history to maintain context
-            if (fullResponse.trim()) {
+            // BUT: Do NOT add stopped responses to history (they're incomplete/corrupted)
+            if (fullResponse.trim() && !this.stopRequested) {
                 // Append file attribution if a file is uploaded
                 let displayResponse = fullResponse;
                 if (this.config.fileUpload.fileName) {
@@ -1490,6 +1542,16 @@ ${this.currentSystemMessage}`;
                 // Use original message without image classification to avoid persisting it
                 this.conversationHistory.push({ role: "user", content: originalUserMessage });
                 this.conversationHistory.push({ role: "assistant", content: fullResponse });
+            } else if (this.stopRequested && fullResponse.trim()) {
+                // Response was stopped - display it but don't add to history
+                let displayResponse = fullResponse;
+                if (this.config.fileUpload.fileName) {
+                    displayResponse = fullResponse + `\n(Ref: ${this.config.fileUpload.fileName})`;
+                }
+                displayResponse += '\n\n[Response stopped by user - not saved to history]';
+                contentEl.textContent = displayResponse;
+                
+                console.log('Stopped response not added to conversation history to prevent corruption');
             } else {
                 contentEl.textContent = 'Sorry, I encountered an error while generating a response. Please try again.';
             }
@@ -1682,7 +1744,7 @@ ${this.currentSystemMessage}`;
         }
     }
     
-    stopGeneration() {
+    async stopGeneration() {
         this.isGenerating = false;
         this.stopRequested = true;
         
@@ -1691,12 +1753,26 @@ ${this.currentSystemMessage}`;
             this.typingState.isTyping = false;
         }
         
+        // Clear wllama KV cache when stopping mid-generation to prevent corrupted state
+        if (this.usingWllama && this.wllama) {
+            try {
+                console.log('Stopping generation: Clearing KV cache to remove incomplete state...');
+                await this.wllama.kvClear();
+                console.log('KV cache cleared');
+            } catch (error) {
+                console.error('Error clearing wllama KV cache on stop:', error);
+            }
+        }
+        
+        // Clear current stream reference
+        this.currentStream = null;
+        
         this.updateUIForGeneration(false);
     }
 
-    restartConversation(reason = 'user-action') {
+    async restartConversation(reason = 'user-action') {
         // Clear the conversation history and reset the chat UI
-        this.clearChat();
+        await this.clearChat();
         
         // Show a message to the user about the restart
         const restartMessage = 'Conversation restarted.';
@@ -1704,7 +1780,7 @@ ${this.currentSystemMessage}`;
         systemMessageEl.classList.add('system-restart-message');
     }
 
-    clearChat() {
+    async clearChat() {
         this.conversationHistory = [];
         this.chatMessages.innerHTML = `
             <div class="welcome-message">
@@ -1712,6 +1788,17 @@ ${this.currentSystemMessage}`;
                 <h3>What do you want to chat about?</h3>
             </div>
         `;
+        
+        // Clear wllama KV cache when resetting chat to start fresh
+        if (this.usingWllama && this.wllama) {
+            try {
+                console.log('Chat reset: Clearing wllama KV cache...');
+                await this.wllama.kvClear();
+                console.log('Chat reset: KV cache cleared - ready for fresh start');
+            } catch (error) {
+                console.error('Error clearing wllama KV cache:', error);
+            }
+        }
     }
     
     // Removed updateTokenCount function - disclaimer is now static
