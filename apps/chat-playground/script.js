@@ -1189,19 +1189,11 @@ class ChatPlayground {
                 finalUserMessage += '\n\n[Current image shows: ' + imageAnalysis + ']';
             }
             
-            // If file is uploaded, extract relevant lines and prepend with instruction
+            // If file is uploaded, prepend file content to user message
             if (this.config.fileUpload.content) {
-                const keywords = this.extractKeywords(userMessage);
-                console.log('Extracted keywords from user prompt (GPU):', keywords);
-                
-                const relevantLines = this.extractRelevantLines(this.config.fileUpload.content, keywords);
-                
-                if (relevantLines) {
-                    console.log('Found relevant lines from file (' + relevantLines.split('\n').length + ' lines)');
-                    finalUserMessage = 'Use the following information to answer the question:\n\n' + relevantLines + '\n\nQuestion: ' + userMessage;
-                } else {
-                    console.log('No relevant lines found in file for the given keywords');
-                }
+                // For Phi-3 (WebLLM/GPU mode), use entire file content for best accuracy
+                console.log('Using entire file content for Phi-3 (WebLLM mode) - ' + this.config.fileUpload.content.split('\n').length + ' lines');
+                finalUserMessage = 'Use the following information to answer the question:\n\n' + this.config.fileUpload.content + '\n\nQuestion: ' + userMessage;
             }
             
             messages.push({ role: "user", content: finalUserMessage });
