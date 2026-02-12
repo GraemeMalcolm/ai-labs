@@ -1,4 +1,5 @@
 import * as webllm from "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.46/+esm";
+import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.7/esm/index.js';
 
 // Utility function to escape HTML and prevent XSS
 function escapeHtml(text) {
@@ -11,16 +12,18 @@ class ChatPlayground {
     constructor() {
         // Core state
         this.engine = null;
+        this.wllama = null; // wllama engine for CPU mode
+        this.usingWllama = false; // Track which engine is active
+        this.wllamaLoaded = false; // Track if wllama is initialized
         this.isModelLoaded = false;
         this.webllmAvailable = false; // Track if WebLLM model successfully loaded
         this.conversationHistory = [];
         this.isGenerating = false;
-        this.isSpeaking = false;
         this.stopRequested = false;
+        this.currentStream = null; // Track current streaming completion
         this.typingState = null;
         this.currentSystemMessage = "You are an AI assistant that helps people find information.";
         this.currentModelId = null;
-        this.wikipediaRequestCount = 0; // Track Wikipedia requests in fallback mode
 
         // Configuration objects
         this.config = {
@@ -36,27 +39,11 @@ class ChatPlayground {
                 maxSize: 3 * 1024, // 3KB
                 allowedTypes: ['.txt']
             },
-            speechSettings: {
-                speechToText: false,
-                textToSpeech: false,
-                voice: '',
-                speed: '1x',
-                sampleText: 'Hi, how can I help you today?'
-            },
             visionSettings: {
                 imageAnalysis: false,
                 maxImageSize: 5 * 1024 * 1024, // 5MB
                 allowedImageTypes: ['image/jpeg', 'image/jpg', 'image/png']
             }
-        };
-
-        // Initialize speech settings directly
-        this.speechSettings = {
-            speechToText: false,
-            textToSpeech: false,
-            voice: '',
-            speed: '1x',
-            sampleText: 'Hi, how can I help you today?'
         };
 
         // Initialize vision settings directly (for backward compatibility)
@@ -65,22 +52,6 @@ class ChatPlayground {
             maxImageSize: 5 * 1024 * 1024, // 5MB
             allowedImageTypes: ['image/jpeg', 'image/jpg', 'image/png']
         };
-
-        // Ensure config object references work too
-        this.config.visionSettings = this.visionSettings;
-        this.config.fileUpload = this.config.fileUpload || {
-            content: null,
-            fileName: null,
-            maxSize: 3 * 1024,
-            allowedTypes: ['.txt']
-        };
-
-        // Vision and speech state
-        this.mobileNetModel = null;
-        this.isModelDownloading = false;
-        this.pendingImage = null;
-        this.recognition = null;
-        this.isListening = false;
 
         // Initialize DOM element registry
         this.elements = {};
@@ -119,9 +90,7 @@ class ChatPlayground {
         this.attachEventListeners();
         this.initializeParameterControls();
         this.initializeFileUpload();
-        this.populateVoices();
-        this.setupSpeechToggleListeners();
-        this.initializeSpeechRecognition();
+        this.setupImageAnalysisToggle();
         this.initializeModel();
     }
     
@@ -143,7 +112,6 @@ class ChatPlayground {
             sendBtn: 'send-btn',
             stopBtn: 'stop-btn',
             attachBtn: 'attach-btn',
-            voiceBtn: 'voice-btn',
             
             // File upload elements
             fileInput: 'file-input',
@@ -151,13 +119,6 @@ class ChatPlayground {
             fileName: 'file-name',
             fileSize: 'file-size',
             addDataBtn: 'add-data-btn',
-            
-            // Speech elements
-            speechToTextToggle: 'speech-to-text-toggle',
-            textToSpeechToggle: 'text-to-speech-toggle',
-            voiceSelect: 'voice-select',
-            voiceSpeed: 'voice-speed',
-            voiceSampleText: 'voice-sample-text',
             
             // Vision elements
             imageAnalysisToggle: 'image-analysis-toggle',
@@ -168,11 +129,7 @@ class ChatPlayground {
             // Input image elements
             inputThumbnailContainer: 'input-thumbnail-container',
             inputThumbnail: 'input-thumbnail',
-            removeThumbnailBtn: 'remove-thumbnail-btn',
-            
-            // Modal elements
-            chatCapabilitiesModal: 'chat-capabilities-modal',
-            saveCapabilitiesBtn: 'save-capabilities-btn'
+            removeThumbnailBtn: 'remove-thumbnail-btn'
         };
 
         // Populate elements object with actual DOM references
@@ -192,6 +149,11 @@ class ChatPlayground {
         this.sendBtn = this.elements.sendBtn;
         this.stopBtn = this.elements.stopBtn;
         this.attachBtn = this.elements.attachBtn;
+
+        // Initialize vision state
+        this.mobileNetModel = null;
+        this.isModelDownloading = false;
+        this.pendingImage = null;
     }
 
     // Getter for backward compatibility
@@ -425,28 +387,9 @@ class ChatPlayground {
     }
     
     getEffectiveSystemMessage() {
-        let systemMessage = this.currentSystemMessage;
-        
-        // Remove any existing TTS instruction to avoid duplication
-        const ttsInstruction = '\n\nImportant: Always answer with a single, concise sentence.';
-        systemMessage = systemMessage.replace(ttsInstruction, '');
-        
-        // Remove any existing file upload content to avoid duplication
-        // Use a more specific pattern that doesn't consume the TTS instruction
-        const fileDataPattern = /\n\n---\nUse this data to answer questions:\n.*?(?=\n\nImportant:|$)/s;
-        systemMessage = systemMessage.replace(fileDataPattern, '');
-        
-        // Append uploaded file content if available
-        if (this.config.fileUpload.content) {
-            systemMessage += '\n\n---\nUse this data to answer questions:\n' + this.config.fileUpload.content;
-        }
-        
-        // Add TTS instruction when text-to-speech is enabled
-        if (this.speechSettings && this.speechSettings.textToSpeech) {
-            systemMessage += ttsInstruction;
-        }
-        
-        return systemMessage;
+        // Return system message without file upload content
+        // File content will be appended to user messages instead
+        return this.currentSystemMessage;
     }
 
     updateConversationHistoryWithCurrentSystemMessage() {
@@ -458,55 +401,7 @@ class ChatPlayground {
         // at request time to avoid storing large amounts of duplicate system messages.
     }
     
-    setupSpeechToggleListeners() {
-        // Setup toggle listeners for enabling/disabling controls
-        const speechToTextToggle = document.getElementById('speech-to-text-toggle');
-        const textToSpeechToggle = document.getElementById('text-to-speech-toggle');
-        const voiceBtn = document.getElementById('voice-btn');
-        const voiceSelect = document.getElementById('voice-select');
-        const voiceSpeed = document.getElementById('voice-speed');
-        const playBtn = document.querySelector('.play-btn');
-        const voiceSampleText = document.getElementById('voice-sample-text');
-
-        // Handle speech-to-text toggle
-        if (speechToTextToggle && voiceBtn) {
-            speechToTextToggle.addEventListener('change', (e) => {
-                const isEnabled = e.target.checked;
-                voiceBtn.disabled = !isEnabled;
-                this.speechSettings.speechToText = isEnabled;
-            });
-            // Initialize disabled state
-            voiceBtn.disabled = !speechToTextToggle.checked;
-            this.speechSettings.speechToText = speechToTextToggle.checked;
-        }
-
-        // Handle text-to-speech toggle
-        if (textToSpeechToggle) {
-            textToSpeechToggle.addEventListener('change', (e) => {
-                const isEnabled = e.target.checked;
-                if (voiceSelect) voiceSelect.disabled = !isEnabled;
-                if (voiceSpeed) voiceSpeed.disabled = !isEnabled;
-                if (playBtn) playBtn.disabled = !isEnabled;
-                if (voiceSampleText) voiceSampleText.disabled = !isEnabled;
-                
-                // Update speech settings
-                this.speechSettings.textToSpeech = isEnabled;
-                
-                // Restart conversation when TTS mode changes
-                this.restartConversation();
-            });
-            
-            // Initialize disabled states
-            const isEnabled = textToSpeechToggle.checked;
-            if (voiceSelect) voiceSelect.disabled = !isEnabled;
-            if (voiceSpeed) voiceSpeed.disabled = !isEnabled;
-            if (playBtn) playBtn.disabled = !isEnabled;
-            if (voiceSampleText) voiceSampleText.disabled = !isEnabled;
-            
-            // Initialize speech settings to match checkbox state
-            this.speechSettings.textToSpeech = isEnabled;
-        }
-
+    setupImageAnalysisToggle() {
         // Handle image analysis toggle
         const imageAnalysisToggle = document.getElementById('image-analysis-toggle');
         if (imageAnalysisToggle) {
@@ -530,339 +425,10 @@ class ChatPlayground {
         }
     }
 
-    saveSpeechSettings() {
-        // Save current speech settings
-        const speechToTextToggle = document.getElementById('speech-to-text-toggle');
-        const textToSpeechToggle = document.getElementById('text-to-speech-toggle');
-        const voiceSelect = document.getElementById('voice-select');
-        const voiceSpeed = document.getElementById('voice-speed');
-        const voiceSampleText = document.getElementById('voice-sample-text');
-
-        this.speechSettings = {
-            speechToText: speechToTextToggle ? speechToTextToggle.checked : false,
-            textToSpeech: textToSpeechToggle ? textToSpeechToggle.checked : false,
-            voice: voiceSelect ? voiceSelect.value : 'default',
-            speed: voiceSpeed ? voiceSpeed.value : '1x',
-            sampleText: voiceSampleText ? voiceSampleText.value : 'Hi, how can I help you today?'
-        };
-    }
-
-    restoreSpeechSettings() {
-        // Restore speech settings to current saved values
-        if (!this.speechSettings) {
-            // Initialize default settings if none exist
-            this.speechSettings = {
-                speechToText: false,
-                textToSpeech: false,
-                voice: '', // Will be set by populateVoices()
-                speed: '1x',
-                sampleText: 'Hi, how can I help you today?'
-            };
-        }
-
-        const speechToTextToggle = document.getElementById('speech-to-text-toggle');
-        const textToSpeechToggle = document.getElementById('text-to-speech-toggle');
-        const voiceSelect = document.getElementById('voice-select');
-        const voiceSpeed = document.getElementById('voice-speed');
-        const voiceSampleText = document.getElementById('voice-sample-text');
-
-        if (speechToTextToggle) speechToTextToggle.checked = this.speechSettings.speechToText;
-        if (textToSpeechToggle) textToSpeechToggle.checked = this.speechSettings.textToSpeech;
-        if (voiceSelect && this.speechSettings.voice) voiceSelect.value = this.speechSettings.voice;
-        if (voiceSpeed) voiceSpeed.value = this.speechSettings.speed;
-        if (voiceSampleText) voiceSampleText.value = this.speechSettings.sampleText;
-
-        // Update UI states
-        this.setupSpeechToggleListeners();
-    }
-
-    speakResponse(text) {
-        // Check if text-to-speech is enabled
-        if (!this.speechSettings || !this.speechSettings.textToSpeech) {
-            return;
-        }
-
-        // Check if speech synthesis is available
-        if (!('speechSynthesis' in window)) {
-            return;
-        }
-
-        // Stop any currently speaking utterance
-        speechSynthesis.cancel();
-
-        // Create new utterance
-        const utterance = new SpeechSynthesisUtterance(text);
-
-        // Configure voice if selected
-        if (this.speechSettings.voice && this.speechSettings.voice !== 'default') {
-            const voices = speechSynthesis.getVoices();
-            const selectedVoice = voices.find(voice => voice.name === this.speechSettings.voice);
-            if (selectedVoice) {
-                utterance.voice = selectedVoice;
-            }
-        }
-
-        // Configure speed
-        const speedMap = { '0.5x': 0.5, '1x': 1, '1.5x': 1.5, '2x': 2 };
-        utterance.rate = speedMap[this.speechSettings.speed] || 1;
-
-        // Configure other properties for better speech
-        utterance.pitch = 1;
-        utterance.volume = 1;
-
-        // Track speech state
-        this.isSpeaking = true;
-
-        // Handle speech end
-        utterance.onend = () => {
-            this.isSpeaking = false;
-            // Update UI only if typing is also complete
-            if (!this.isGenerating) {
-                this.updateUIForGeneration(false);
-            }
-        };
-
-        utterance.onerror = () => {
-            this.isSpeaking = false;
-            // Update UI only if typing is also complete
-            if (!this.isGenerating) {
-                this.updateUIForGeneration(false);
-            }
-        };
-
-        // Speak the response
-        speechSynthesis.speak(utterance);
-    }
-
-    populateVoices() {
-        const voiceSelect = document.getElementById('voice-select');
-        if (!voiceSelect) return;
-
-        const loadVoices = () => {
-            const voices = speechSynthesis.getVoices();
-            const microsoftVoices = voices.filter(voice => 
-                voice && voice.name &&
-                (voice.name.includes('Microsoft') || 
-                (voice.voiceURI && voice.voiceURI.includes('Microsoft')) ||
-                (voice.lang && voice.lang.startsWith('en')))
-            );
-
-            // Preserve current selection
-            const currentSelection = voiceSelect.value;
-
-            // Clear existing options
-            voiceSelect.innerHTML = '';
-
-            if (microsoftVoices.length > 0) {
-                // Add Microsoft voices
-                microsoftVoices.forEach((voice, index) => {
-                    if (!voice || !voice.name) return; // Skip invalid voices
-                    const option = document.createElement('option');
-                    option.value = voice.name;
-                    option.textContent = `${voice.name} (${voice.lang})`;
-                    
-                    // Restore previous selection, or use first voice as default
-                    if (currentSelection && voice.name === currentSelection) {
-                        option.selected = true;
-                        this.speechSettings.voice = voice.name;
-                    } else if (!currentSelection && index === 0) {
-                        option.selected = true;
-                        // Only update speech settings if no voice was previously selected
-                        if (!this.speechSettings.voice) {
-                            this.speechSettings.voice = voice.name;
-                        }
-                    }
-                    voiceSelect.appendChild(option);
-                });
-            } else {
-                // Fallback to all English voices if no Microsoft voices found
-                const englishVoices = voices.filter(voice => voice && voice.lang && voice.lang.startsWith('en'));
-                if (englishVoices.length > 0) {
-                    englishVoices.forEach((voice, index) => {
-                        if (!voice || !voice.name) return; // Skip invalid voices
-                        const option = document.createElement('option');
-                        option.value = voice.name;
-                        option.textContent = `${voice.name} (${voice.lang})`;
-                        
-                        // Restore previous selection, or use first voice as default
-                        if (currentSelection && voice.name === currentSelection) {
-                            option.selected = true;
-                            this.speechSettings.voice = voice.name;
-                        } else if (!currentSelection && index === 0) {
-                            option.selected = true;
-                            if (!this.speechSettings.voice) {
-                                this.speechSettings.voice = voice.name;
-                            }
-                        }
-                        voiceSelect.appendChild(option);
-                    });
-                } else {
-                    // Final fallback
-                    const option = document.createElement('option');
-                    option.value = 'default';
-                    option.textContent = 'Default System Voice';
-                    option.selected = true;
-                    voiceSelect.appendChild(option);
-                    if (!this.speechSettings.voice) {
-                        this.speechSettings.voice = 'default';
-                    }
-                }
-            }
-        };
-
-        // Load voices immediately if available
-        if (speechSynthesis.getVoices().length > 0) {
-            loadVoices();
-        } else {
-            // Wait for voices to be loaded
-            speechSynthesis.addEventListener('voiceschanged', loadVoices);
-            // Also try after a short delay as fallback
-            setTimeout(loadVoices, 100);
-        }
-    }
-
-    initializeSpeechRecognition() {
-        // Check if speech recognition is supported
-        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            console.warn('Speech recognition not supported in this browser.');
-            return;
-        }
-
-        // Initialize speech recognition
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        this.recognition = new SpeechRecognition();
-        this.recognition.continuous = false;
-        this.recognition.interimResults = false;
-        this.recognition.lang = 'en-US';
-        this.recognition.maxAlternatives = 1;
-
-        // Handle speech recognition events
-        this.recognition.onstart = () => {
-            console.log('Speech recognition started');
-            this.isListening = true;
-            this.updateVoiceButtonState();
-        };
-
-        this.recognition.onresult = (event) => {
-            const result = event.results[0];
-            if (result.isFinal) {
-                const transcript = result[0].transcript.trim();
-                console.log('Speech recognition result:', transcript);
-                
-                if (transcript) {
-                    // Add the transcribed text to the input field
-                    this.userInput.value = transcript;
-                    this.userInput.style.height = 'auto';
-                    this.userInput.style.height = Math.min(this.userInput.scrollHeight, 120) + 'px';
-                    
-                    // Automatically send the message
-                    this.handleSendMessage();
-                }
-            }
-        };
-
-        this.recognition.onend = () => {
-            console.log('Speech recognition ended');
-            this.isListening = false;
-            this.updateVoiceButtonState();
-        };
-
-        this.recognition.onerror = (event) => {
-            console.error('Speech recognition error:', event.error);
-            this.isListening = false;
-            this.updateVoiceButtonState();
-            
-            if (event.error === 'no-speech') {
-                this.showToast('No speech detected. Please try again.');
-            } else if (event.error === 'network') {
-                this.showToast('Network error: Speech recognition requires internet connection to speech services.');
-            } else if (event.error === 'not-allowed') {
-                this.showToast('Microphone access denied. Please allow microphone access and try again.');
-            } else if (event.error === 'service-not-allowed') {
-                this.showToast('Speech recognition service not available. Please check your browser settings.');
-            } else {
-                this.showToast(`Speech recognition error: ${event.error}. Please try again.`);
-            }
-        };
-    }
-
-    updateVoiceButtonState() {
-        const voiceBtn = document.getElementById('voice-btn');
-        if (voiceBtn) {
-            voiceBtn.textContent = this.isListening ? '🔴' : '🎙️';
-            voiceBtn.title = this.isListening ? 'Listening...' : 'Voice input';
-        }
-    }
-
-    playBeep() {
-        // Create a short beep sound
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-        
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.2);
-    }
-
-    startVoiceInput() {
-        if (!this.recognition) {
-            this.showToast('Speech recognition not available.');
-            return;
-        }
-        
-        if (this.isListening) {
-            // Stop listening
-            try {
-                this.recognition.stop();
-            } catch (error) {
-                console.error('Error stopping speech recognition:', error);
-            }
-            return;
-        }
-        
-        // Play beep and start listening
-        this.playBeep();
-        
-        // Start speech recognition after a short delay to let the beep play
-        setTimeout(() => {
-            try {
-                // Abort any existing recognition session before starting a new one
-                try {
-                    this.recognition.abort();
-                } catch (e) {
-                    // Ignore abort errors
-                }
-                
-                // Wait a moment before starting new session
-                setTimeout(() => {
-                    this.recognition.start();
-                }, 100);
-            } catch (error) {
-                console.error('Error starting speech recognition:', error);
-                
-                // If we get an error, try to recreate the recognition object
-                if (error.message && error.message.includes('already started')) {
-                    this.showToast('Speech recognition already in progress. Please wait.');
-                } else {
-                    this.showToast('Could not start voice input. Try again or check browser permissions.');
-                }
-                
-                this.isListening = false;
-                this.updateVoiceButtonState();
-            }
-        }, 300);
-    }
-
     updateAttachButtonState() {
         if (this.attachBtn) {
-            this.attachBtn.disabled = !this.visionSettings.imageAnalysis;
+            // Only enable attach button if image analysis is enabled AND model is downloaded (not downloading)
+            this.attachBtn.disabled = !this.visionSettings.imageAnalysis || this.isModelDownloading || !this.mobileNetModel;
         }
     }
 
@@ -963,13 +529,14 @@ class ChatPlayground {
         } finally {
             this.isModelDownloading = false;
             this.updateSaveButtonState(); // Re-enable save button
+            this.updateAttachButtonState(); // Update attach button state (enable if model loaded, disable if error)
         }
     }
 
     handleImageUpload() {
         // Check if image analysis is enabled (required for both modes)
         if (!this.visionSettings.imageAnalysis) {
-            this.showToast('Please enable image analysis in Chat Capabilities first');
+            this.showToast('Please enable image analysis first');
             return;
         }
         
@@ -1110,18 +677,32 @@ class ChatPlayground {
             }
         });
         
+        // Add keyboard support for collapsible buttons
+        const collapsibleButtons = document.querySelectorAll('.collapsible-btn');
+        collapsibleButtons.forEach(button => {
+            button.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    button.click();
+                }
+            });
+        });
+        
+        // Add keyboard support for icon buttons
+        const iconButtons = document.querySelectorAll('.icon-btn');
+        iconButtons.forEach(button => {
+            button.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    button.click();
+                }
+            });
+        });
+        
         // Dynamic system message update
         this.systemMessage.addEventListener('input', () => {
             this.currentSystemMessage = this.systemMessage.value;
         });
-        
-        this.stopBtn.addEventListener('click', () => this.stopGeneration());
-        
-        // Voice input button
-        const voiceBtn = document.getElementById('voice-btn');
-        if (voiceBtn) {
-            voiceBtn.addEventListener('click', () => this.startVoiceInput());
-        }
 
         // Attach button (image upload)
         if (this.attachBtn) {
@@ -1134,120 +715,185 @@ class ChatPlayground {
             this.userInput.style.height = Math.min(this.userInput.scrollHeight, 120) + 'px';
         });
         
-        // Voice selection change handler
-        const voiceSelect = document.getElementById('voice-select');
-        if (voiceSelect) {
-            voiceSelect.addEventListener('change', (e) => {
-                this.speechSettings.voice = e.target.value;
-                console.log('Voice changed to:', e.target.value);
+        // Clear chat button (New Chat icon in header)
+        const newChatBtn = document.querySelector('.chat-controls .icon-btn:not(.help-btn)');
+        if (newChatBtn) {
+            newChatBtn.addEventListener('click', () => {
+                this.clearChat();
             });
         }
         
-        // Voice speed change handler
-        const voiceSpeed = document.getElementById('voice-speed');
-        if (voiceSpeed) {
-            voiceSpeed.addEventListener('change', (e) => {
-                this.speechSettings.speed = e.target.value;
-                console.log('Voice speed changed to:', e.target.value);
+        // Help/About button
+        const helpBtn = document.querySelector('.chat-controls .help-btn');
+        if (helpBtn) {
+            helpBtn.addEventListener('click', () => {
+                window.openAboutModal();
             });
         }
         
-        // Clear chat button
-        document.querySelector('.chat-controls .icon-btn').addEventListener('click', () => {
-            this.clearChat();
-        });
+        // Parameters button
+        const parametersBtn = document.getElementById('parameters-btn');
+        if (parametersBtn) {
+            parametersBtn.addEventListener('click', () => {
+                window.openParametersModal();
+            });
+        }
+        
+        // Model selection change
+        this.modelSelect.addEventListener('change', () => this.handleModelChange());
     }
     
     async initializeModel() {
         try {
-            console.log('initializeModel called - starting model initialization');
-            this.updateProgress(0, 'Discovering available models...');
-            console.log('Starting WebLLM initialization...');
-            console.log('WebLLM object:', webllm);
-            console.log('WebLLM.CreateMLCEngine:', typeof webllm?.CreateMLCEngine);
-            console.log('WebLLM.prebuiltAppConfig:', typeof webllm?.prebuiltAppConfig);
+            await this.initializeEngine();
+        } catch (error) {
+            console.error('Failed to initialize AI engine:', error);
+        }
+    }
+    
+    async initializeEngine() {
+        try {
+            console.log('Attempting to initialize WebLLM first...');
+            await this.initializeWebLLM();
+            console.log('WebLLM initialized successfully');
+            this.webllmAvailable = true;
+            this.usingWllama = false;
+        } catch (error) {
+            console.error('WebLLM initialization failed, loading wllama fallback:', error);
+            this.webllmAvailable = false;
             
-            // Check if WebLLM is available
-            if (!webllm || !webllm.CreateMLCEngine || !webllm.prebuiltAppConfig) {
-                console.error('WebLLM check failed:', {
-                    webllm: !!webllm,
-                    CreateMLCEngine: !!webllm?.CreateMLCEngine,
-                    prebuiltAppConfig: !!webllm?.prebuiltAppConfig
-                });
-                throw new Error('WebLLM not properly loaded');
+            try {
+                await this.initializeWllama();
+                console.log('Wllama initialized successfully as fallback');
+                this.usingWllama = true;
+                this.wllamaLoaded = true;
+            } catch (wllamaError) {
+                console.error('Both WebLLM and wllama initialization failed:', wllamaError);
+                this.updateProgress(0, 'AI models unavailable. Please check your internet connection and refresh the page.', true);
+                setTimeout(() => {
+                    this.enableUI();
+                }, 2000);
             }
-            
-            // Get available models from WebLLM
-            const models = webllm.prebuiltAppConfig.model_list;
-            console.log('All available models:', models.map(m => m.model_id));
-            
-            // Filter for the specific Phi-3 model only
-            const targetModelId = 'Phi-3-mini-4k-instruct-q4f16_1-MLC';
-            let availableModels = models.filter(model => 
-                model.model_id === targetModelId
-            );
-            
-            if (availableModels.length === 0) {
-                throw new Error('Phi-3-mini-4k-instruct model not found');
-            }
-            
-            console.log('Available models for loading:', availableModels.map(m => m.model_id));
-            
-            this.updateProgress(10, 'Loading model...');
-            
-            // Try to load the first available model
-            let engineCreated = false;
-            
-            for (const model of availableModels) {
-                try {
-                    console.log(`Trying to load model: ${model.model_id}`);
-                    this.updateProgress(15, `Loading ${model.model_id}...`);
-                    
-                    this.engine = await webllm.CreateMLCEngine(
-                        model.model_id,
-                        {
-                            initProgressCallback: (progress) => {
-                                console.log('Progress:', progress);
-                                const percentage = Math.max(15, Math.round(progress.progress * 85) + 15);
-                                this.updateProgress(percentage, `Loading ${model.model_id}: ${Math.round(progress.progress * 100)}%`);
-                            }
+        }
+    }
+    
+    async initializeWebLLM() {
+        console.log('initializeWebLLM called - starting model initialization');
+        this.updateProgress(0, 'Discovering available models...');
+        console.log('Starting WebLLM initialization...');
+        console.log('WebLLM object:', webllm);
+        console.log('WebLLM.CreateMLCEngine:', typeof webllm?.CreateMLCEngine);
+        console.log('WebLLM.prebuiltAppConfig:', typeof webllm?.prebuiltAppConfig);
+        
+        // Check if WebLLM is available
+        if (!webllm || !webllm.CreateMLCEngine || !webllm.prebuiltAppConfig) {
+            console.error('WebLLM check failed:', {
+                webllm: !!webllm,
+                CreateMLCEngine: !!webllm?.CreateMLCEngine,
+                prebuiltAppConfig: !!webllm?.prebuiltAppConfig
+            });
+            throw new Error('WebLLM not properly loaded');
+        }
+        
+        // Get available models from WebLLM
+        const models = webllm.prebuiltAppConfig.model_list;
+        console.log('All available models:', models.map(m => m.model_id));
+        
+        // Filter for the specific Phi-3 model only
+        const targetModelId = 'Phi-3-mini-4k-instruct-q4f16_1-MLC';
+        let availableModels = models.filter(model => 
+            model.model_id === targetModelId
+        );
+        
+        if (availableModels.length === 0) {
+            throw new Error('Phi-3-mini-4k-instruct model not found');
+        }
+        
+        console.log('Available models for loading:', availableModels.map(m => m.model_id));
+        
+        this.updateProgress(10, 'Loading WebLLM model (GPU mode)...');
+        
+        // Try to load the first available model
+        let engineCreated = false;
+        
+        for (const model of availableModels) {
+            try {
+                console.log(`Trying to load model: ${model.model_id}`);
+                this.updateProgress(15, `Loading ${model.model_id}...`);
+                
+                this.engine = await webllm.CreateMLCEngine(
+                    model.model_id,
+                    {
+                        initProgressCallback: (progress) => {
+                            console.log('Progress:', progress);
+                            const percentage = Math.max(15, Math.round(progress.progress * 85) + 15);
+                            this.updateProgress(percentage, `Loading ${model.model_id}: ${Math.round(progress.progress * 100)}%<br><small style="font-size: 0.9em; color: #666;">(First-time download may take a few minutes)</small>`, true);
                         }
-                    );
-                    
-                    console.log(`Successfully loaded model: ${model.model_id}`);
-                    this.currentModelId = model.model_id;
-                    engineCreated = true;
-                    break;
-                    
-                } catch (modelError) {
-                    console.error(`Failed to load ${model.model_id}:`, modelError);
-                    continue;
+                    }
+                );
+                
+                console.log(`Successfully loaded model: ${model.model_id}`);
+                this.currentModelId = model.model_id;
+                engineCreated = true;
+                break;
+                
+            } catch (modelError) {
+                console.error(`Failed to load ${model.model_id}:`, modelError);
+                continue;
+            }
+        }
+        
+        if (!engineCreated) {
+            throw new Error('Failed to load any available models. Please check your internet connection and try again.');
+        }
+        
+        console.log('WebLLM engine created successfully');
+        this.updateProgress(100, 'Model ready! (GPU mode)');
+        setTimeout(() => {
+            this.progressContainer.style.display = 'none';
+            this.enableUI();
+        }, 1000);
+    }
+    
+    async initializeWllama(progressCallback) {
+        console.log('Initializing wllama...');
+        
+        const updateProgress = progressCallback || ((loaded, total) => {
+            const percentage = Math.round((loaded / total) * 100);
+            this.updateProgress(percentage, `Loading wllama model (CPU mode): ${percentage}%<br><small style="font-size: 0.9em; color: #666;">(First-time download may take a few minutes)</small>`, true);
+        });
+        
+        updateProgress(0, 100);
+        
+        // Configure WASM paths for CDN
+        const CONFIG_PATHS = {
+            'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.7/esm/single-thread/wllama.wasm',
+            'multi-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.7/esm/multi-thread/wllama.wasm',
+        };
+        
+        // Initialize wllama with CDN-hosted WASM files
+        this.wllama = new Wllama(CONFIG_PATHS);
+        
+        // Load SmolLM2 model from HuggingFace
+        await this.wllama.loadModelFromHF(
+            'ngxson/SmolLM2-360M-Instruct-Q8_0-GGUF',
+            'smollm2-360m-instruct-q8_0.gguf',
+            {
+                n_ctx: 2048,
+                n_threads: navigator.hardwareConcurrency || 4,
+                progressCallback: ({ loaded, total }) => {
+                    updateProgress(loaded, total);
                 }
             }
-            
-            if (!engineCreated) {
-                throw new Error('Failed to load any available models. Please check your internet connection and try again.');
-            }
-            
-            console.log('WebLLM engine created successfully');
-            this.webllmAvailable = true; // Mark WebLLM as successfully loaded
-            this.updateProgress(100, 'Model ready!');
-            setTimeout(() => {
-                this.progressContainer.style.display = 'none';
-                this.enableUI();
-            }, 1000);
-            
-        } catch (error) {
-            console.error('Failed to initialize WebLLM:', error);
-            this.webllmAvailable = false; // Mark WebLLM as unavailable
-            this.updateProgress(0, `Error: ${error.message}`);
-            
-            // Enable UI for Wikipedia fallback mode
-            setTimeout(() => {
-                this.updateProgress(0, 'AI model unavailable. Using Wikipedia search fallback mode - <a href="#" onclick="openAboutModal(); return false;" style="color: #0078d4; text-decoration: underline; cursor: pointer;">More info...</a>', true);
-                this.enableUI();
-            }, 2000);
-        }
+        );
+        
+        console.log('Wllama initialized successfully');
+        this.wllamaLoaded = true;
+        this.updateProgress(100, 'CPU model ready!');
+        setTimeout(() => {
+            this.progressContainer.style.display = 'none';
+            this.enableUI();
+        }, 1000);
     }
     
     updateProgress(percentage, text, useHTML = false) {
@@ -1265,79 +911,128 @@ class ChatPlayground {
         this.systemMessage.disabled = false;
         this.userInput.disabled = false;
         this.sendBtn.disabled = false;
+        this.updateAttachButtonState(); // Update attach button based on vision settings
         this.userInput.focus();
         
         // Populate model dropdown with available models
         this.populateModelDropdown();
         
         // Set parameter controls based on whether WebLLM is available
-        this.setParameterControlsEnabled(this.webllmAvailable);
+        this.setParameterControlsEnabled(this.webllmAvailable || this.wllamaLoaded);
+    }
+    
+    disableUI() {
+        this.isModelLoaded = false;
+        this.systemMessage.disabled = true;
+        this.userInput.disabled = true;
+        this.sendBtn.disabled = true;
+        this.attachBtn.disabled = true;
+    }
+    
+    async handleModelChange() {
+        const selectedValue = this.modelSelect.value;
+        
+        if (this.isGenerating) {
+            console.log('Cannot switch models while generating');
+            // Reset to current model
+            this.populateModelDropdown();
+            return;
+        }
+        
+        // Determine if we're actually switching models
+        const previousMode = this.usingWllama;
+        const newModeIsWllama = selectedValue === 'phi3-cpu';
+        
+        if (selectedValue === 'phi3-gpu') {
+            if (!this.webllmAvailable) {
+                alert('Phi-3 (GPU) is not available. WebGPU is not supported on this device.');
+                this.populateModelDropdown(); // Reset selection
+                return;
+            }
+            
+            // Clear wllama KV cache if switching from CPU mode
+            if (previousMode && this.wllama) {
+                await this.wllama.kvClear();
+                console.log('Cleared wllama KV cache when switching to GPU mode');
+            }
+            
+            this.usingWllama = false;
+            
+            // Clear chat and restart conversation
+            if (previousMode !== this.usingWllama) {
+                this.clearChat();
+                this.showToast('Switched to Phi-3 (GPU) - Conversation restarted');
+            }
+            
+            console.log('Switched to Phi-3 (GPU) mode');
+        } else if (selectedValue === 'phi3-cpu') {
+            // Keep WebLLM engine loaded (it uses GPU memory, wllama uses system RAM)
+            // If wllama not loaded yet, load it
+            if (!this.wllamaLoaded) {
+                console.log('Loading wllama for the first time...');
+                
+                // Disable UI during model loading
+                this.disableUI();
+                
+                // Show progress
+                this.progressContainer.style.display = 'block';
+                
+                try {
+                    await this.initializeWllama((loaded, total) => {
+                        const percentage = Math.round((loaded / total) * 100);
+                        this.updateProgress(percentage, `Loading SmolLM2 (CPU): ${percentage}%<br><small style="font-size: 0.9em; color: #666;">(First-time download may take a few minutes)</small>`, true);
+                    });
+                    
+                    this.usingWllama = true;
+                    
+                    // Clear chat and restart conversation
+                    this.clearChat();
+                    this.showToast('Switched to SmolLM2 (CPU) - Conversation restarted');
+                    
+                    console.log('Switched to SmolLM2 (CPU) mode');
+                } catch (error) {
+                    console.error('Failed to load wllama:', error);
+                    this.populateModelDropdown(); // Reset to previous selection
+                    alert('Failed to load SmolLM2 (CPU). Please try again.');
+                    // Re-enable UI even on error
+                    this.enableUI();
+                }
+            } else {
+                this.usingWllama = true;
+                
+                // Clear chat and restart conversation
+                if (previousMode !== this.usingWllama) {
+                    this.clearChat();
+                    this.showToast('Switched to SmolLM2 (CPU) - Conversation restarted');
+                }
+                
+                console.log('Switched to SmolLM2 (CPU) mode');
+            }
+        }
     }
     
     populateModelDropdown() {
         // Clear existing options
         this.modelSelect.innerHTML = '';
         
-        // Add "None" option for fallback mode
-        const noneOption = document.createElement('option');
-        noneOption.value = 'none';
-        noneOption.textContent = 'None';
-        if (!this.webllmAvailable || !this.currentModelId) {
-            noneOption.selected = true;
+        // Add Phi-3 (GPU) option
+        const phiOption = document.createElement('option');
+        phiOption.value = 'phi3-gpu';
+        phiOption.textContent = 'Phi-3-mini (GPU)';
+        phiOption.disabled = !this.webllmAvailable;
+        if (this.webllmAvailable && !this.usingWllama) {
+            phiOption.selected = true;
         }
-        this.modelSelect.appendChild(noneOption);
+        this.modelSelect.appendChild(phiOption);
         
-        if (!webllm || !webllm.prebuiltAppConfig) {
-            return;
+        // Add SmolLM2 (CPU) option
+        const cpuOption = document.createElement('option');
+        cpuOption.value = 'phi3-cpu';
+        cpuOption.textContent = 'SmolLM2 (CPU)';
+        if (this.usingWllama || !this.webllmAvailable) {
+            cpuOption.selected = true;
         }
-        
-        // Get all available models
-        const allModels = webllm.prebuiltAppConfig.model_list;
-        
-        // Filter for the specific Phi-3 model only
-        const targetModelId = 'Phi-3-mini-4k-instruct-q4f16_1-MLC';
-        const phiModel = allModels.find(model => model.model_id === targetModelId);
-        
-        if (phiModel) {
-            const option = document.createElement('option');
-            option.value = phiModel.model_id;
-            option.textContent = 'Microsoft Phi-3-mini-4k-instruct';
-            
-            // Mark current model as selected
-            if (phiModel.model_id === this.currentModelId) {
-                option.selected = true;
-                //option.textContent += ' (Current)';
-            }
-            
-            this.modelSelect.appendChild(option);
-        }
-        
-        // Setup event listener only once (on first call)
-        if (!this.modelSelectListenerAttached) {
-            this.modelSelect.addEventListener('change', (e) => {
-                if (e.target.value === 'none') {
-                    // Switch to fallback mode
-                    this.webllmAvailable = false;
-                    this.currentModelId = null;
-                    this.clearChat();
-                    this.setParameterControlsEnabled(false);
-                    this.showToast('Switched to fallback mode - Conversation restarted');
-                } else if (e.target.value && e.target.value !== this.currentModelId) {
-                    this.switchModel(e.target.value);
-                }
-            });
-            this.modelSelectListenerAttached = true;
-        }
-    }
-    
-    formatModelName(modelId) {
-        // Simple formatter for our single Phi-3 model
-        if (modelId === 'Phi-3-mini-4k-instruct-q4f16_1-MLC') {
-            return 'Microsoft Phi-3-mini-4k-instruct';
-        }
-        
-        // Fallback for any unexpected model ID
-        return modelId;
+        this.modelSelect.appendChild(cpuOption);
     }
 
     setParameterControlsEnabled(enabled) {
@@ -1362,71 +1057,55 @@ class ChatPlayground {
 
 
     
-    async switchModel(newModelId) {
+    // Extract keywords from text (excluding common stopwords)
+    extractKeywords(text) {
+        const stopwords = new Set([
+            'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from',
+            'has', 'he', 'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the',
+            'to', 'was', 'will', 'with', 'what', 'when', 'where', 'who', 'how',
+            'do', 'does', 'did', 'can', 'could', 'would', 'should', 'may', 'might',
+            'this', 'these', 'those', 'i', 'you', 'we', 'they', 'my', 'your',
+            'am', 'been', 'being', 'have', 'had', 'were', 'there', 'their'
+        ]);
+        
+        // Extract words, convert to lowercase, filter stopwords and short words
+        const words = text.toLowerCase()
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .split(/\s+/)
+            .filter(word => word.length > 2 && !stopwords.has(word));
+        
+        // Return unique keywords
+        return [...new Set(words)];
+    }
+    
+    // Extract relevant lines from file content based on keywords
+    extractRelevantLines(fileContent, keywords) {
+        if (!fileContent || !keywords || keywords.length === 0) {
+            return '';
+        }
+        
+        const lines = fileContent.split('\n');
+        const matchingLines = [];
+        
+        for (const line of lines) {
+            const lineLower = line.toLowerCase();
+            // Check if line contains any keyword
+            if (keywords.some(keyword => lineLower.includes(keyword))) {
+                matchingLines.push(line.trim());
+            }
+        }
+        
+        return matchingLines.length > 0 ? matchingLines.join('\n') : '';
+    }
+
+    async handleSendMessage() {
+        // If already generating, stop instead of sending
         if (this.isGenerating) {
-            alert('Please wait for the current response to complete before switching models.');
-            this.modelSelect.value = this.currentModelId;
+            this.stopGeneration();
             return;
         }
         
-        try {
-            // Show progress
-            this.progressContainer.style.display = 'block';
-            this.updateProgress(0, `Switching to ${this.formatModelName(newModelId)}...`);
-            
-            // Disable UI
-            this.modelSelect.disabled = true;
-            this.userInput.disabled = true;
-            this.sendBtn.disabled = true;
-            
-            console.log(`Switching to model: ${newModelId}`);
-            
-            // Create new engine with selected model
-            this.engine = await webllm.CreateMLCEngine(
-                newModelId,
-                {
-                    initProgressCallback: (progress) => {
-                        console.log('Switch progress:', progress);
-                        const percentage = Math.round(progress.progress * 100);
-                        this.updateProgress(percentage, `Loading ${this.formatModelName(newModelId)}: ${percentage}%`);
-                    }
-                }
-            );
-            
-            this.currentModelId = newModelId;
-            this.webllmAvailable = true; // Mark WebLLM as available when switching to a real model
-            console.log(`Successfully switched to model: ${newModelId}`);
-            
-            // Clear conversation history when switching models
-            this.clearChat();
-            
-            // Re-enable parameter controls when switching to a real model
-            this.setParameterControlsEnabled(true);
-            
-            this.updateProgress(100, 'Model switched successfully!');
-            setTimeout(() => {
-                this.progressContainer.style.display = 'none';
-                this.enableUI();
-                this.showToast(`Switched to ${this.formatModelName(newModelId)} - Conversation restarted`);
-            }, 1000);
-            
-        } catch (error) {
-            console.error(`Failed to switch to model ${newModelId}:`, error);
-            this.updateProgress(0, `Failed to switch model: ${error.message}`);
-            
-            // Revert dropdown selection
-            this.modelSelect.value = this.currentModelId;
-            
-            setTimeout(() => {
-                this.progressContainer.style.display = 'none';
-                this.enableUI();
-                alert(`Failed to switch to ${this.formatModelName(newModelId)}. Please try a different model.`);
-            }, 3000);
-        }
-    }
-    
-    async handleSendMessage() {
-        if (!this.isModelLoaded || this.isGenerating) return;
+        if (!this.isModelLoaded) return;
         
         let userMessage = this.userInput.value.trim();
         if (!userMessage && !this.pendingImage) return;
@@ -1438,21 +1117,12 @@ class ChatPlayground {
         // Process pending image if exists
         let imageAnalysis = '';
         let imageElement = null;
-        let imagePredictionForWiki = null; // Store for Wikipedia fallback
         
         if (this.pendingImage) {
             try {
                 // Get image analysis (requires MobileNet to be pre-loaded)
                 const predictions = await this.classifyImage(this.pendingImage.img);
                 imageAnalysis = predictions[0].className.replace(/_/g, ' ')
-                //const formattedPredictions = this.formatPredictions(predictions);
-                //imageAnalysis = `\n---\nAnswer concisely and base your response on the most likely object in this image analysis ${imagePrediction}\nDo not include probability percentages or mention low probability options from the analysis in the response, just indicate what you think the image is based on your interpretation of the analysis and the user's message (${userMessage}) as if you've actually seen the image.`;
-                
-                // Store the top prediction for Wikipedia fallback
-                if (predictions && predictions.length > 0) {
-                    imagePredictionForWiki = predictions[0].className;
-                    console.log('Stored image prediction for Wikipedia fallback:', imagePredictionForWiki);
-                }
                 
                 // Create image element for message bubble
                 imageElement = document.createElement('img');
@@ -1465,12 +1135,6 @@ class ChatPlayground {
                 this.showToast('Error analyzing image. Sending message without analysis.');
             }
         }
-        
-        // Stop any ongoing speech
-        if ('speechSynthesis' in window) {
-            speechSynthesis.cancel();
-        }
-        this.isSpeaking = false;
         
         // Reset stop state and typing state
         this.stopRequested = false;
@@ -1498,63 +1162,6 @@ class ChatPlayground {
         const typingIndicator = this.addTypingIndicator();
         
         try {
-            // Check if WebLLM is available, otherwise use Wikipedia fallback
-            if (!this.webllmAvailable) {
-                // Wikipedia fallback mode
-                console.log('Using Wikipedia fallback mode');
-                
-                // Check Wikipedia request quota
-                if (this.wikipediaRequestCount >= 15) {
-                    // Remove typing indicator
-                    typingIndicator.remove();
-                    
-                    // Add quota exceeded message
-                    const assistantMessageEl = this.addMessage('assistant', 'Quota exceeded. Only 15 requests are permitted.');
-                    
-                    // Add to conversation history
-                    this.conversationHistory.push({ role: "user", content: userMessage });
-                    this.conversationHistory.push({ role: "assistant", content: 'Quota exceeded. Only 15 requests are permitted.' });
-                    
-                    return;
-                }
-                
-                // Increment Wikipedia request counter
-                this.wikipediaRequestCount++;
-                console.log(`Wikipedia request count: ${this.wikipediaRequestCount}/15`);
-                
-                // Remove typing indicator
-                typingIndicator.remove();
-                
-                // Add thinking indicator
-                const thinkingIndicator = this.addThinkingIndicator();
-                
-                // Use the image prediction we stored earlier
-                console.log('Image prediction available for Wikipedia:', imagePredictionForWiki);
-                
-                // Get Wikipedia response with optional image prediction
-                const wikiResponse = await this.handleWikipediaFallback(userMessage, imagePredictionForWiki);
-                
-                // Remove thinking indicator
-                thinkingIndicator.remove();
-                
-                // Create message container and type response
-                const assistantMessageEl = this.addMessage('assistant', '');
-                const contentEl = assistantMessageEl.querySelector('.message-content');
-                await this.typeResponse(contentEl, wikiResponse);
-                
-                // Add to conversation history
-                this.conversationHistory.push({ role: "user", content: userMessage });
-                this.conversationHistory.push({ role: "assistant", content: wikiResponse });
-                
-                // Speak if TTS is enabled
-                if (this.speechSettings && this.speechSettings.textToSpeech) {
-                    this.speakResponse(wikiResponse);
-                }
-                
-                return;
-            }
-            
-            // WebLLM mode (original functionality)
             // Update conversation history to reflect current system message
             this.updateConversationHistoryWithCurrentSystemMessage();
             
@@ -1564,21 +1171,45 @@ class ChatPlayground {
             ];
             
             // Add last 10 conversation pairs
-            const recentHistory = this.conversationHistory.slice(-20); // 10 pairs = 20 messages
+            // Remove any previous image classifications from history to avoid confusion
+            const recentHistory = this.conversationHistory.slice(-20).map(msg => {
+                if (msg.role === 'user') {
+                    return {
+                        ...msg,
+                        content: msg.content.replace(/\n\n\[Current image shows:.*?\]$/s, '')
+                    };
+                }
+                return msg;
+            });
             messages.push(...recentHistory);
             
-            // Add reinforcing instruction right before user message to make system message more prominent
-            // This helps override any anchoring from conversation history
-            const reinforcingInstruction = `**IMPORTANT - Follow these instructions strictly: ${this.currentSystemMessage}**\n\nUser message:`;
+            // Add user message with image analysis and file context if available
+            let finalUserMessage = userMessage;
+            if (imageAnalysis) {
+                finalUserMessage += '\n\n[Current image shows: ' + imageAnalysis + ']';
+            }
             
-            // Add user message with image analysis if available
-            const finalUserMessage = reinforcingInstruction + '\n' + userMessage + imageAnalysis;
+            // If file is uploaded, extract relevant lines and prepend with instruction
+            if (this.config.fileUpload.content) {
+                const keywords = this.extractKeywords(userMessage);
+                console.log('Extracted keywords from user prompt (GPU):', keywords);
+                
+                const relevantLines = this.extractRelevantLines(this.config.fileUpload.content, keywords);
+                
+                if (relevantLines) {
+                    console.log('Found relevant lines from file (' + relevantLines.split('\n').length + ' lines)');
+                    finalUserMessage = 'Use the following information to answer the question:\n\n' + relevantLines + '\n\nQuestion: ' + userMessage;
+                } else {
+                    console.log('No relevant lines found in file for the given keywords');
+                }
+            }
+            
             messages.push({ role: "user", content: finalUserMessage });
             
             // Log the complete prompt being sent to the model
             console.log('=== COMPLETE PROMPT BEING SENT TO MODEL ===');
             console.log('Current System Message (from UI):', this.currentSystemMessage);
-            console.log('Effective System Message (with TTS/file data):', this.getEffectiveSystemMessage());
+            console.log('Effective System Message (with file data):', this.getEffectiveSystemMessage());
             console.log('Model:', this.currentModelId);
             console.log('Total messages:', messages.length);
             console.log('Messages:');
@@ -1594,14 +1225,10 @@ class ChatPlayground {
             // Add thinking indicator with animated dots
             const thinkingIndicator = this.addThinkingIndicator();
             
-            // Check if TTS is enabled to determine mode
-            const isTTSEnabled = this.speechSettings && this.speechSettings.textToSpeech;
-            
-            if (isTTSEnabled) {
-                // TTS Mode: Wait for complete response, then type and speak together
-                await this.handleTTSMode(messages, thinkingIndicator, userMessage);
+            // Route to the appropriate engine
+            if (this.usingWllama) {
+                await this.handleWllamaMode(messages, thinkingIndicator, userMessage, imageAnalysis);
             } else {
-                // Streaming Mode: Stream and type immediately
                 await this.handleStreamingMode(messages, thinkingIndicator, userMessage);
             }
             
@@ -1622,69 +1249,9 @@ class ChatPlayground {
             
             // Type out the error message
             await this.typeResponse(contentEl, errorMessage);
-            
-            // Speak the error message if text-to-speech is enabled
-            if (this.speechSettings && this.speechSettings.textToSpeech) {
-                this.speakResponse(errorMessage);
-            }
         } finally {
             this.isGenerating = false;
             this.updateUIForGeneration(false);
-        }
-    }
-
-    async handleTTSMode(messages, thinkingIndicator, userMessage) {
-        // TTS Mode: Get complete response first, then type and speak together
-        let fullResponse = '';
-        
-        const completion = await this.engine.chat.completions.create({
-            messages: messages,
-            temperature: this.modelParameters.temperature,
-            top_p: this.modelParameters.top_p,
-            max_tokens: this.modelParameters.max_tokens,
-            repetition_penalty: this.modelParameters.repetition_penalty,
-            stream: true
-        });
-        
-        // Collect the entire response
-        for await (const chunk of completion) {
-            if (!this.isGenerating) return;
-            
-            const content = chunk.choices[0]?.delta?.content || '';
-            if (content) {
-                fullResponse += content;
-            }
-        }
-        
-        // Remove thinking indicator
-        thinkingIndicator.remove();
-        
-        if (fullResponse.trim()) {
-            // Append file attribution if a file is uploaded
-            let displayResponse = fullResponse;
-            if (this.config.fileUpload.fileName) {
-                displayResponse += `\n(Ref: ${this.config.fileUpload.fileName})`;
-            }
-            
-            // Create message container
-            const assistantMessageEl = this.addMessage('assistant', '');
-            const contentEl = assistantMessageEl.querySelector('.message-content');
-            
-            // Start speaking and typing simultaneously
-            this.speakResponse(fullResponse); // Speak without attribution
-            await this.typeResponse(contentEl, displayResponse); // Type with attribution
-            
-            // Add to conversation history (without attribution)
-            this.conversationHistory.push({ role: "user", content: userMessage });
-            this.conversationHistory.push({ role: "assistant", content: fullResponse });
-            
-            // Update token count
-            this.updateTokenCount();
-        } else {
-            const fallbackMessage = "I apologize, but I couldn't generate a response. Please try again.";
-            const assistantMessageEl = this.addMessage('assistant', '');
-            const contentEl = assistantMessageEl.querySelector('.message-content');
-            await this.typeResponse(contentEl, fallbackMessage);
         }
     }
 
@@ -1769,9 +1336,168 @@ class ChatPlayground {
         // Add to conversation history (without file attribution, to prevent cumulative citations)
         this.conversationHistory.push({ role: "user", content: userMessage });
         this.conversationHistory.push({ role: "assistant", content: fullResponse });
+    }
+    
+    async handleWllamaMode(messages, thinkingIndicator, userMessage, imageAnalysis = '') {
+        // Ensure wllama is loaded
+        if (!this.wllama) {
+            throw new Error('Wllama is not initialized. Please wait for CPU mode to finish loading.');
+        }
         
-        // Update token count
-        this.updateTokenCount();
+        // Keep original userMessage for conversation history (without image classification)
+        const originalUserMessage = userMessage;
+        
+        // Remove thinking indicator before starting to stream
+        thinkingIndicator.remove();
+        
+        // Create message container
+        const assistantMessageEl = this.addMessage('assistant', '');
+        const contentEl = assistantMessageEl.querySelector('.message-content');
+        
+        // Show thinking indicator with CPU mode notice
+        contentEl.innerHTML = '<span class="typing-indicator">●●●</span><p style="font-size: 0.85em; color: #666; margin-top: 8px; font-style: italic;">(Responses may be slow in CPU mode. Thanks for your patience!)</p>';
+        
+        // SmolLM2 (360M params) - with 2048 token context
+        // Use last 10 messages from history (5 turns) - skip if using file grounding
+        let recentHistory = [];
+        
+        if (!this.config.fileUpload.content) {
+            // Only include history when NOT using file grounding
+            recentHistory = this.conversationHistory.slice(-10).map(msg => {
+                if (msg.role === 'user') {
+                    return {
+                        ...msg,
+                        content: msg.content.replace(/\n\n\[Current image shows:.*?\]$/s, '')
+                    };
+                }
+                return msg;
+            });
+        }
+        
+        // Build final user message with image analysis and/or file context
+        let finalUserMessage = userMessage;
+        if (imageAnalysis) {
+            finalUserMessage = userMessage + '\n\n[Current image shows: ' + imageAnalysis + ']';
+            console.log('Added image analysis to wllama message:', imageAnalysis);
+        }
+        
+        // If file is uploaded, extract relevant lines and replace message with instruction
+        if (this.config.fileUpload.content) {
+            const keywords = this.extractKeywords(userMessage);
+            console.log('Extracted keywords from user prompt (wllama):', keywords);
+            console.log('Skipping conversation history to prevent data leak from file');
+            
+            const relevantLines = this.extractRelevantLines(this.config.fileUpload.content, keywords);
+            
+            if (relevantLines) {
+                console.log('Found relevant lines from file (' + relevantLines.split('\n').length + ' lines)');
+                console.log('Extracted lines:', relevantLines.substring(0, 200) + '...');
+                finalUserMessage = 'Translate this: "' + relevantLines + '"';
+            } else {
+                console.log('No relevant lines found in file for the given keywords');
+            }
+        }
+        
+        // For SmolLM2 (360M params), use system message with concise response instructions FIRST
+        let systemMessage = `IMPORTANT: Respond concisely in a single paragraph. Be brief and direct.
+
+${this.currentSystemMessage}`;
+        
+        console.log('=== WLLAMA SYSTEM MESSAGE ===');
+        console.log('System message being sent to SmolLM2:');
+        console.log(systemMessage);
+        console.log('=== END WLLAMA SYSTEM MESSAGE ===');
+        
+        // Create message array with minimal history (last turn only) for better performance
+        const wllamaMessages = [
+            { role: 'system', content: systemMessage },
+            ...recentHistory,
+            { role: 'user', content: finalUserMessage }
+        ];
+        
+        console.log('wllama messages (with last 5 turns for context):', wllamaMessages);
+        console.log('SmolLM2 Note: Using last 5 turns in history (2048 token context window).');
+        
+        // Use wllama for generation with streaming
+        let fullResponse = '';
+        
+        // Log current model parameters from config
+        console.log('Current model parameters from config:', this.config.modelParameters);
+        
+        // Clamp temperature for wllama (supports range 0-2, but works best between 0.1-1.5)
+        const wllamaTemp = Math.max(0.1, Math.min(1.5, this.config.modelParameters.temperature));
+        const wllamaTopP = Math.max(0.1, Math.min(1.0, this.config.modelParameters.top_p));
+        const wllamaPenalty = Math.max(1.0, Math.min(2.0, this.config.modelParameters.repetition_penalty));
+        
+        // Log sampling parameters for debugging
+        console.log('wllama sampling parameters:', {
+            temp: wllamaTemp,
+            top_k: 40,
+            top_p: wllamaTopP,
+            penalty_repeat: wllamaPenalty,
+            original_temp: this.config.modelParameters.temperature
+        });
+        
+        try {
+            // Always clear KV cache before generation to prevent state corruption
+            await this.wllama.kvClear();
+            console.log('Cleared wllama KV cache for fresh generation');
+            
+            const completion = await this.wllama.createChatCompletion(wllamaMessages, {
+                nPredict: 300,  // SmolLM2 has 2048 context window
+                seed: -1,  // Random seed for variation
+                sampling: {
+                    temp: wllamaTemp,
+                    top_k: 40,
+                    top_p: wllamaTopP,
+                    penalty_repeat: wllamaPenalty,
+                    mirostat: 0  // Disable mirostat to ensure temperature is used
+                },
+                stream: true
+            });
+            
+            this.currentStream = completion;
+            
+            for await (const chunk of completion) {
+                if (!this.isGenerating || this.stopRequested) {
+                    console.log('Generation stopped by user');
+                    break;
+                }
+                
+                if (chunk.currentText) {
+                    fullResponse = chunk.currentText;
+                    contentEl.textContent = fullResponse;
+                    this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+                }
+            }
+            
+            // Always add to conversation history to maintain context
+            if (fullResponse.trim()) {
+                // Append file attribution if a file is uploaded
+                let displayResponse = fullResponse;
+                if (this.config.fileUpload.fileName) {
+                    displayResponse = fullResponse + `\n(Ref: ${this.config.fileUpload.fileName})`;
+                }
+                
+                // Add indicator if stopped
+                if (this.stopRequested) {
+                    displayResponse += '\n\n[Response stopped by user]';
+                }
+                
+                contentEl.textContent = displayResponse;
+                
+                // Add to conversation history (without file attribution or stop indicator)
+                // Use original message without image classification to avoid persisting it
+                this.conversationHistory.push({ role: "user", content: originalUserMessage });
+                this.conversationHistory.push({ role: "assistant", content: fullResponse });
+            } else {
+                contentEl.textContent = 'Sorry, I encountered an error while generating a response. Please try again.';
+            }
+            
+        } catch (error) {
+            console.error('Error in wllama generation:', error);
+            contentEl.textContent = 'Sorry, I encountered an error while generating a response. Please try again.';
+        }
     }
 
     addThinkingIndicator() {
@@ -1810,11 +1536,9 @@ class ChatPlayground {
         // Ensure full text is displayed
         contentEl.textContent = text;
         
-        // Mark typing as complete but don't update UI if still speaking
+        // Mark typing as complete
         this.isGenerating = false;
-        if (!this.isSpeaking) {
-            this.updateUIForGeneration(false);
-        }
+        this.updateUIForGeneration(false);
     }
 
     startTypingAnimation(contentEl, initialText) {
@@ -1874,10 +1598,8 @@ class ChatPlayground {
             this.typingState.isTyping = false;
         }
         
-        // Only update UI if not speaking
-        if (!this.isSpeaking) {
-            this.updateUIForGeneration(false);
-        }
+        // Update UI
+        this.updateUIForGeneration(false);
     }
 
     async waitForTypingComplete() {
@@ -1932,29 +1654,36 @@ class ChatPlayground {
     }
     
     updateUIForGeneration(isGenerating) {
-        // Show stop button if either generating or speaking
-        const showStopButton = isGenerating || this.isSpeaking;
+        this.userInput.disabled = isGenerating;
         
-        this.sendBtn.disabled = showStopButton;
-        this.userInput.disabled = showStopButton;
-        this.stopBtn.style.display = showStopButton ? 'block' : 'none';
-        
-        if (showStopButton) {
-            if (this.isSpeaking && !isGenerating) {
-                this.sendBtn.textContent = '🔊'; // Speaking indicator
-            } else {
-                this.sendBtn.textContent = '⏳'; // Generating indicator
-            }
+        if (isGenerating) {
+            this.sendBtn.textContent = '■'; // Purple/black square
+            this.sendBtn.style.color = '#6c3fa5'; // Purple color
+            this.sendBtn.disabled = false;
+            this.announceToScreenReader('AI is generating a response. Press the submit button to stop generation.');
         } else {
-            this.sendBtn.textContent = '➤';
+            this.sendBtn.textContent = '➤'; // Arrow
+            this.sendBtn.style.color = '#6c3fa5';
+            this.sendBtn.disabled = false;
+            this.announceToScreenReader('Response generation completed.');
             // Return focus to input after response is complete
             this.userInput.focus();
         }
     }
     
+    announceToScreenReader(message) {
+        const announcer = document.getElementById('aria-announcer');
+        if (announcer) {
+            announcer.textContent = message;
+            // Clear the message after a delay to allow screen reader to announce it
+            setTimeout(() => {
+                announcer.textContent = '';
+            }, 1000);
+        }
+    }
+    
     stopGeneration() {
         this.isGenerating = false;
-        this.isSpeaking = false;
         this.stopRequested = true;
         
         // Stop typing animation
@@ -1962,42 +1691,15 @@ class ChatPlayground {
             this.typingState.isTyping = false;
         }
         
-        // Stop any ongoing speech synthesis
-        if ('speechSynthesis' in window) {
-            speechSynthesis.cancel();
-        }
-        
         this.updateUIForGeneration(false);
     }
 
-    restartConversation(reason = 'tts-toggle') {
+    restartConversation(reason = 'user-action') {
         // Clear the conversation history and reset the chat UI
         this.clearChat();
         
         // Show a message to the user about the restart
-        let restartMessage;
-        const ttsStatus = this.speechSettings && this.speechSettings.textToSpeech 
-            ? ' (text-to-speech mode enabled)' 
-            : '';
-            
-        switch (reason) {
-            case 'system-message':
-                restartMessage = `Conversation restarted with updated system message${ttsStatus}.`;
-                break;
-            case 'file-upload':
-                restartMessage = `Conversation restarted with uploaded file data${ttsStatus}.`;
-                break;
-            case 'file-remove':
-                restartMessage = `Conversation restarted with file data removed${ttsStatus}.`;
-                break;
-            case 'tts-toggle':
-            default:
-                restartMessage = this.speechSettings && this.speechSettings.textToSpeech 
-                    ? 'Conversation restarted with text-to-speech mode enabled.' 
-                    : 'Conversation restarted with text-to-speech mode disabled.';
-                break;
-        }
-        
+        const restartMessage = 'Conversation restarted.';
         const systemMessageEl = this.addMessage('system', restartMessage);
         systemMessageEl.classList.add('system-restart-message');
     }
@@ -2010,28 +1712,21 @@ class ChatPlayground {
                 <h3>What do you want to chat about?</h3>
             </div>
         `;
-        this.updateTokenCount();
     }
     
-    updateTokenCount() {
-        // Approximate token count (rough estimate: 1 token ≈ 4 characters)
-        const totalChars = this.conversationHistory.reduce((acc, msg) => acc + msg.content.length, 0);
-        const approxTokens = Math.ceil(totalChars / 4);
-        
-        const tokenCountEl = document.querySelector('.token-count');
-        if (tokenCountEl) {
-            tokenCountEl.textContent = `*${approxTokens}/128000 tokens in thread`;
-        }
-    }
+    // Removed updateTokenCount function - disclaimer is now static
     
     showToast(message) {
+        // Announce to screen readers
+        this.announceToScreenReader(message);
+        
         // Simple toast notification
         const toast = document.createElement('div');
         toast.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
-            background: #0078d4;
+            background: #6c3fa5;
             color: white;
             padding: 12px 16px;
             border-radius: 4px;
@@ -2047,255 +1742,6 @@ class ChatPlayground {
             toast.style.animation = 'slideOutRight 0.3s ease-in';
             setTimeout(() => toast.remove(), 300);
         }, 2000);
-    }
-
-    // Wikipedia fallback methods (used when WebLLM is unavailable)
-    async extractKeywords(text) {
-        console.log('Original prompt:', text);
-        
-        // Remove punctuation from the text
-        const textWithoutPunctuation = text.replace(/[.,!?;:'"()[\]{}]/g, ' ');
-        console.log('Text without punctuation:', textWithoutPunctuation);
-        
-        // Tokenize and extract important words
-        const tokens = textWithoutPunctuation.toLowerCase().split(/\s+/);
-        console.log('Tokens:', tokens);
-        
-        // Remove common stop words only
-        const stopWords = new Set([
-            'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from',
-            'has', 'he', 'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the',
-            'to', 'was', 'will', 'with', 'what', 'when', 'where', 'who', 'why',
-            'how', 'can', 'could', 'should', 'would', 'i', 'you', 'me', 'my', 'make',
-            'your', 'about', 'tell', 'give', 'show', 'find', 'get', 'do', 'does'
-        ]);
-
-        // Keep all words that aren't stop words and are longer than 1 character
-        const keywords = tokens.filter(word => 
-            word.length > 1 && !stopWords.has(word)
-        );
-        
-        console.log('Filtered keywords array:', keywords);
-
-        // Return all keywords joined together
-        const keywordString = keywords.join(' ') || text;
-        console.log('Final keyword string for search:', keywordString);
-        
-        return keywordString;
-    }
-
-    async searchWikipedia(keywords) {
-        try {
-            // Search Wikipedia API
-            const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(keywords)}&format=json&origin=*`;
-            const searchResponse = await fetch(searchUrl);
-            const searchData = await searchResponse.json();
-
-            if (!searchData.query || !searchData.query.search || searchData.query.search.length === 0) {
-                return "I couldn't find any relevant information on Wikipedia for your query.";
-            }
-
-            // Get the first result's page ID
-            const firstResult = searchData.query.search[0];
-            const pageId = firstResult.pageid;
-
-            // Fetch the full article content
-            const contentUrl = `https://en.wikipedia.org/w/api.php?action=query&pageids=${pageId}&prop=extracts&exintro=true&explaintext=true&format=json&origin=*`;
-            const contentResponse = await fetch(contentUrl);
-            const contentData = await contentResponse.json();
-
-            const pageContent = contentData.query.pages[pageId].extract;
-
-            console.log('Wikipedia page content received:', pageContent.substring(0, 500));
-            console.log('Total content length:', pageContent.length);
-
-            // Get intro section including any lists
-            // Split by double newlines but keep content until we hit a new section
-            const paragraphs = pageContent.split('\n');
-            let introContent = '';
-            let lineCount = 0;
-            const maxLines = 15; // Get more lines to capture lists
-            
-            for (let i = 0; i < paragraphs.length && lineCount < maxLines; i++) {
-                const line = paragraphs[i].trim();
-                if (line.length > 0) {
-                    introContent += (introContent ? '\n' : '') + line;
-                    lineCount++;
-                }
-                // Stop if we hit a section header (usually === or ==)
-                if (line.includes('==') && i > 0) {
-                    break;
-                }
-            }
-            
-            console.log('Intro content extracted:', introContent.substring(0, 500));
-            
-            return introContent;
-
-        } catch (error) {
-            console.error('Wikipedia search error:', error);
-            return "I encountered an error while searching Wikipedia. Please try again.";
-        }
-    }
-
-    async summarizeText(text) {
-        console.log('Summarizing text, length:', text.length);
-        console.log('Text to summarize:', text.substring(0, 300));
-        
-        // Check if system message includes "short" or "concise"
-        const systemMessageLower = this.currentSystemMessage.toLowerCase();
-        if (systemMessageLower.includes('short') || systemMessageLower.includes('concise') || systemMessageLower.includes('concise')) {
-            // Return only the first sentence
-            const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
-            return sentences[0].trim() + '\n(Ref: Wikipedia)';
-        }
-        
-        // Since we're already limiting content in searchWikipedia,
-        // just add the reference and return
-        if (text.length < 800) {
-            return text + '\n(Ref: Wikipedia)';
-        }
-
-        // For longer content, check if it has list-like structure
-        const lines = text.split('\n');
-        const hasShortLines = lines.filter(l => l.length > 0 && l.length < 100).length > 3;
-        
-        if (hasShortLines) {
-            // Looks like a list - return first ~600 chars
-            let summary = '';
-            for (const line of lines) {
-                if (summary.length + line.length < 600) {
-                    summary += (summary ? '\n' : '') + line;
-                } else {
-                    break;
-                }
-            }
-            return summary + '\n(Ref: Wikipedia)';
-        }
-
-        // For regular narrative text, return first 2-3 sentences
-        const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
-        if (sentences.length <= 2) {
-            return text + '\n(Ref: Wikipedia)';
-        }
-
-        const summaryLength = Math.min(3, sentences.length);
-        return sentences.slice(0, summaryLength).join(' ').trim() + '\n(Ref: Wikipedia)';
-    }
-
-    async searchUploadedFile(keywords) {
-        // Search for keywords in uploaded file content
-        if (!this.config.fileUpload.content) {
-            return null;
-        }
-
-        try {
-            // Split keywords into individual words
-            const keywordArray = keywords.toLowerCase().split(/\s+/);
-            console.log('Searching file for keywords:', keywordArray);
-
-            // Split file content into sentences
-            const sentences = this.config.fileUpload.content.match(/[^.!?]+[.!?]+/g) || [];
-            console.log(`Found ${sentences.length} sentences in file`);
-
-            // Find sentences that contain any of the keywords
-            const matchingSentences = sentences.filter(sentence => {
-                const lowerSentence = sentence.toLowerCase();
-                return keywordArray.some(keyword => lowerSentence.includes(keyword));
-            });
-
-            console.log(`Found ${matchingSentences.length} matching sentences`);
-
-            if (matchingSentences.length > 0) {
-                // Return matching sentences with filename attribution
-                const result = matchingSentences.join(' ').trim();
-                return result + `\n(Ref: ${this.config.fileUpload.fileName})`;
-            }
-
-            return null;
-
-        } catch (error) {
-            console.error('Error searching uploaded file:', error);
-            return null;
-        }
-    }
-
-    async handleWikipediaFallback(userMessage, imagePrediction = null) {
-        // This method handles the complete Wikipedia fallback flow
-        try {
-            console.log('=== Wikipedia Fallback Debug ===');
-            console.log('User message:', userMessage);
-            console.log('Image prediction received:', imagePrediction);
-            
-            // Extract keywords from user input
-            let keywords = await this.extractKeywords(userMessage);
-            console.log('Extracted keywords from message:', keywords);
-
-            // Append image prediction to search keywords if available
-            if (imagePrediction) {
-                // Clean up the class name (remove underscores, etc)
-                const cleanedPrediction = imagePrediction.replace(/_/g, ' ');
-                keywords = keywords + ' ' + cleanedPrediction;
-                console.log('Image prediction cleaned:', cleanedPrediction);
-                console.log('Final keywords with image prediction:', keywords);
-            } else {
-                console.log('No image prediction to append');
-            }
-
-            // First, try searching the uploaded file if available
-            if (this.config.fileUpload.content) {
-                console.log('Uploaded file available, searching file first...');
-                const fileResult = await this.searchUploadedFile(keywords);
-                if (fileResult) {
-                    console.log('Found matching content in uploaded file');
-                    return fileResult;
-                }
-                console.log('No matches in uploaded file, falling back to Wikipedia');
-            }
-
-            // Search Wikipedia with keywords
-            console.log('Searching Wikipedia with:', keywords);
-            const articleText = await this.searchWikipedia(keywords);
-
-            // Summarize the article
-            let summary = await this.summarizeText(articleText);
-
-            // Apply temperature-based randomization if temperature is 2
-            if (this.config.modelParameters.temperature === 2) {
-                summary = this.applyTemperatureRandomization(summary);
-            }
-
-            return summary;
-
-        } catch (error) {
-            console.error('Error in Wikipedia fallback:', error);
-            return 'Sorry, I encountered an error while processing your request. Please try again.';
-        }
-    }
-
-    applyTemperatureRandomization(text) {
-        const randomWords = ['helicopter', 'squirrel', 'wibble', 'flub', 'dingbat', 'bagel'];
-        
-        // Split text into words while preserving structure
-        const words = text.split(/(\s+)/);
-        
-        // Randomly replace some words (approximately 20% of non-whitespace words)
-        const result = words.map(word => {
-            // Skip whitespace and punctuation-only content
-            if (/^\s+$/.test(word) || /^[^a-zA-Z0-9]+$/.test(word)) {
-                return word;
-            }
-            
-            // 20% chance to replace a word
-            if (Math.random() < 0.2) {
-                const randomWord = randomWords[Math.floor(Math.random() * randomWords.length)];
-                return randomWord;
-            }
-            
-            return word;
-        });
-        
-        return result.join('');
     }
 }
 
@@ -2364,105 +1810,6 @@ window.triggerFileUpload = function() {
 window.removeFile = function() {
     if (window.chatPlaygroundApp) {
         window.chatPlaygroundApp.removeFile();
-    }
-};
-
-window.openChatCapabilitiesModal = function() {
-    const modal = document.getElementById('chat-capabilities-modal');
-    if (modal) {
-        // Store the currently focused element to restore later
-        window.lastFocusedElement = document.activeElement;
-        
-        modal.style.display = 'flex';
-        document.body.style.overflow = 'hidden'; // Prevent background scrolling
-        
-        // Focus the modal for screen readers
-        setTimeout(() => {
-            const modalTitle = document.getElementById('modal-title');
-            if (modalTitle) {
-                modalTitle.focus();
-            }
-        }, 100);
-        
-        // Restore current settings when modal opens
-        if (window.chatPlaygroundApp) {
-            window.chatPlaygroundApp.restoreSpeechSettings();
-        }
-        
-        // Add keyboard trap for accessibility
-        window.trapFocus(modal);
-    }
-};
-
-window.closeChatCapabilitiesModal = function() {
-    const modal = document.getElementById('chat-capabilities-modal');
-    if (modal) {
-        modal.style.display = 'none';
-        document.body.style.overflow = 'auto'; // Restore scrolling
-        
-        // Restore focus to the element that opened the modal
-        if (window.lastFocusedElement) {
-            window.lastFocusedElement.focus();
-            window.lastFocusedElement = null;
-        }
-        
-        // Remove keyboard trap
-        window.removeFocusTrap();
-        
-        // Restore original settings (cancel any unsaved changes)
-        if (window.chatPlaygroundApp) {
-            window.chatPlaygroundApp.restoreSpeechSettings();
-        }
-    }
-};
-
-window.playVoiceSample = function() {
-    // Get the voice sample text from the input field
-    const voiceSampleText = document.getElementById('voice-sample-text');
-    const sampleText = voiceSampleText ? voiceSampleText.value : 'Hi, how can I help you today?';
-    
-    // Simulate voice sample playback
-    const playBtn = document.querySelector('.play-btn');
-    if (playBtn) {
-        playBtn.textContent = '⏸️';
-        setTimeout(() => {
-            playBtn.textContent = '▶';
-        }, 2000); // Simulate 2-second sample
-    }
-    
-    // Here you would integrate with actual speech synthesis
-    if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(sampleText);
-        const voiceSelect = document.getElementById('voice-select');
-        const speedSelect = document.getElementById('voice-speed');
-        
-        if (voiceSelect && voiceSelect.value && voiceSelect.value !== 'default') {
-            const voices = speechSynthesis.getVoices();
-            const selectedVoice = voices.find(voice => voice.name === voiceSelect.value);
-            if (selectedVoice) {
-                utterance.voice = selectedVoice;
-            }
-        }
-        
-        const speedMap = { '0.5x': 0.5, '1x': 1, '1.5x': 1.5, '2x': 2 };
-        utterance.rate = speedMap[speedSelect.value] || 1;
-        
-        speechSynthesis.speak(utterance);
-    }
-};
-
-window.saveChatCapabilities = function() {
-    // Save the current settings
-    if (window.chatPlaygroundApp) {
-        window.chatPlaygroundApp.saveSpeechSettings();
-        window.chatPlaygroundApp.showToast('Chat settings updated');
-    }
-    
-    // Close modal
-    const modal = document.getElementById('chat-capabilities-modal');
-    if (modal) {
-        modal.style.display = 'none';
-        document.body.style.overflow = 'auto';
     }
 };
 
@@ -2711,7 +2058,7 @@ window.trapFocus = function(modal) {
                 }
             }
         } else if (e.key === 'Escape') {
-            window.closeChatCapabilitiesModal();
+            window.closeChatCapabilitiesModal(); // Modal removed
         }
     };
     
@@ -2729,16 +2076,6 @@ window.removeFocusTrap = function() {
 document.addEventListener('DOMContentLoaded', () => {
     window.chatPlaygroundApp = new ChatPlayground();
     
-    // Add modal click-outside-to-close functionality
-    const modal = document.getElementById('chat-capabilities-modal');
-    if (modal) {
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                window.closeChatCapabilitiesModal();
-            }
-        });
-    }
-    
     // Add parameters modal click-outside-to-close functionality
     const parametersModal = document.getElementById('parameters-modal');
     if (parametersModal) {
@@ -2752,10 +2089,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Close modals with Escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            const capabilitiesModal = document.getElementById('chat-capabilities-modal');
-            if (capabilitiesModal && capabilitiesModal.style.display !== 'none') {
-                window.closeChatCapabilitiesModal();
-            }
             const parametersModal = document.getElementById('parameters-modal');
             if (parametersModal && parametersModal.style.display !== 'none') {
                 window.closeParametersModal();
