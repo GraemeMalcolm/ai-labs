@@ -1311,11 +1311,21 @@ class ChatPlayground {
                 await this.initializeWllama();
                 this.usingWllama = true;
                 this.wllamaLoaded = true;
-                // Change dropdown to SmolLM2 (CPU)
+                
+                // Update dropdown - disable Phi-3 option and select SmolLM2
                 const modelSelect = this.elements.modelSelect;
                 if (modelSelect) {
+                    // Find and disable the Phi-3 option
+                    for (let option of modelSelect.options) {
+                        if (option.value === 'Phi-3-mini-4k-instruct-q4f16_1-MLC') {
+                            option.disabled = true;
+                            break;
+                        }
+                    }
+                    // Select SmolLM2
                     modelSelect.value = 'smollm2-cpu';
                 }
+                
                 this.appliedModelId = 'smollm2-cpu';
                 this.allowInteraction();
             } catch (wllamaError) {
