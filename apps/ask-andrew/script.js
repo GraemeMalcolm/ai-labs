@@ -10,6 +10,7 @@ class AskAndrew {
         this.indexData = null;
         this.stopRequested = false;
         this.currentStream = null;
+        this.currentAbortController = null;
         this.webGPUAvailable = false;
         this.usingWllama = false;
         this.currentModal = null;
@@ -604,7 +605,18 @@ IMPORTANT: Follow these guidelines when responding:
     }
 
     stopGeneration() {
+        this.isGenerating = false;
         this.stopRequested = true;
+        this.currentStream = null;
+        
+        // Abort the generation properly using AbortController
+        if (this.currentAbortController) {
+            console.log('Aborting generation via AbortController');
+            this.currentAbortController.abort();
+            this.currentAbortController = null;
+        }
+        
+        this.updateSendButton(false);
         console.log('Stop requested');
     }
 
@@ -806,15 +818,19 @@ IMPORTANT: Follow these guidelines when responding:
                 assistantMessage = originalMessage;
             }
             
-            // Add to full conversation history (keep complete history)
-            this.conversationHistory.push({
-                role: 'user',
-                content: userMessage // Store original question, not the one with context
-            });
-            this.conversationHistory.push({
-                role: 'assistant',
-                content: assistantMessage
-            });
+            // Only add to conversation history if not stopped (to prevent corruption)
+            if (!this.stopRequested && assistantMessage.trim()) {
+                this.conversationHistory.push({
+                    role: 'user',
+                    content: userMessage // Store original question, not the one with context
+                });
+                this.conversationHistory.push({
+                    role: 'assistant',
+                    content: assistantMessage
+                });
+            } else if (this.stopRequested) {
+                console.log('Stopped response not added to conversation history to prevent corruption');
+            }
             
         } catch (error) {
             console.error('Error generating response:', error);
@@ -890,59 +906,112 @@ IMPORTANT: Follow these guidelines when responding:
             throw new Error('Wllama is not initialized. Please wait for CPU mode to finish loading.');
         }
         
-        let userPrompt = userMessage;
+        // Build ChatML formatted prompt
+        let chatMLPrompt = '<|im_start|>system\n';
+        chatMLPrompt += 'You are Andrew, an AI learning assistant. Answer questions using ONLY the information below.\n\n';
+        chatMLPrompt += 'Rules:\n';
+        chatMLPrompt += '- AI and computing topics only\n';
+        chatMLPrompt += '- One clear paragraph, simple language\n';
+        chatMLPrompt += '- No development steps or instructions\n\n';
+        chatMLPrompt += 'Information:\n';
+        
+        // Add context from index.json if available (truncate to prevent context overflow)
         if (context) {
-            const maxContextLength = 300;
+            const maxContextLength = 400;
             const truncatedContext = context.length > maxContextLength 
                 ? context.substring(0, maxContextLength) + '...' 
                 : context;
-            userPrompt = `${truncatedContext}\n\nQ: ${userMessage}`;
+            chatMLPrompt += truncatedContext + '\n';
+        } else {
+            chatMLPrompt += 'No specific information available.\n';
         }
         
-        const recentHistory = this.conversationHistory.slice(-2);
-        recentHistory.push({
-            role: 'user',
-            content: userPrompt
-        });
+        chatMLPrompt += '<|im_end|>\n\n';
         
-        const messages = [
-            { role: 'system', content: this.systemPrompt },
-            ...recentHistory
-        ];
+        // Don't include previous conversation history to keep prompt minimal and fast
         
-        const completion = await this.wllama.createChatCompletion(messages, {
-            nPredict: 150,
-            sampling: {
-                temp: 0.7,
-                top_k: 40,
-                top_p: 0.9,
-                penalty_repeat: 1.1
-            },
-            stream: true
-        });
+        // Add current user message
+        chatMLPrompt += '<|im_start|>user\n';
+        chatMLPrompt += userMessage + '\n';
+        chatMLPrompt += '<|im_end|>\n\n';
+        chatMLPrompt += '<|im_start|>assistant\n';
         
-        this.currentStream = completion;
+        console.log('Sending prompt to wllama (length:', chatMLPrompt.length, 'chars)');
+        
         let assistantMessage = '';
         let audioPlayed = false;
         
-        for await (const chunk of completion) {
-            if (this.stopRequested) {
-                console.log('Generation stopped by user');
-                break;
+        // Create AbortController for this generation
+        const controller = new AbortController();
+        this.currentAbortController = controller;
+        
+        // Clear KV cache before generation to ensure clean state
+        try {
+            await this.wllama.kvClear();
+            console.log('KV cache cleared before generation');
+        } catch (error) {
+            console.log('KV cache clear failed:', error.message);
+        }
+        
+        // Use streaming with proper abort support
+        try {
+            const completion = await this.wllama.createCompletion(chatMLPrompt, {
+                nPredict: 150,
+                sampling: {
+                    temp: 0.7,
+                    top_k: 40,
+                    top_p: 0.9,
+                    penalty_repeat: 1.1
+                },
+                stopTokens: ['<|im_end|>', '<|im_start|>'],
+                abortSignal: controller.signal,
+                stream: true
+            });
+            
+            this.currentStream = completion;
+            
+            for await (const chunk of completion) {
+                if (chunk.currentText) {
+                    // Play audio on first chunk if voice input was used
+                    if (!audioPlayed && usedVoiceInput) {
+                        this.playRandomResponseAudio();
+                        audioPlayed = true;
+                    }
+                    
+                    assistantMessage = chunk.currentText;
+                    messageTextDiv.innerHTML = this.formatResponse(assistantMessage);
+                    this.scrollToBottom();
+                }
             }
             
-            if (chunk.currentText) {
-                // Play audio on first chunk if voice input was used
-                if (!audioPlayed && usedVoiceInput) {
-                    this.playRandomResponseAudio();
-                    audioPlayed = true;
+            // Clear abort controller on successful completion
+            this.currentAbortController = null;
+            
+            // Clear KV cache after successful generation
+            console.log('Clearing KV cache after generation');
+            await this.wllama.kvClear();
+            console.log('KV cache cleared successfully');
+            
+        } catch (error) {
+            // Check if this was an abort (expected when user clicks stop)
+            if (error.name === 'AbortError' || error.message?.includes('abort')) {
+                console.log('Generation aborted by user');
+                // Clear the partial/corrupted state
+                await this.wllama.kvClear();
+                console.log('KV cache cleared after abort');
+            } else {
+                console.log('Wllama generation error:', error.message || 'unknown error');
+                // Clear cache on error too
+                try {
+                    await this.wllama.kvClear();
+                } catch (e) {
+                    console.log('Failed to clear cache after error:', e.message);
                 }
-                
-                assistantMessage = chunk.currentText;
-                messageTextDiv.innerHTML = this.formatResponse(assistantMessage);
-                this.scrollToBottom();
             }
+            this.currentAbortController = null;
         }
+        
+        console.log('Wllama response complete, length:', assistantMessage.length);
         
         return assistantMessage;
     }
