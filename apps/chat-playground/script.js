@@ -164,6 +164,59 @@ class ChatPlayground {
     set modelParameters(value) {
         this.config.modelParameters = value;
     }
+    
+    // Get model-specific default parameters
+    getModelDefaults() {
+        if (this.usingWllama) {
+            // SmolLM2 (CPU mode) - Lower temperature for consistency
+            return {
+                temperature: 0.3,
+                top_p: 0.7,
+                max_tokens: 1000,
+                repetition_penalty: 1.1
+            };
+        } else {
+            // Phi-3 (GPU mode) - Standard defaults
+            return {
+                temperature: 0.7,
+                top_p: 0.9,
+                max_tokens: 1000,
+                repetition_penalty: 1.1
+            };
+        }
+    }
+    
+    // Update UI sliders to reflect current parameter values
+    updateParameterUI() {
+        const params = this.config.modelParameters;
+        const updates = [
+            { slider: 'temperature-slider', value: 'temperature-value', param: 'temperature' },
+            { slider: 'top-p-slider', value: 'top-p-value', param: 'top_p' },
+            { slider: 'max-tokens-slider', value: 'max-tokens-value', param: 'max_tokens' },
+            { slider: 'repetition-penalty-slider', value: 'repetition-penalty-value', param: 'repetition_penalty' }
+        ];
+        
+        updates.forEach(({ slider, value, param }) => {
+            const sliderEl = document.getElementById(slider);
+            const valueEl = document.getElementById(value);
+            if (sliderEl && valueEl) {
+                sliderEl.value = params[param];
+                valueEl.textContent = params[param];
+                sliderEl.setAttribute('aria-valuetext', params[param].toString());
+            }
+            
+            // Also update modal sliders if they exist
+            const modalSlider = 'modal-' + slider;
+            const modalValue = 'modal-' + value;
+            const modalSliderEl = document.getElementById(modalSlider);
+            const modalValueEl = document.getElementById(modalValue);
+            if (modalSliderEl && modalValueEl) {
+                modalSliderEl.value = params[param];
+                modalValueEl.textContent = params[param];
+                modalSliderEl.setAttribute('aria-valuetext', params[param].toString());
+            }
+        });
+    }
 
     // Utility functions to reduce code duplication
     getElement(id) {
@@ -758,6 +811,10 @@ class ChatPlayground {
             console.log('WebLLM initialized successfully');
             this.webllmAvailable = true;
             this.usingWllama = false;
+            
+            // Set Phi-3 default parameters
+            this.config.modelParameters = this.getModelDefaults();
+            this.updateParameterUI();
         } catch (error) {
             console.error('WebLLM initialization failed, loading wllama fallback:', error);
             this.webllmAvailable = false;
@@ -767,6 +824,10 @@ class ChatPlayground {
                 console.log('Wllama initialized successfully as fallback');
                 this.usingWllama = true;
                 this.wllamaLoaded = true;
+                
+                // Set SmolLM2 default parameters
+                this.config.modelParameters = this.getModelDefaults();
+                this.updateParameterUI();
             } catch (wllamaError) {
                 console.error('Both WebLLM and wllama initialization failed:', wllamaError);
                 this.updateProgress(0, 'AI models unavailable. Please check your internet connection and refresh the page.', true);
@@ -958,6 +1019,10 @@ class ChatPlayground {
             
             this.usingWllama = false;
             
+            // Apply Phi-3 default parameters
+            this.config.modelParameters = this.getModelDefaults();
+            this.updateParameterUI();
+            
             // Clear chat and restart conversation
             if (previousMode !== this.usingWllama) {
                 await this.clearChat();
@@ -985,6 +1050,10 @@ class ChatPlayground {
                     
                     this.usingWllama = true;
                     
+                    // Apply SmolLM2 default parameters
+                    this.config.modelParameters = this.getModelDefaults();
+                    this.updateParameterUI();
+                    
                     // Clear chat and restart conversation
                     await this.clearChat();
                     this.showToast('Switched to SmolLM2 (CPU) - Conversation restarted');
@@ -999,6 +1068,10 @@ class ChatPlayground {
                 }
             } else {
                 this.usingWllama = true;
+                
+                // Apply SmolLM2 default parameters
+                this.config.modelParameters = this.getModelDefaults();
+                this.updateParameterUI();
                 
                 // Clear chat and restart conversation
                 if (previousMode !== this.usingWllama) {
@@ -1461,22 +1534,18 @@ class ChatPlayground {
         // Log current model parameters from config
         console.log('Current model parameters from config:', this.config.modelParameters);
         
-        // SmolLM2-specific parameters for reduced creativity and more consistent responses
-        const smolLM2Temp = 0.3;
-        const smolLM2TopP = 0.7;
-        
-        // Clamp temperature for wllama (supports range 0-2, but SmolLM2 works best at 0.3)
-        const wllamaTemp = Math.max(0.1, Math.min(1.5, smolLM2Temp));
-        const wllamaTopP = Math.max(0.1, Math.min(1.0, smolLM2TopP));
+        // Use parameters from config (set when model is selected)
+        // Clamp temperature for wllama (supports range 0-2, but works best between 0.1-1.5)
+        const wllamaTemp = Math.max(0.1, Math.min(1.5, this.config.modelParameters.temperature));
+        const wllamaTopP = Math.max(0.1, Math.min(1.0, this.config.modelParameters.top_p));
         const wllamaPenalty = Math.max(1.0, Math.min(2.0, this.config.modelParameters.repetition_penalty));
         
         // Log sampling parameters for debugging
-        console.log('SmolLM2 sampling parameters (optimized for consistency):', {
+        console.log('SmolLM2 sampling parameters:', {
             temp: wllamaTemp,
             top_k: 40,
             top_p: wllamaTopP,
-            penalty_repeat: wllamaPenalty,
-            note: 'Using reduced temperature (0.3) and top_p (0.7) for SmolLM2 only'
+            penalty_repeat: wllamaPenalty
         });
         
         try {
@@ -1845,13 +1914,8 @@ window.toggleSection = function(sectionId) {
 window.resetParameters = function() {
     // Get the app instance (we'll need to store it globally)
     if (window.chatPlaygroundApp) {
-        // Reset to default values
-        const defaults = {
-            temperature: 0.7,
-            top_p: 0.9,
-            max_tokens: 1000,
-            repetition_penalty: 1.1
-        };
+        // Get model-specific defaults
+        const defaults = window.chatPlaygroundApp.getModelDefaults();
         
         // Update app parameters
         window.chatPlaygroundApp.modelParameters = { ...defaults };
@@ -2066,7 +2130,8 @@ function handleModalParameterChange(e) {
 }
 
 window.resetParametersFromModal = function() {
-    const defaults = {
+    // Get model-specific defaults
+    const defaults = window.chatPlaygroundApp ? window.chatPlaygroundApp.getModelDefaults() : {
         temperature: 0.7,
         top_p: 0.9,
         max_tokens: 1000,
