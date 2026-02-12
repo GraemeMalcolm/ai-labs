@@ -1577,9 +1577,9 @@ class ChatPlayground {
                 }
             }
             
-            // Only clear cache if generation was stopped (not on normal completion)
+            // If generation was stopped, clear KV cache to remove partial generation state
             if (this.stopRequested) {
-                console.log('Clearing KV cache due to stopped generation');
+                console.log('Clearing KV cache after stopped generation');
                 await this.wllama.kvClear();
             }
             
@@ -1812,17 +1812,6 @@ class ChatPlayground {
         // Stop typing animation
         if (this.typingState) {
             this.typingState.isTyping = false;
-        }
-        
-        // Clear wllama KV cache when stopping mid-generation to prevent corrupted state
-        if (this.usingWllama && this.wllama) {
-            try {
-                console.log('Stopping generation: Clearing KV cache to remove incomplete state...');
-                await this.wllama.kvClear();
-                console.log('KV cache cleared');
-            } catch (error) {
-                console.error('Error clearing wllama KV cache on stop:', error);
-            }
         }
         
         // Clear current stream reference
