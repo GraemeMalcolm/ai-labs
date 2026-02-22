@@ -224,7 +224,7 @@ function addMessage(text, sender, imageUrl = null) {
 
     // Text-to-Speech for bot responses when input was spoken
     if (sender === 'bot' && isVoiceInput) {
-        speakText(text);
+        speakText(bubble);
         isVoiceInput = false; // Reset after speaking
     } else if (sender === 'bot') {
         // If no speech, we can end the response state
@@ -948,18 +948,14 @@ function handleVoiceInput() {
 }
 
 // Text-to-Speech Helper
-function speakText(text) {
+function speakText(element) {
     if (!('speechSynthesis' in window)) {
         endResponse();
         return;
     }
 
-    // Strip HTML tags for spoken text using regex (avoids HTML parsing)
-    const cleanText = text
-        .replace(/<br\s*\/?>/gi, ' ')  // Replace <br> with space
-        .replace(/<[^>]+>/g, '')        // Remove all HTML tags
-        .replace(/\s+/g, ' ')           // Normalize whitespace
-        .trim();
+    // Extract text content from DOM element (safe, no HTML parsing needed)
+    const cleanText = (element.textContent || '').replace(/\s+/g, ' ').trim();
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
 
