@@ -190,16 +190,16 @@ function addMessage(text, sender, imageUrl = null) {
     bubble.className = 'bubble';
     
     // Sanitize text to prevent XSS attacks
-    let sanitizedText = text;
     if (typeof DOMPurify !== 'undefined') {
-        sanitizedText = DOMPurify.sanitize(text, {
+        bubble.innerHTML = DOMPurify.sanitize(text, {
             ALLOWED_TAGS: ['b', 'i', 'br', 'small', 'a'],
             ALLOWED_ATTR: ['href', 'target', 'style'],
             ALLOW_DATA_ATTR: false
         });
+    } else {
+        // Fallback to textContent if DOMPurify not available to prevent XSS
+        bubble.textContent = text;
     }
-    
-    bubble.innerHTML = sanitizedText;
     
     if (imageUrl) {
         const br = document.createElement('br');
@@ -954,8 +954,10 @@ function speakText(text) {
         return;
     }
 
-    // Strip HTML tags for spoken text
-    const cleanText = text.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+    // Strip HTML tags for spoken text using DOM parsing (more robust than regex)
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = text;
+    const cleanText = tempDiv.textContent.replace(/\s+/g, ' ').trim();
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
 
