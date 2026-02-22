@@ -954,10 +954,9 @@ function speakText(text) {
         return;
     }
 
-    // Strip HTML tags for spoken text using DOM parsing (more robust than regex)
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = text;
-    const cleanText = tempDiv.textContent.replace(/\s+/g, ' ').trim();
+    // Strip HTML tags for spoken text using DOMParser (secure parsing)
+    const doc = new DOMParser().parseFromString(text, 'text/html');
+    const cleanText = (doc.body?.textContent || '').replace(/\s+/g, ' ').trim();
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
 
