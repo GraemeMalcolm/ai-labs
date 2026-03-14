@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Coder</title>
+    <meta name="description" content="Learn OpenAI-style Python coding against a local SmolLM2 model in the browser.">
+    <link rel="stylesheet" href="styles.css">
+
+    <link rel="stylesheet" href="https://pyscript.net/releases/2026.3.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2026.3.1/core.js"></script>
+</head>
+<body>
+    <div class="app-shell">
+        <header class="topbar">
+            <div>
+                <h1>Model Coder</h1>
+                <p>Write OpenAI-style Python. Run it locally with SmolLM2 in your browser.</p>
+            </div>
+            <div class="topbar-controls">
+                <label for="template-select" class="template-label">Template</label>
+                <select id="template-select" aria-label="Template picker">
+                    <option value="simple-chat-responses" selected>Simple chat - Responses API</option>
+                    <option value="sync-basic">Sync Basics</option>
+                    <option value="async-basic">Async Basics</option>
+                    <option value="history-loop">Conversation Loop</option>
+                    <option value="previous-chain">Previous Response Chain</option>
+                </select>
+                <button id="load-template-btn" type="button" class="secondary">Load Template</button>
+                <button id="run-btn" type="button" disabled>Run Code</button>
+                <button id="stop-btn" type="button" class="secondary" disabled>Stop Run</button>
+                <button id="retry-btn" type="button" class="secondary" hidden>Retry Model Load</button>
+            </div>
+        </header>
+
+        <section class="status-row" aria-live="polite">
+            <div class="status-pill" id="runtime-status">PyScript loading...</div>
+            <div class="status-pill" id="model-status">Model initializing...</div>
+        </section>
+
+        <main class="workspace" role="main">
+            <section class="panel panel-editor" aria-label="Python editor">
+                <div class="panel-header">
+                    <h2>Editor</h2>
+                    <span id="saved-indicator">Not run yet</span>
+                </div>
+                <div id="editor-container" class="panel-body"></div>
+
+                <script
+                    id="python-editor"
+                    type="py-editor"
+                    target="editor-container"
+                    env="model-coder"
+                    config='{"packages": ["numpy", "pandas", "matplotlib", "scikit-learn"]}'
+                ></script>
+            </section>
+
+            <section class="panel panel-terminal" aria-label="Python terminal">
+                <div class="panel-header">
+                    <h2>Terminal</h2>
+                    <span>Interactive print() and input()</span>
+                </div>
+                <div id="terminal-container" class="panel-body"></div>
+            </section>
+        </main>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
