@@ -1,15 +1,78 @@
 :root {
-    --bg: #f2efe7;
-    --bg-alt: #e5dfd2;
-    --ink: #1f1d1b;
-    --ink-muted: #5a5348;
-    --panel: #fffdf7;
-    --line: #c9c0b3;
-    --accent: #045f5f;
-    --accent-strong: #014949;
-    --warn: #8f2d1f;
-    --ok: #1e6a35;
-    --shadow: 0 10px 30px rgba(31, 29, 27, 0.08);
+    --bg: #eef0f2;
+    --bg-alt: #ffffff;
+    --ink: #111111;
+    --ink-muted: #3a3a3a;
+    --panel: #ffffff;
+    --line: #c8cdd2;
+    --accent: #0078d4;
+    --accent-strong: #005ea6;
+    --warn: #9b1c1c;
+    --ok: #1f7a3d;
+    --shadow: 0 10px 30px rgba(31, 35, 40, 0.12);
+    --terminal-bg: #ffffff;
+    --terminal-fg: #111111;
+    --terminal-cursor: #111111;
+    --editor-bg: #ffffff;
+    --editor-fg: #111111;
+}
+
+body.dark-theme {
+    --bg: #1f2226;
+    --bg-alt: #2a2e33;
+    --ink: #f5f6f8;
+    --ink-muted: #c7ccd2;
+    --panel: #2a2e33;
+    --line: #3b4149;
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+    --terminal-bg: #0d0f12;
+    --terminal-fg: #f5f6f8;
+    --terminal-cursor: #f5f6f8;
+    --editor-bg: #0d0f12;
+    --editor-fg: #f5f6f8;
+}
+
+body.dark-theme #editor-container,
+body.dark-theme #editor-container .cm-editor,
+body.dark-theme #editor-container .cm-scroller,
+body.dark-theme #editor-container .cm-content,
+body.dark-theme #editor-container .cm-gutters,
+body.dark-theme #editor-container .cm-line,
+body.dark-theme #editor-container .cm-gutterElement,
+body.dark-theme #editor-container .cm-content span,
+body.dark-theme #editor-container pre,
+body.dark-theme #editor-container code,
+body.dark-theme #editor-container textarea,
+body.dark-theme #editor-container div,
+body.dark-theme #editor-container span {
+    color: var(--editor-fg) !important;
+}
+
+body.dark-theme #editor-container,
+body.dark-theme #editor-container .cm-editor,
+body.dark-theme #editor-container .cm-scroller,
+body.dark-theme #editor-container .cm-content,
+body.dark-theme #editor-container .cm-gutters {
+    background: var(--editor-bg) !important;
+}
+
+/* Fallback for closed shadow/iframe editor rendering where token CSS cannot be targeted directly. */
+body.dark-theme #editor-container {
+    filter: brightness(1.35) contrast(1.2) saturate(1.1);
+}
+
+body.dark-theme #editor-container .cm-editor,
+body.dark-theme #editor-container iframe {
+    filter: brightness(1.15) contrast(1.1);
+}
+
+body.dark-theme #python-editor::part(editor),
+body.dark-theme #python-editor::part(scroller),
+body.dark-theme #python-editor::part(content),
+body.dark-theme #python-editor::part(gutters),
+body.dark-theme #python-editor::part(line) {
+    background: var(--editor-bg) !important;
+    color: var(--editor-fg) !important;
 }
 
 * {
@@ -25,10 +88,7 @@ body {
 body {
     font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
     color: var(--ink);
-    background:
-        radial-gradient(circle at 15% 8%, rgba(4, 95, 95, 0.18), transparent 38%),
-        radial-gradient(circle at 85% 10%, rgba(166, 122, 58, 0.2), transparent 30%),
-        linear-gradient(165deg, var(--bg) 0%, var(--bg-alt) 100%);
+    background: var(--bg);
 }
 
 .app-shell {
@@ -72,33 +132,53 @@ body {
 }
 
 .template-label {
-    font-size: 0.82rem;
-    color: var(--ink-muted);
+    font-size: 0.95rem;
+    color: #ffffff;
     font-weight: 600;
 }
 
-#template-select {
-    border: 1px solid var(--line);
+.template-picker {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent);
+    border: 1px solid var(--accent-strong);
     border-radius: 9px;
-    padding: 7px 9px;
+    padding: 4px 7px;
+    min-height: 36px;
+}
+
+#template-select {
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 7px;
+    padding: 6px 8px;
     background: #ffffff;
-    color: var(--ink);
+    color: #111111;
     font-size: 0.9rem;
 }
 
+#template-select option {
+    color: #111111;
+    background: #ffffff;
+}
+
 #template-select:focus {
-    outline: 2px solid rgba(4, 95, 95, 0.25);
+    outline: 2px solid rgba(255, 255, 255, 0.6);
     outline-offset: 1px;
 }
 
 button {
-    border: 1px solid transparent;
+    border: 1px solid var(--accent-strong);
     border-radius: 9px;
-    padding: 8px 11px;
-    font-size: 0.9rem;
+    min-width: 38px;
+    min-height: 36px;
+    padding: 7px 10px;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: transform 120ms ease, background-color 120ms ease;
+    background: var(--accent);
+    color: #ffffff;
 }
 
 button:disabled {
@@ -112,7 +192,7 @@ button:not(:disabled):active {
 
 #run-btn {
     background: var(--accent);
-    color: #f6fffe;
+    color: #ffffff;
 }
 
 #run-btn:hover:not(:disabled) {
@@ -120,9 +200,13 @@ button:not(:disabled):active {
 }
 
 button.secondary {
-    background: transparent;
-    color: var(--accent-strong);
-    border-color: var(--accent);
+    background: var(--accent);
+    color: #ffffff;
+    border-color: var(--accent-strong);
+}
+
+button.secondary:hover:not(:disabled) {
+    background: var(--accent-strong);
 }
 
 .status-row {
@@ -151,10 +235,31 @@ button.secondary {
 }
 
 .workspace {
+    --editor-size: minmax(180px, 1fr);
+    --terminal-size: minmax(180px, 1fr);
     display: grid;
-    grid-template-rows: minmax(180px, 1fr) minmax(180px, 1fr);
+    grid-template-rows: var(--editor-size) 12px var(--terminal-size);
     gap: 10px;
     height: clamp(500px, calc(100vh - 180px), 760px);
+}
+
+.pane-splitter {
+    border-radius: 999px;
+    border: 1px solid var(--accent-strong);
+    background: var(--accent);
+    box-shadow: var(--shadow);
+    cursor: row-resize;
+    touch-action: none;
+    user-select: none;
+}
+
+.pane-splitter:focus {
+    outline: 2px solid rgba(0, 120, 212, 0.4);
+    outline-offset: 2px;
+}
+
+.pane-splitter.dragging {
+    background: var(--accent-strong);
 }
 
 .panel {
@@ -202,9 +307,33 @@ button.secondary {
     overflow: auto;
 }
 
+#editor-container {
+    background: var(--editor-bg);
+    color: var(--editor-fg);
+}
+
+#editor-container .cm-editor,
+#editor-container .cm-scroller,
+#editor-container .cm-content,
+#editor-container .cm-gutters {
+    background: var(--editor-bg) !important;
+    color: var(--editor-fg) !important;
+}
+
+#editor-container .cm-gutters {
+    border-right-color: var(--line) !important;
+}
+
 #editor-container > * {
     height: 100%;
     min-height: 0;
+}
+
+#editor-container button[title*="run" i],
+#editor-container button[aria-label*="run" i],
+#editor-container [role="button"][title*="run" i],
+#editor-container [role="button"][aria-label*="run" i] {
+    display: none !important;
 }
 
 #terminal-container {
@@ -213,6 +342,8 @@ button.secondary {
     flex-direction: column;
     min-height: 0;
     overflow: hidden;
+    background: var(--terminal-bg);
+    color: var(--terminal-fg);
 }
 
 #terminal-container > * {
@@ -225,6 +356,51 @@ button.secondary {
 #terminal-container .xterm-screen,
 #terminal-container .xterm-viewport {
     height: 100% !important;
+}
+
+#terminal-container .xterm,
+#terminal-container .xterm-viewport,
+#terminal-container .xterm-screen,
+#terminal-container .xterm-rows {
+    background: var(--terminal-bg) !important;
+    color: var(--terminal-fg) !important;
+}
+
+#terminal-container .xterm-cursor,
+#terminal-container .xterm-cursor-outline,
+#terminal-container .xterm-cursor-block {
+    background-color: var(--terminal-cursor) !important;
+    border-color: var(--terminal-cursor) !important;
+}
+
+#terminal-container .xterm-cursor-underline {
+    border-bottom-color: var(--terminal-cursor) !important;
+}
+
+#terminal-container .xterm-cursor-bar {
+    border-left-color: var(--terminal-cursor) !important;
+}
+
+body.dark-theme .status-pill {
+    background: #25292f;
+}
+
+body.dark-theme #template-select {
+    background: #000000;
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+body.dark-theme #template-select option,
+body.dark-theme #template-select optgroup {
+    background: #000000;
+    color: #ffffff;
+}
+
+body.dark-theme .status-pill.ready {
+    background: #1f3a2a;
+    border-color: rgba(132, 240, 173, 0.55);
+    color: #84f0ad;
 }
 
 #terminal-container .xterm-viewport {
@@ -252,7 +428,8 @@ button.secondary {
     }
 
     .workspace {
-        grid-template-rows: minmax(160px, 1fr) minmax(160px, 1fr);
+        --editor-size: minmax(160px, 1fr);
+        --terminal-size: minmax(160px, 1fr);
         height: clamp(380px, calc(100vh - 300px), 560px);
     }
 }

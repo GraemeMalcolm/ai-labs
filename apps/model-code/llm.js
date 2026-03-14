@@ -53,10 +53,21 @@ class ModelCoderLLM {
         this.statusCallback = null;
         this.streamSessions = new Map();
         this.responsesById = new Map();
+        this.sessionVersion = 0;
     }
 
     setStatusCallback(callback) {
         this.statusCallback = callback;
+    }
+
+    async resetSession() {
+        this.sessionVersion += 1;
+        this.streamSessions.clear();
+        this.responsesById.clear();
+
+        if (this.wllama) {
+            await this.wllama.kvClear().catch(() => {});
+        }
     }
 
     _status(kind, message) {
@@ -158,7 +169,7 @@ class ModelCoderLLM {
         return messages;
     }
 
-    async _complete(prompt, onDelta) {
+    async _complete(prompt, onDelta, expectedSessionVersion = this.sessionVersion) {
         await this.wllama.kvClear().catch(() => {});
 
         let previousText = "";
@@ -179,6 +190,10 @@ class ModelCoderLLM {
         });
 
         for await (const chunk of stream) {
+            if (expectedSessionVersion !== this.sessionVersion) {
+                break;
+            }
+
             if (!chunk.currentText) {
                 continue;
             }
@@ -198,17 +213,23 @@ class ModelCoderLLM {
     async _createStreamSession(prompt, streamType = "responses") {
         const streamId = makeId("stream");
         const responseId = makeId("resp");
+        const createdAtVersion = this.sessionVersion;
 
         const session = {
             queue: [],
             done: false,
             error: null,
-            responseId
+            responseId,
+            createdAtVersion
         };
 
         this.streamSessions.set(streamId, session);
 
         this._complete(prompt, (delta) => {
+            if (createdAtVersion !== this.sessionVersion) {
+                return;
+            }
+
             if (streamType === "chat") {
                 session.queue.push({
                     object: "chat.completion.chunk",
@@ -228,7 +249,12 @@ class ModelCoderLLM {
                 type: "response.output_text.delta",
                 delta
             });
-        }).then((finalText) => {
+        }, createdAtVersion).then((finalText) => {
+            if (createdAtVersion !== this.sessionVersion) {
+                session.done = true;
+                return;
+            }
+
             this.responsesById.set(responseId, finalText);
             if (streamType === "chat") {
                 session.queue.push({
@@ -262,6 +288,11 @@ class ModelCoderLLM {
     async nextStreamChunk(streamId) {
         const session = this.streamSessions.get(streamId);
         if (!session) {
+            return { done: true, chunk: null };
+        }
+
+        if (session.createdAtVersion !== this.sessionVersion) {
+            this.streamSessions.delete(streamId);
             return { done: true, chunk: null };
         }
 
@@ -390,6 +421,10 @@ host.modelCoderRequest = async (requestJson) => {
     const payload = JSON.parse(requestJson);
     const response = await llmRuntime.request(payload);
     return JSON.stringify(response);
+};
+
+host.modelCoderResetSession = async () => {
+    await llmRuntime.resetSession();
 };
 
 host.modelCoderNextStreamChunk = async (streamId) => {

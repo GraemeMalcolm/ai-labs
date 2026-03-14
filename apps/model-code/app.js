@@ -5,34 +5,92 @@ const statusModel = document.getElementById("model-status");
 const runBtn = document.getElementById("run-btn");
 const stopBtn = document.getElementById("stop-btn");
 const retryBtn = document.getElementById("retry-btn");
+const themeBtn = document.getElementById("theme-btn");
 const savedIndicator = document.getElementById("saved-indicator");
 const templateSelect = document.getElementById("template-select");
-const loadTemplateBtn = document.getElementById("load-template-btn");
+const resetLayoutBtn = document.getElementById("reset-layout-btn");
+const paneSplitter = document.getElementById("pane-splitter");
+const workspace = document.querySelector(".workspace");
+const THEME_STORAGE_KEY = "model-coder-theme";
 
 const PY_PACKAGES = ["numpy", "pandas", "matplotlib", "scikit-learn"];
 
 const TEMPLATE_SNIPPETS = {
-    "simple-chat-responses": String.raw`# import namespace
+    "blank-page": "",
+    "simple-chat-chatcompletions": String.raw`# import namespace
 from openai import OpenAI
 
 
-def main():
+def main(): 
+
     try:
-        # Configuration settings
+        # Configuration settings 
         endpoint = "https://localmodel"
-        api_key = "key123"
-        model = "localmodel"
+        key = "key123"
+        model_name = "localmodel"
 
         # Initialize the OpenAI client
         openai_client = OpenAI(
             base_url=endpoint,
-            api_key=api_key
+            api_key=key
         )
-
+        
         # Loop until the user wants to quit
         while True:
             input_text = input('\nEnter a prompt (or type "quit" to exit): ')
             if input_text.lower() == "quit":
+                print("Goodbye!")
+                break
+            if len(input_text) == 0:
+                print("Please enter a prompt.")
+                continue
+
+            # Get a response
+            completion = openai_client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {
+                        "role": "developer",
+                        "content": "You are a helpful AI assistant that answers questions and provides information."
+                    },
+                    {
+                        "role": "user",
+                        "content": input_text
+                    }
+                ]
+            )
+            print(completion.choices[0].message.content)
+            
+
+    except Exception as ex:
+        print(ex)
+
+if __name__ == '__main__': 
+    main()
+`,
+    "simple-chat-responses": String.raw`# import namespace
+from openai import OpenAI
+
+
+def main(): 
+
+    try:
+        # Configuration settings 
+        endpoint = "https://localmodel"
+        key = "key123"
+        model_name = "localmodel"
+
+        # Initialize the OpenAI client
+        openai_client = OpenAI(
+            base_url=endpoint,
+            api_key=key
+        )
+        
+        # Loop until the user wants to quit
+        while True:
+            input_text = input('\nEnter a prompt (or type "quit" to exit): ')
+            if input_text.lower() == "quit":
+                print("Goodbye!")
                 break
             if len(input_text) == 0:
                 print("Please enter a prompt.")
@@ -40,50 +98,186 @@ def main():
 
             # Get a response
             response = openai_client.responses.create(
-                model=model,
-                instructions="You are a helpful AI assistant that answers questions and provides information.",
-                input=input_text
+                        model=model_name,
+                        instructions="You are a helpful AI assistant that answers questions and provides information.",
+                        input=input_text
             )
             print(response.output_text)
+            
 
     except Exception as ex:
         print(ex)
 
-
-if __name__ == '__main__':
+if __name__ == '__main__': 
     main()
 `,
-    "sync-basic": String.raw`"""Sync OpenAI-style examples."""
-
+    "conversation-tracking-chatcompletions": String.raw`# import namespace
 from openai import OpenAI
 
-client = OpenAI(base_url="https://localmodel", api_key="demo-key")
 
-response = client.responses.create(
-    model="localmodel",
-    instructions="You are a concise Python tutor.",
-    input="Explain list comprehension with a short example."
-)
-print("Responses API:\n", response.output_text)
+def main(): 
 
-chat_result = client.chat.completions.create(
-    model="localmodel",
-    messages=[
-        {"role": "developer", "content": "Keep answers short and practical."},
-        {"role": "user", "content": "Write a Python function for factorial."}
-    ]
-)
-print("\nChat Completions API:\n", chat_result.choices[0].message.content)
+    try:
+        # Configuration settings 
+        endpoint = "https://localmodel"
+        key = "key123"
+        model_name = "localmodel"
+
+        # Initialize the OpenAI client
+        openai_client = OpenAI(
+            base_url=endpoint,
+            api_key=key
+        )
+
+        # Initial messages
+        conversation_messages=[
+                    {
+                        "role": "developer",
+                        "content": "You are a helpful AI assistant that answers questions and provides information."
+                    }
+        ]
+        
+        # Loop until the user wants to quit
+        print("Enter a prompt (or type 'quit' to exit)")
+        while True:
+            input_text = input('You: ')
+            if input_text.lower() == "quit":
+                print("Goodbye!")
+                break
+            if len(input_text) == 0:
+                print("Please enter a prompt:")
+                continue
+
+            # Add the user message
+            conversation_messages.append({"role": "user", "content": input_text})
+
+            # Get a response
+            completion = openai_client.chat.completions.create(
+                model=model_name,
+                messages=conversation_messages
+            )
+            assistant_text = completion.choices[0].message.content
+            print("Assistant:", assistant_text)
+            conversation_messages.append({"role": "assistant", "content": assistant_text})
+            
+
+    except Exception as ex:
+        print(ex)
+
+if __name__ == '__main__': 
+    main()
 `,
-    "async-basic": String.raw`"""Async OpenAI-style examples."""
+    "conversation-tracking-responses": String.raw`# import namespace
+from openai import OpenAI
 
-import asyncio
+
+def main(): 
+
+    try:
+        # Configuration settings 
+        endpoint = "https://localmodel"
+        key = "key123"
+        model_name = "localmodel"
+
+        # Initialize the OpenAI client
+        openai_client = OpenAI(
+            base_url=endpoint,
+            api_key=key
+        )
+        
+        # Track responses
+        last_response_id = None
+
+        # Loop until the user wants to quit
+        print("Enter a prompt (or type 'quit' to exit)")
+        while True:
+            input_text = input('You: ')
+            if input_text.lower() == "quit":
+                print("Goodbye!")
+                break
+            if len(input_text) == 0:
+                print("Please enter a prompt:")
+                continue
+
+            # Get a response
+            response = openai_client.responses.create(
+                        model=model_name,
+                        instructions="You are a helpful AI assistant that answers questions and provides information.",
+                        input=input_text,
+                        previous_response_id=last_response_id
+            )
+            assistant_text = response.output_text
+            print("Assistant:", assistant_text)
+            last_response_id = response.id
+            
+
+    except Exception as ex:
+        print(ex)
+
+if __name__ == '__main__': 
+    main()
+`,
+    "streaming-responses": String.raw`# import namespace
+from openai import OpenAI
+
+
+def main(): 
+
+    try:
+        # Configuration settings 
+        endpoint = "https://localmodel"
+        key = "key123"
+        model_name = "localmodel"
+
+        # Initialize the OpenAI client
+        openai_client = OpenAI(
+            base_url=endpoint,
+            api_key=key
+        )
+        
+        # Track responses
+        last_response_id = None
+        print("Enter a prompt (or type 'quit' to exit)")
+        while True:
+            input_text = input('You: ')
+            if input_text.lower() == "quit":
+                print("Goodbye!")
+                break
+            if len(input_text) == 0:
+                print("Please enter a prompt:")
+                continue
+
+            # Get a response
+            stream = openai_client.responses.create(
+                        model=model_name,
+                        instructions="You are a helpful AI assistant that answers questions and provides information.",
+                        input=input_text,
+                        previous_response_id=last_response_id,
+                        stream=True
+            )
+            print("Assistant:")
+            for event in stream:
+                if event.type == "response.output_text.delta":
+                    print(event.delta, end="")
+                elif event.type == "response.completed":
+                    last_response_id = event.response.id
+            print()
+            
+
+    except Exception as ex:
+        print(ex)
+
+if __name__ == '__main__': 
+    main()
+`,
+    "async-chat": String.raw`import asyncio
 from openai import AsyncOpenAI
 
 
 async def main():
-    client = AsyncOpenAI(base_url="https://localmodel", api_key="demo-key")
+    client = AsyncOpenAI(base_url="https://localmodel", api_key="key123")
 
+    # Async response (wait for complete response)
     response = await client.responses.create(
         model="localmodel",
         instructions="You are a concise Python tutor.",
@@ -91,6 +285,7 @@ async def main():
     )
     print("Async response:\n", response.output_text)
 
+    # Async Streaming response
     print("\nStreaming response:")
     stream = await client.responses.create(
         model="localmodel",
@@ -106,56 +301,6 @@ async def main():
 
 
 asyncio.run(main())
-`,
-    "history-loop": String.raw`"""Conversation history loop using chat.completions.create."""
-
-from openai import OpenAI
-
-client = OpenAI(base_url="https://localmodel", api_key="demo-key")
-messages = [
-    {"role": "developer", "content": "Be concise and helpful."}
-]
-
-print("Type 'quit' to stop.")
-
-while True:
-    user_text = input("You: ").strip()
-    if user_text.lower() == "quit":
-        print("Goodbye")
-        break
-    if not user_text:
-        print("Please type a prompt.")
-        continue
-
-    messages.append({"role": "user", "content": user_text})
-    response = client.chat.completions.create(
-        model="localmodel",
-        messages=messages
-    )
-
-    assistant_text = response.choices[0].message.content
-    print("Assistant:", assistant_text)
-    messages.append({"role": "assistant", "content": assistant_text})
-`,
-    "previous-chain": String.raw`"""Chain responses with previous_response_id."""
-
-from openai import OpenAI
-
-client = OpenAI(base_url="https://localmodel", api_key="demo-key")
-
-first = client.responses.create(
-    model="localmodel",
-    instructions="Answer in short bullet points.",
-    input="Explain what a Python dictionary is."
-)
-print("First response:\n", first.output_text)
-
-follow_up = client.responses.create(
-    model="localmodel",
-    previous_response_id=first.id,
-    input="Now provide one practical coding tip."
-)
-print("\nFollow-up response:\n", follow_up.output_text)
 `
 };
 
@@ -166,9 +311,139 @@ const state = {
     running: false,
     sessionActive: false,
     runtimeInitialized: false,
+    darkTheme: false,
     savedCode: "",
     nopenaiSource: "",
 };
+
+function applyTheme(isDark) {
+    state.darkTheme = Boolean(isDark);
+    document.body.classList.toggle("dark-theme", state.darkTheme);
+
+    if (themeBtn) {
+        themeBtn.setAttribute("aria-pressed", state.darkTheme ? "true" : "false");
+        themeBtn.classList.toggle("active", state.darkTheme);
+    }
+
+    try {
+        localStorage.setItem(THEME_STORAGE_KEY, state.darkTheme ? "dark" : "light");
+    } catch (_error) {
+        // Ignore storage failures and continue using in-memory theme state.
+    }
+
+    applyEmbeddedEditorTheme();
+}
+
+function toggleTheme() {
+    applyTheme(!state.darkTheme);
+}
+
+function getSavedThemePreference() {
+    try {
+        return localStorage.getItem(THEME_STORAGE_KEY);
+    } catch (_error) {
+        return null;
+    }
+}
+
+function applyEmbeddedEditorTheme() {
+    const editor = getEditor();
+    const container = document.getElementById("editor-container");
+    if (!editor && !container) {
+        return;
+    }
+
+    if (editor) {
+        editor.setAttribute("data-theme", state.darkTheme ? "dark" : "light");
+        editor.style.backgroundColor = state.darkTheme ? "#0d0f12" : "#ffffff";
+        editor.style.color = state.darkTheme ? "#f5f6f8" : "#111111";
+    }
+
+    const styleId = "model-coder-embedded-theme";
+    const roots = [];
+
+    if (editor?.shadowRoot) {
+        roots.push(editor.shadowRoot);
+    }
+
+    if (container) {
+        for (const node of container.querySelectorAll("*")) {
+            if (!node.shadowRoot) {
+                continue;
+            }
+            if (node.shadowRoot.querySelector(".cm-editor")) {
+                roots.push(node.shadowRoot);
+            }
+        }
+    }
+
+    if (roots.length === 0) {
+        return;
+    }
+
+    for (const root of roots) {
+        let styleEl = root.getElementById(styleId);
+        if (!styleEl) {
+            styleEl = document.createElement("style");
+            styleEl.id = styleId;
+            root.appendChild(styleEl);
+        }
+
+        if (state.darkTheme) {
+            styleEl.textContent = `
+        .cm-editor,
+        .cm-scroller,
+        .cm-content,
+        .cm-gutters,
+        .cm-activeLine,
+        .cm-activeLineGutter {
+            background: #0d0f12 !important;
+            color: #e6edf3 !important;
+        }
+
+        .cm-gutters {
+            border-right: 1px solid #2f353d !important;
+        }
+
+        .cm-line {
+            color: #e6edf3 !important;
+        }
+
+        .cm-gutterElement {
+            color: #9aa4af !important;
+        }
+
+        .cm-cursor,
+        .cm-dropCursor {
+            border-left-color: #f5f6f8 !important;
+        }
+
+        .cm-content span,
+        .cm-line span,
+        .cm-line span *,
+        [class*="tok-"],
+        [class*="cm-"] {
+            color: #ffffff !important;
+        }
+        `;
+    } else {
+        // Keep PyScript/CodeMirror default syntax colors in light mode.
+        styleEl.textContent = "";
+        }
+    }
+}
+
+function queueEmbeddedEditorThemeSync() {
+    let attempts = 0;
+    const maxAttempts = 20;
+    const timer = setInterval(() => {
+        attempts += 1;
+        applyEmbeddedEditorTheme();
+        if (getEditor()?.shadowRoot || attempts >= maxAttempts) {
+            clearInterval(timer);
+        }
+    }, 150);
+}
 
 function setPill(el, text, mode = "") {
     el.textContent = text;
@@ -191,6 +466,114 @@ function getEditor() {
 
 function getTerminal() {
     return document.getElementById("python-terminal");
+}
+
+function setPaneSizes(editorPx, terminalPx) {
+    if (!workspace) {
+        return;
+    }
+    workspace.style.setProperty("--editor-size", `${Math.round(editorPx)}px`);
+    workspace.style.setProperty("--terminal-size", `${Math.round(terminalPx)}px`);
+}
+
+function resetPaneSizes() {
+    if (!workspace) {
+        return;
+    }
+
+    const splitterSize = 12;
+    const rect = workspace.getBoundingClientRect();
+    const available = rect.height - splitterSize;
+    if (available <= 0) {
+        return;
+    }
+
+    const half = available / 2;
+    setPaneSizes(half, half);
+}
+
+function initializePaneSplitter() {
+    if (!paneSplitter || !workspace) {
+        return;
+    }
+
+    const minPane = 160;
+    const splitterSize = 12;
+    let dragging = false;
+
+    const clampEditorHeight = (value, available) => {
+        const maxEditor = Math.max(minPane, available - minPane);
+        return Math.min(Math.max(value, minPane), maxEditor);
+    };
+
+    const applyFromClientY = (clientY) => {
+        const rect = workspace.getBoundingClientRect();
+        const available = rect.height - splitterSize;
+        if (available <= minPane * 2) {
+            return;
+        }
+
+        const nextEditor = clampEditorHeight(clientY - rect.top, available);
+        const nextTerminal = available - nextEditor;
+        setPaneSizes(nextEditor, nextTerminal);
+    };
+
+    const onPointerMove = (event) => {
+        if (!dragging) {
+            return;
+        }
+        applyFromClientY(event.clientY);
+    };
+
+    const stopDrag = () => {
+        if (!dragging) {
+            return;
+        }
+        dragging = false;
+        paneSplitter.classList.remove("dragging");
+    };
+
+    paneSplitter.addEventListener("pointerdown", (event) => {
+        dragging = true;
+        paneSplitter.classList.add("dragging");
+        paneSplitter.setPointerCapture(event.pointerId);
+        applyFromClientY(event.clientY);
+    });
+
+    paneSplitter.addEventListener("pointermove", onPointerMove);
+    paneSplitter.addEventListener("pointerup", stopDrag);
+    paneSplitter.addEventListener("pointercancel", stopDrag);
+
+    paneSplitter.addEventListener("keydown", (event) => {
+        if (!workspace) {
+            return;
+        }
+
+        const rect = workspace.getBoundingClientRect();
+        const available = rect.height - splitterSize;
+        if (available <= minPane * 2) {
+            return;
+        }
+
+        const styles = getComputedStyle(workspace);
+        const currentEditor = parseFloat(styles.getPropertyValue("--editor-size")) || (available / 2);
+        const delta = event.shiftKey ? 40 : 20;
+        let nextEditor = currentEditor;
+
+        if (event.key === "ArrowUp") {
+            nextEditor -= delta;
+        } else if (event.key === "ArrowDown") {
+            nextEditor += delta;
+        } else {
+            return;
+        }
+
+        event.preventDefault();
+        nextEditor = clampEditorHeight(nextEditor, available);
+        setPaneSizes(nextEditor, available - nextEditor);
+    });
+
+    resetPaneSizes();
 }
 
 function resetTerminalContainer() {
@@ -237,8 +620,11 @@ function stopActiveRun(message = "Run stopped. You can load another template or 
 
     state.sessionActive = false;
     state.running = false;
-    runBtn.textContent = "Run Code";
     updateRunState();
+}
+
+function hasTerminalRunner() {
+    return document.querySelector('script[type="py"][terminal][target="terminal-container"]') !== null;
 }
 
 function setEditorCode(value) {
@@ -282,19 +668,28 @@ function readEditorCode() {
     return String(editor.textContent || "");
 }
 
-function loadSelectedTemplate() {
+async function loadSelectedTemplate() {
     if (!templateSelect) {
         return;
     }
 
     const selected = templateSelect.value;
-    const snippet = TEMPLATE_SNIPPETS[selected];
-    if (!snippet) {
+    if (!(selected in TEMPLATE_SNIPPETS)) {
         return;
     }
 
-    if (state.sessionActive) {
+    const snippet = TEMPLATE_SNIPPETS[selected];
+
+    if (state.sessionActive || hasTerminalRunner()) {
         stopActiveRun("Previous run stopped to load a new template.");
+    }
+
+    try {
+        if (typeof window.modelCoderResetSession === "function") {
+            await window.modelCoderResetSession();
+        }
+    } catch (error) {
+        console.warn("Unable to reset model session on template switch.", error);
     }
 
     const ok = setEditorCode(snippet);
@@ -323,6 +718,8 @@ function markRuntimeReady() {
     state.terminalReady = true;
     setPill(statusRuntime, "PyScript runtime ready", "ready");
     setupEditorAsEditOnly();
+    suppressNativeEditorRunButton();
+    queueEmbeddedEditorThemeSync();
     initializeEditorEmpty();
     updateRunState();
 }
@@ -343,6 +740,53 @@ function setupEditorAsEditOnly() {
 
     // The editor remains available for editing; execution is routed through the terminal run button.
     editor.handleEvent = () => false;
+}
+
+function suppressNativeEditorRunButton() {
+    const container = document.getElementById("editor-container");
+    if (!container) {
+        return;
+    }
+
+    const hideRunControls = () => {
+        const candidates = container.querySelectorAll("button, [role='button']");
+        for (const node of candidates) {
+            if (node.dataset.modelCoderRunHidden === "true") {
+                continue;
+            }
+
+            const title = String(node.getAttribute("title") || "").toLowerCase();
+            const label = String(node.getAttribute("aria-label") || "").toLowerCase();
+            const className = String(node.className || "").toLowerCase();
+            const text = String(node.textContent || "").trim().toLowerCase();
+
+            const looksLikeRun =
+                title.includes("run") ||
+                label.includes("run") ||
+                className.includes("run") ||
+                text === "run" ||
+                text === "▶" ||
+                text === "►";
+
+            if (looksLikeRun) {
+                node.style.display = "none";
+                node.setAttribute("aria-hidden", "true");
+                node.dataset.modelCoderRunHidden = "true";
+            }
+        }
+    };
+
+    hideRunControls();
+
+    if (container.dataset.runButtonObserverAttached === "true") {
+        return;
+    }
+
+    const observer = new MutationObserver(() => {
+        hideRunControls();
+    });
+    observer.observe(container, { childList: true, subtree: true });
+    container.dataset.runButtonObserverAttached = "true";
 }
 
 function buildExecutionCode(userCode) {
@@ -381,7 +825,6 @@ async function runCurrentCode() {
 
     state.running = true;
     updateRunState();
-    runBtn.textContent = "Running...";
 
     try {
         await loadNopenaiSource();
@@ -403,7 +846,6 @@ async function runCurrentCode() {
         state.sessionActive = false;
     } finally {
         state.running = false;
-        runBtn.textContent = "Run Code";
         updateRunState();
     }
 }
@@ -446,6 +888,11 @@ async function initializeApp() {
         updateRunState();
     };
 
+    const savedTheme = getSavedThemePreference();
+    applyTheme(savedTheme === "dark");
+
+    initializePaneSplitter();
+
     window.addEventListener("py:ready", markRuntimeReady, { once: true });
 
     runBtn.addEventListener("click", runCurrentCode);
@@ -455,11 +902,16 @@ async function initializeApp() {
         });
     }
     retryBtn.addEventListener("click", initializeModel);
-    if (loadTemplateBtn) {
-        loadTemplateBtn.addEventListener("click", loadSelectedTemplate);
-    }
     if (templateSelect) {
-        templateSelect.addEventListener("change", loadSelectedTemplate);
+        templateSelect.addEventListener("change", () => {
+            void loadSelectedTemplate();
+        });
+    }
+    if (resetLayoutBtn) {
+        resetLayoutBtn.addEventListener("click", resetPaneSizes);
+    }
+    if (themeBtn) {
+        themeBtn.addEventListener("click", toggleTheme);
     }
 
     await loadNopenaiSource();

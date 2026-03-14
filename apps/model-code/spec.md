@@ -52,11 +52,15 @@ The prompts to the model should be based on the Python openai code specified by 
 Use the existing code in the /apps/chat-playground app as a guide for how to get a working implementation of wllama and the smollm2 model.
 
 
-## Initial sample code
+## Sample code
 
-When the app first loads, there should be no sample code loaded.
+The app should include the following samples that a user can select and run, and use as a starting point for their own code:
 
-The first sample listed should be "Simple chat - Responses API", and it should include the following code:
+### Blank Page
+
+An empty code editor - this is the default sample when the app opens.
+
+### Simple chat (ChatCompletions API)
 
 ```python
 # import namespace
@@ -68,19 +72,75 @@ def main():
     try:
         # Configuration settings 
         endpoint = "https://localmodel"
-        api_key = "key123"
-        model = "localmodel"
+        key = "key123"
+        model_name = "localmodel"
 
         # Initialize the OpenAI client
         openai_client = OpenAI(
             base_url=endpoint,
-            api_key=api_key
+            api_key=key
         )
         
         # Loop until the user wants to quit
         while True:
             input_text = input('\nEnter a prompt (or type "quit" to exit): ')
             if input_text.lower() == "quit":
+                print("Goodbye!")
+                break
+            if len(input_text) == 0:
+                print("Please enter a prompt.")
+                continue
+
+            # Get a response
+            completion = openai_client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {
+                        "role": "developer",
+                        "content": "You are a helpful AI assistant that answers questions and provides information."
+                    },
+                    {
+                        "role": "user",
+                        "content": input_text
+                    }
+                ]
+            )
+            print(completion.choices[0].message.content)
+            
+
+    except Exception as ex:
+        print(ex)
+
+if __name__ == '__main__': 
+    main()
+```
+
+### Simple chat (Responses API)
+
+```python
+# import namespace
+from openai import OpenAI
+
+
+def main(): 
+
+    try:
+        # Configuration settings 
+        endpoint = "https://localmodel"
+        key = "key123"
+        model_name = "localmodel"
+
+        # Initialize the OpenAI client
+        openai_client = OpenAI(
+            base_url=endpoint,
+            api_key=key
+        )
+        
+        # Loop until the user wants to quit
+        while True:
+            input_text = input('\nEnter a prompt (or type "quit" to exit): ')
+            if input_text.lower() == "quit":
+                print("Goodbye!")
                 break
             if len(input_text) == 0:
                 print("Please enter a prompt.")
@@ -88,7 +148,7 @@ def main():
 
             # Get a response
             response = openai_client.responses.create(
-                        model=model_deployment,
+                        model=model_name,
                         instructions="You are a helpful AI assistant that answers questions and provides information.",
                         input=input_text
             )
@@ -100,4 +160,211 @@ def main():
 
 if __name__ == '__main__': 
     main()
+```
+
+### Conversation Tracking (ChatCompletions API)
+
+```python
+# import namespace
+from openai import OpenAI
+
+
+def main(): 
+
+    try:
+        # Configuration settings 
+        endpoint = "https://localmodel"
+        key = "key123"
+        model_name = "localmodel"
+
+        # Initialize the OpenAI client
+        openai_client = OpenAI(
+            base_url=endpoint,
+            api_key=key
+        )
+
+        # Initial messages
+        conversation_messages=[
+                    {
+                        "role": "developer",
+                        "content": "You are a helpful AI assistant that answers questions and provides information."
+                    }
+        ]
+        
+        # Loop until the user wants to quit
+        print("Enter a prompt (or type 'quit' to exit)")
+        while True:
+            input_text = input('You: ')
+            if input_text.lower() == "quit":
+                print("Goodbye!")
+                break
+            if len(input_text) == 0:
+                print("Please enter a prompt:")
+                continue
+
+            # Add the user message
+            conversation_messages.append({"role": "user", "content": input_text})
+
+            # Get a response
+            completion = openai_client.chat.completions.create(
+                model=model_name,
+                messages=conversation_messages
+            )
+            assistant_text = response.choices[0].message.content
+            print("Assistant:", assistant_text)
+            conversation_messages.append({"role": "assistant", "content": assistant_text})
+            
+
+    except Exception as ex:
+        print(ex)
+
+if __name__ == '__main__': 
+    main()
+```
+
+### Conversation Tracking (Responses API)
+
+```python
+# import namespace
+from openai import OpenAI
+
+
+def main(): 
+
+    try:
+        # Configuration settings 
+        endpoint = "https://localmodel"
+        key = "key123"
+        model_name = "localmodel"
+
+        # Initialize the OpenAI client
+        openai_client = OpenAI(
+            base_url=endpoint,
+            api_key=key
+        )
+        
+        # Track responses
+        last_response_id = None
+
+        # Loop until the user wants to quit
+        print("Enter a prompt (or type 'quit' to exit)")
+        while True:
+            input_text = input('You: ')
+            if input_text.lower() == "quit":
+                print("Goodbye!")
+                break
+            if len(input_text) == 0:
+                print("Please enter a prompt:")
+                continue
+
+            # Get a response
+            response = openai_client.responses.create(
+                        model=model_name,
+                        instructions="You are a helpful AI assistant that answers questions and provides information.",
+                        input=input_text,
+                        previous_response_id=last_response_id
+            )
+            assistant_text = response.output_text
+            print("Assistant:", assistant_text)
+            last_response_id = response.response.id
+            
+
+    except Exception as ex:
+        print(ex)
+
+if __name__ == '__main__': 
+    main()
+```
+
+### Streaming (Responses API)
+
+```python
+# import namespace
+from openai import OpenAI
+
+
+def main(): 
+
+    try:
+        # Configuration settings 
+        endpoint = "https://localmodel"
+        key = "key123"
+        model_name = "localmodel"
+
+        # Initialize the OpenAI client
+        openai_client = OpenAI(
+            base_url=endpoint,
+            api_key=key
+        )
+        
+        # Track responses
+        last_response_id = None
+        print("Enter a prompt (or type 'quit' to exit)")
+        while True:
+            input_text = input('You: ')
+            if input_text.lower() == "quit":
+                print("Goodbye!")
+                break
+            if len(input_text) == 0:
+                print("Please enter a prompt:")
+                continue
+
+            # Get a response
+            stream = openai_client.responses.create(
+                        model=model_deployment,
+                        instructions="You are a helpful AI assistant that answers questions and provides information.",
+                        input=input_text,
+                        previous_response_id=last_response_id,
+                        stream=True
+            )
+            print("Assistant:")
+            for event in stream:
+                if event.type == "response.output_text.delta":
+                    print(event.delta, end="")
+                elif event.type == "response.completed":
+                    last_response_id = event.response.id
+            print()
+            
+
+    except Exception as ex:
+        print(ex)
+
+if __name__ == '__main__': 
+    main()
+```
+
+### Async chat
+
+```python
+import asyncio
+from openai import AsyncOpenAI
+
+
+async def main():
+    client = AsyncOpenAI(base_url="https://localmodel", api_key="key123")
+
+    # Async response (wait for complete response)
+    response = await client.responses.create(
+        model="localmodel",
+        instructions="You are a concise Python tutor.",
+        input="Show a Python class with __init__ and one method."
+    )
+    print("Async response:\n", response.output_text)
+
+    # Async Streaming response
+    print("\nStreaming response:")
+    stream = await client.responses.create(
+        model="localmodel",
+        input="Give 3 bullet points about Python dictionaries.",
+        stream=True
+    )
+
+    async for event in stream:
+        if hasattr(event, "delta"):
+            print(event.delta, end="")
+
+    print("\n")
+
+
+asyncio.run(main())
 ```
