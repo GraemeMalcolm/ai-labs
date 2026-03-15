@@ -77,14 +77,12 @@ def _run_sync(coro):
 
 
 async def _request(payload: Dict[str, Any]) -> Dict[str, Any]:
-    bridge = _get_js_bridge()
-    response_json = await bridge.modelCoderRequest(json.dumps(payload))
+    response_json = await _bridge_call("modelCoderRequest", json.dumps(payload))
     return json.loads(str(response_json))
 
 
 async def _next_chunk(stream_id: str) -> Dict[str, Any]:
-    bridge = _get_js_bridge()
-    chunk_json = await bridge.modelCoderNextStreamChunk(stream_id)
+    chunk_json = await _bridge_call("modelCoderNextStreamChunk", stream_id)
     return json.loads(str(chunk_json))
 
 
@@ -95,27 +93,65 @@ def _safe_getattr(obj: Any, attr: str):
         return None
 
 
-def _has_bridge(obj: Any) -> bool:
-    if obj is None:
-        return False
-    return _safe_getattr(obj, "modelCoderRequest") is not None and _safe_getattr(obj, "modelCoderNextStreamChunk") is not None
+def _iter_js_bridge_candidates():
+    seen = set()
+
+    def _add(value):
+        if value is None:
+            return
+        marker = id(value)
+        if marker in seen:
+            return
+        seen.add(marker)
+        candidates.append(value)
+
+    candidates = []
+
+    _add(_pyscript_window)
+    _add(js)
+
+    if _pyscript is not None:
+        _add(_safe_getattr(_pyscript, "sync"))
+
+    for attr in ("globalThis", "window", "self"):
+        _add(_safe_getattr(js, attr))
+
+    return candidates
+
+
+async def _bridge_call(method_name: str, *args):
+    last_error = None
+
+    for bridge in _iter_js_bridge_candidates():
+        method = _safe_getattr(bridge, method_name)
+        if method is None:
+            continue
+
+        try:
+            result = method(*args)
+            if hasattr(result, "__await__"):
+                result = await result
+            return result
+        except Exception as exc:
+            last_error = exc
+            continue
+
+    if last_error is not None:
+        raise OpenAIError(
+            f"Model bridge call failed for {method_name}: {last_error}"
+        ) from last_error
+
+    raise OpenAIError(
+        "Model bridge not available in this Python runtime. "
+        "Missing modelCoderRequest/modelCoderNextStreamChunk on available JS globals."
+    )
 
 
 def _get_js_bridge():
-    candidates = []
-
-    if _pyscript_window is not None:
-        candidates.append(_pyscript_window)
-
-    candidates.append(js)
-
-    for attr in ("globalThis", "window", "self"):
-        obj = _safe_getattr(js, attr)
-        if obj is not None:
-            candidates.append(obj)
-
-    for candidate in candidates:
-        if _has_bridge(candidate):
+    for candidate in _iter_js_bridge_candidates():
+        has_request = _safe_getattr(candidate, "modelCoderRequest") is not None
+        has_chunk = _safe_getattr(candidate, "modelCoderNextStreamChunk") is not None
+        if has_request and has_chunk:
             return candidate
 
     raise OpenAIError(
