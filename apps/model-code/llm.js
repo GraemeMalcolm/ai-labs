@@ -2,7 +2,8 @@ import { Wllama } from "https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.7/esm/in
 
 const WASM_PATHS = {
     "single-thread/wllama.wasm": "https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.7/esm/single-thread/wllama.wasm",
-    "multi-thread/wllama.wasm": "https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.7/esm/multi-thread/wllama.wasm"
+    // Force single-thread wasm for stability on static/browser-hosted scenarios.
+    "multi-thread/wllama.wasm": "https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.7/esm/single-thread/wllama.wasm"
 };
 
 const MODEL_REPO = "ngxson/SmolLM2-360M-Instruct-Q8_0-GGUF";
@@ -159,7 +160,7 @@ class ModelCoderLLM {
         this.wllama = new Wllama(WASM_PATHS);
         await this.wllama.loadModelFromHF(MODEL_REPO, MODEL_FILE, {
             n_ctx: 2048,
-            n_threads: navigator.hardwareConcurrency || 4,
+            n_threads: 1,
             progressCallback: ({ loaded, total }) => {
                 if (!total) {
                     this._status("loading", "Loading local model...");

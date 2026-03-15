@@ -772,19 +772,26 @@ function syncActiveRunId() {
 
 function launchTerminalScript(scriptCode, runId) {
     const terminalContainer = resetTerminalContainer();
+    const runTargetId = `terminal-run-${runId}`;
+    const runTarget = document.createElement("div");
+    runTarget.id = runTargetId;
+    runTarget.style.height = "100%";
+    runTarget.style.minHeight = "0";
+    terminalContainer.appendChild(runTarget);
 
     // Remove any stale terminal scripts still bound to this target.
-    const staleRunners = document.querySelectorAll('script[type="py"][terminal][target="terminal-container"]');
+    const staleRunners = document.querySelectorAll('script[type="py"][data-model-coder-runner="true"]');
     staleRunners.forEach((node) => node.remove());
 
     const runner = document.createElement("script");
     runner.id = "python-terminal-runner";
     runner.type = "py";
+    runner.dataset.modelCoderRunner = "true";
     runner.setAttribute("terminal", "");
     if (shouldUseTerminalWorker()) {
         runner.setAttribute("worker", "");
     }
-    runner.setAttribute("target", "terminal-container");
+    runner.setAttribute("target", runTargetId);
     runner.setAttribute("config", JSON.stringify({ packages: PY_PACKAGES }));
     runner.textContent = scriptCode;
 
@@ -804,7 +811,7 @@ function stopActiveRun(message = "Run stopped. You can load another template or 
     state.activeRunId += 1;
     syncActiveRunId();
 
-    const staleRunners = document.querySelectorAll('script[type="py"][terminal][target="terminal-container"]');
+    const staleRunners = document.querySelectorAll('script[type="py"][data-model-coder-runner="true"]');
     staleRunners.forEach((node) => node.remove());
 
     const terminalContainer = resetTerminalContainer();
@@ -827,7 +834,7 @@ function completeActiveRun(runId = state.activeRunId) {
     }
 
     // End the active terminal session but keep existing terminal output visible.
-    const staleRunners = document.querySelectorAll('script[type="py"][terminal][target="terminal-container"]');
+    const staleRunners = document.querySelectorAll('script[type="py"][data-model-coder-runner="true"]');
     staleRunners.forEach((node) => node.remove());
 
     state.sessionActive = false;
@@ -841,7 +848,7 @@ function clearTerminalOutput(options = {}) {
     state.activeRunId += 1;
     syncActiveRunId();
 
-    const staleRunners = document.querySelectorAll('script[type="py"][terminal][target="terminal-container"]');
+    const staleRunners = document.querySelectorAll('script[type="py"][data-model-coder-runner="true"]');
     staleRunners.forEach((node) => node.remove());
 
     resetTerminalContainer();
@@ -854,7 +861,7 @@ function clearTerminalOutput(options = {}) {
 }
 
 function hasTerminalRunner() {
-    return document.querySelector('script[type="py"][terminal][target="terminal-container"]') !== null;
+    return document.querySelector('script[type="py"][data-model-coder-runner="true"]') !== null;
 }
 
 function setEditorCode(value) {
