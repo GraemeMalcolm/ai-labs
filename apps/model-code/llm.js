@@ -430,6 +430,14 @@ const modelCoderNextStreamChunk = async (streamId) => {
     return JSON.stringify(next);
 };
 
+const modelCoderBridge = {
+    modelCoderSetStatusListener,
+    modelCoderInit,
+    modelCoderRequest,
+    modelCoderResetSession,
+    modelCoderNextStreamChunk,
+};
+
 function attachBridge(target) {
     if (!target) {
         return;
@@ -439,6 +447,7 @@ function attachBridge(target) {
     target.modelCoderRequest = modelCoderRequest;
     target.modelCoderResetSession = modelCoderResetSession;
     target.modelCoderNextStreamChunk = modelCoderNextStreamChunk;
+    target.modelCoderBridge = modelCoderBridge;
 }
 
 attachBridge(globalThis);

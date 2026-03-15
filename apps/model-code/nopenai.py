@@ -153,6 +153,20 @@ async def _bridge_call(method_name: str, *args):
     attempts = []
 
     for bridge_name, bridge in _iter_js_bridge_candidates():
+        bridge_bundle = _safe_getattr(bridge, "modelCoderBridge")
+        if bridge_bundle is not None:
+            bundled_method = _safe_getattr(bridge_bundle, method_name)
+            if bundled_method is not None and _is_callable(bundled_method):
+                try:
+                    result = bundled_method(*args)
+                    if hasattr(result, "__await__"):
+                        result = await result
+                    _debug_bridge(f"{method_name} resolved via modelCoderBridge on {bridge_name}")
+                    return result
+                except Exception as exc:
+                    last_error = exc
+                    _debug_bridge(f"{method_name} modelCoderBridge call failed on {bridge_name}: {exc}")
+
         method = _safe_getattr(bridge, method_name)
         call_method = _safe_getattr(bridge, "call")
         has_direct = method is not None
@@ -201,8 +215,15 @@ async def _bridge_call(method_name: str, *args):
 
 def _get_js_bridge():
     for candidate in _iter_js_bridge_candidates():
-        has_request = _safe_getattr(candidate, "modelCoderRequest") is not None
-        has_chunk = _safe_getattr(candidate, "modelCoderNextStreamChunk") is not None
+        bridge_bundle = _safe_getattr(candidate[1], "modelCoderBridge")
+        if bridge_bundle is not None:
+            has_request = _safe_getattr(bridge_bundle, "modelCoderRequest") is not None
+            has_chunk = _safe_getattr(bridge_bundle, "modelCoderNextStreamChunk") is not None
+            if has_request and has_chunk:
+                return candidate
+
+        has_request = _safe_getattr(candidate[1], "modelCoderRequest") is not None
+        has_chunk = _safe_getattr(candidate[1], "modelCoderNextStreamChunk") is not None
         if has_request and has_chunk:
             return candidate
 
