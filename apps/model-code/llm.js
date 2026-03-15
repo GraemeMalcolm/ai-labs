@@ -55,6 +55,23 @@ class ModelCoderLLM {
         this.responsesById = new Map();
         this.sessionVersion = 0;
         this.activeGenerationTasks = new Set();
+        this.activeRunId = 0;
+    }
+
+    setActiveRunId(runId) {
+        const numericRunId = Number(runId);
+        this.activeRunId = Number.isFinite(numericRunId) ? numericRunId : 0;
+    }
+
+    _ensureActiveRun(runId, context = "request") {
+        const numericRunId = Number(runId);
+        if (!Number.isFinite(numericRunId)) {
+            return;
+        }
+
+        if (numericRunId !== this.activeRunId) {
+            throw new Error(`Stale ${context} ignored for run ${numericRunId}. Active run is ${this.activeRunId}.`);
+        }
     }
 
     setStatusCallback(callback) {
@@ -239,7 +256,7 @@ class ModelCoderLLM {
         return fullText.trim();
     }
 
-    async _createStreamSession(prompt, streamType = "responses") {
+    async _createStreamSession(prompt, streamType = "responses", requestedRunId = null) {
         const streamId = makeId("stream");
         const responseId = makeId("resp");
         const createdAtVersion = this.sessionVersion;
@@ -249,7 +266,8 @@ class ModelCoderLLM {
             done: false,
             error: null,
             responseId,
-            createdAtVersion
+            createdAtVersion,
+            requestedRunId: Number.isFinite(Number(requestedRunId)) ? Number(requestedRunId) : null,
         };
 
         this.streamSessions.set(streamId, session);
@@ -319,9 +337,16 @@ class ModelCoderLLM {
         return { stream_id: streamId, response_id: responseId };
     }
 
-    async nextStreamChunk(streamId) {
+    async nextStreamChunk(streamId, runId = null) {
+        this._ensureActiveRun(runId, "stream chunk");
+
         const session = this.streamSessions.get(streamId);
         if (!session) {
+            return { done: true, chunk: null };
+        }
+
+        if (session.requestedRunId !== null && session.requestedRunId !== this.activeRunId) {
+            this.streamSessions.delete(streamId);
             return { done: true, chunk: null };
         }
 
@@ -357,6 +382,8 @@ class ModelCoderLLM {
             throw new Error("Invalid request payload.");
         }
 
+        this._ensureActiveRun(payload.run_id, "model request");
+
         if (payload.type === "chat.completions.create") {
             this._ensureClient(payload.model);
             const messages = Array.isArray(payload.messages) ? payload.messages : [];
@@ -364,7 +391,7 @@ class ModelCoderLLM {
             const prompt = this._toChatML(messages);
 
             if (payload.stream) {
-                const streamMeta = await this._createStreamSession(prompt, "chat");
+                const streamMeta = await this._createStreamSession(prompt, "chat", payload.run_id);
                 return {
                     stream: true,
                     stream_id: streamMeta.stream_id,
@@ -404,7 +431,7 @@ class ModelCoderLLM {
             const prompt = this._toChatML(messages);
 
             if (payload.stream) {
-                const streamMeta = await this._createStreamSession(prompt);
+                const streamMeta = await this._createStreamSession(prompt, "responses", payload.run_id);
                 return {
                     stream: true,
                     stream_id: streamMeta.stream_id,
@@ -453,6 +480,10 @@ const modelCoderInit = async (maxRetries = 3) => {
     await llmRuntime.initialize(maxRetries);
 };
 
+const modelCoderSetActiveRunId = (runId) => {
+    llmRuntime.setActiveRunId(runId);
+};
+
 const modelCoderRequest = async (requestJson) => {
     const payload = JSON.parse(requestJson);
     const response = await llmRuntime.request(payload);
@@ -467,14 +498,15 @@ const modelCoderHardResetSession = async () => {
     await llmRuntime.hardResetSession();
 };
 
-const modelCoderNextStreamChunk = async (streamId) => {
-    const next = await llmRuntime.nextStreamChunk(streamId);
+const modelCoderNextStreamChunk = async (streamId, runId = null) => {
+    const next = await llmRuntime.nextStreamChunk(streamId, runId);
     return JSON.stringify(next);
 };
 
 const modelCoderBridge = {
     modelCoderSetStatusListener,
     modelCoderInit,
+    modelCoderSetActiveRunId,
     modelCoderRequest,
     modelCoderResetSession,
     modelCoderHardResetSession,
@@ -487,6 +519,7 @@ function attachBridge(target) {
     }
     target.modelCoderSetStatusListener = modelCoderSetStatusListener;
     target.modelCoderInit = modelCoderInit;
+    target.modelCoderSetActiveRunId = modelCoderSetActiveRunId;
     target.modelCoderRequest = modelCoderRequest;
     target.modelCoderResetSession = modelCoderResetSession;
     target.modelCoderHardResetSession = modelCoderHardResetSession;

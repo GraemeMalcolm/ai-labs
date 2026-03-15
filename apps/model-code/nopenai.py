@@ -79,13 +79,22 @@ def _run_sync(coro):
 
 
 async def _request(payload: Dict[str, Any]) -> Dict[str, Any]:
+    payload["run_id"] = _current_run_id()
     response_json = await _bridge_call("modelCoderRequest", json.dumps(payload))
     return json.loads(str(response_json))
 
 
 async def _next_chunk(stream_id: str) -> Dict[str, Any]:
-    chunk_json = await _bridge_call("modelCoderNextStreamChunk", stream_id)
+    chunk_json = await _bridge_call("modelCoderNextStreamChunk", stream_id, _current_run_id())
     return json.loads(str(chunk_json))
+
+
+def _current_run_id() -> int:
+    run_id = globals().get("_MODELCODER_RUN_ID", None)
+    try:
+        return int(run_id)
+    except Exception:
+        return 0
 
 
 def _safe_getattr(obj: Any, attr: str):

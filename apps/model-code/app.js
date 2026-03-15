@@ -758,6 +758,18 @@ function requestModelSessionReset(options = {}) {
     });
 }
 
+function syncActiveRunId() {
+    if (typeof window.modelCoderSetActiveRunId !== "function") {
+        return;
+    }
+
+    try {
+        window.modelCoderSetActiveRunId(state.activeRunId);
+    } catch (error) {
+        console.warn("Unable to sync active run id.", error);
+    }
+}
+
 function launchTerminalScript(scriptCode, runId) {
     const terminalContainer = resetTerminalContainer();
 
@@ -790,6 +802,7 @@ function launchTerminalScript(scriptCode, runId) {
 
 function stopActiveRun(message = "Run stopped. You can load another template or run code again.") {
     state.activeRunId += 1;
+    syncActiveRunId();
 
     const staleRunners = document.querySelectorAll('script[type="py"][terminal][target="terminal-container"]');
     staleRunners.forEach((node) => node.remove());
@@ -826,6 +839,7 @@ function completeActiveRun(runId = state.activeRunId) {
 function clearTerminalOutput(options = {}) {
     const { resetModel = true } = options;
     state.activeRunId += 1;
+    syncActiveRunId();
 
     const staleRunners = document.querySelectorAll('script[type="py"][terminal][target="terminal-container"]');
     staleRunners.forEach((node) => node.remove());
@@ -1058,6 +1072,7 @@ import asyncio
 module = types.ModuleType("nopenai")
 __nopenai_source = ${serializedNopenai}
 exec(__nopenai_source, module.__dict__)
+module.__dict__["_MODELCODER_RUN_ID"] = ${serializedRunId}
 sys.modules["nopenai"] = module
 sys.modules["openai"] = module
 
@@ -1131,6 +1146,7 @@ async function runCurrentCode() {
         if (!code.trim()) {
             const runId = state.activeRunId + 1;
             state.activeRunId = runId;
+            syncActiveRunId();
             state.sessionActive = true;
             launchTerminalScript("print('Editor is empty. Load a template or type code first.')", runId);
             return;
@@ -1141,12 +1157,14 @@ async function runCurrentCode() {
 
         const runId = state.activeRunId + 1;
         state.activeRunId = runId;
+        syncActiveRunId();
         state.sessionActive = true;
         launchTerminalScript(buildExecutionCode(code, runId), runId);
     } catch (error) {
         const msg = JSON.stringify(`Execution failed: ${String(error.message || error)}`);
         const runId = state.activeRunId + 1;
         state.activeRunId = runId;
+        syncActiveRunId();
         state.sessionActive = true;
         launchTerminalScript(`print(${msg})`, runId);
         state.sessionActive = false;
@@ -1193,6 +1211,8 @@ async function initializeApp() {
         const parsedRunId = Number(runId);
         completeActiveRun(Number.isFinite(parsedRunId) ? parsedRunId : state.activeRunId);
     };
+
+    syncActiveRunId();
 
     const savedTheme = getSavedThemePreference();
     applyTheme(savedTheme === "dark");
