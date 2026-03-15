@@ -570,33 +570,39 @@ function applyEmbeddedEditorTheme() {
             color: #e6edf3 !important;
         }
 
+        .cm-editor .cm-content {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+        }
+
         /* Match CodeMirror guidance: style both library-drawn and native selection. */
         .cm-editor .cm-selectionLayer {
             z-index: 3;
+            mix-blend-mode: normal !important;
         }
 
         .cm-editor .cm-selectionLayer .cm-selectionBackground,
         .cm-editor .cm-selectionBackground {
-            background-color: rgba(56, 139, 253, 0.48) !important;
+            background-color: rgba(255, 190, 11, 0.55) !important;
         }
 
         .cm-editor.cm-focused .cm-selectionLayer .cm-selectionBackground,
         .cm-editor.cm-focused .cm-selectionBackground {
-            background-color: rgba(56, 139, 253, 0.78) !important;
-            outline: 1px solid rgba(201, 229, 255, 0.95) !important;
+            background-color: rgba(255, 190, 11, 0.78) !important;
+            outline: 1px solid rgba(255, 236, 179, 0.95) !important;
         }
 
-        .cm-editor .cm-content ::selection,
-        .cm-editor .cm-line ::selection,
+        .cm-editor ::selection,
         .cm-editor .cm-content::selection,
         .cm-editor .cm-line::selection {
-            background-color: rgba(56, 139, 253, 0.78) !important;
-            color: #ffffff !important;
+            background-color: rgba(255, 190, 11, 0.78) !important;
+            color: #111111 !important;
+            -webkit-text-fill-color: #111111 !important;
         }
 
         .cm-editor .cm-selectionMatch,
         .cm-editor .cm-selectionMatch-main {
-            background-color: rgba(56, 139, 253, 0.52) !important;
+            background-color: rgba(255, 190, 11, 0.52) !important;
         }
         `;
         } else {
