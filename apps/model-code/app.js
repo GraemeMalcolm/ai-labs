@@ -16,7 +16,8 @@ const aboutModalBackdrop = document.getElementById("about-modal-backdrop");
 const aboutModal = document.getElementById("about-modal");
 const aboutCloseBtn = document.getElementById("about-close-btn");
 const THEME_STORAGE_KEY = "model-coder-theme";
-const IS_GITHUB_PAGES = window.location.hostname.endsWith("github.io");
+const HOSTNAME = String(window.location.hostname || "").toLowerCase();
+const IS_GITHUB_PAGES = HOSTNAME === "github.io" || HOSTNAME.endsWith(".github.io");
 
 const PY_PACKAGES = ["numpy", "pandas", "matplotlib", "scikit-learn"];
 
