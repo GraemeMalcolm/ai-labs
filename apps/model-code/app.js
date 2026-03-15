@@ -735,8 +735,15 @@ function resetTerminalContainer() {
     return replacement;
 }
 
-function requestModelSessionReset() {
-    if (typeof window.modelCoderResetSession !== "function") {
+function requestModelSessionReset(options = {}) {
+    const { hard = false } = options;
+    const resetFnName = hard ? "modelCoderHardResetSession" : "modelCoderResetSession";
+    const resetFn = window[resetFnName];
+
+    if (typeof resetFn !== "function") {
+        if (hard && typeof window.modelCoderResetSession === "function") {
+            return requestModelSessionReset();
+        }
         return Promise.resolve();
     }
 
@@ -744,7 +751,7 @@ function requestModelSessionReset() {
         .catch(() => {
             // Keep reset chain alive even if a previous reset failed.
         })
-        .then(() => window.modelCoderResetSession());
+        .then(() => resetFn());
 
     return modelResetInFlight.catch((error) => {
         console.warn("Unable to reset model session.", error);
@@ -816,7 +823,8 @@ function completeActiveRun(runId = state.activeRunId) {
     updateRunState();
 }
 
-function clearTerminalOutput() {
+function clearTerminalOutput(options = {}) {
+    const { resetModel = true } = options;
     state.activeRunId += 1;
 
     const staleRunners = document.querySelectorAll('script[type="py"][terminal][target="terminal-container"]');
@@ -825,7 +833,9 @@ function clearTerminalOutput() {
     resetTerminalContainer();
     state.sessionActive = false;
     state.running = false;
-    void requestModelSessionReset();
+    if (resetModel) {
+        void requestModelSessionReset();
+    }
     updateRunState();
 }
 
@@ -892,8 +902,8 @@ async function loadSelectedTemplate() {
 
     try {
         if (templateChanged) {
-            clearTerminalOutput();
-            await requestModelSessionReset();
+            clearTerminalOutput({ resetModel: false });
+            await requestModelSessionReset({ hard: true });
         }
 
         const ok = setEditorCode(snippet);

@@ -54,14 +54,7 @@ class ModelCoderLLM {
         this.streamSessions = new Map();
         this.responsesById = new Map();
         this.sessionVersion = 0;
-        this.operationQueue = Promise.resolve();
         this.activeGenerationTasks = new Set();
-    }
-
-    _enqueueOperation(operation) {
-        const queued = this.operationQueue.then(operation, operation);
-        this.operationQueue = queued.then(() => undefined, () => undefined);
-        return queued;
     }
 
     setStatusCallback(callback) {
@@ -69,23 +62,41 @@ class ModelCoderLLM {
     }
 
     async resetSession() {
-        return this._enqueueOperation(async () => {
-            this.sessionVersion += 1;
-            this.streamSessions.clear();
-            this.responsesById.clear();
+        this.sessionVersion += 1;
+        this.streamSessions.clear();
+        this.responsesById.clear();
 
-            // Let in-flight generation loops observe the new sessionVersion and unwind.
-            if (this.activeGenerationTasks.size > 0) {
-                await Promise.race([
-                    Promise.allSettled(Array.from(this.activeGenerationTasks)),
-                    sleep(1500)
-                ]);
-            }
+        // Let in-flight generation loops observe the new sessionVersion and unwind.
+        if (this.activeGenerationTasks.size > 0) {
+            await Promise.race([
+                Promise.allSettled(Array.from(this.activeGenerationTasks)),
+                sleep(1500)
+            ]);
+        }
 
-            if (this.wllama) {
-                await this.wllama.kvClear().catch(() => {});
+        if (this.wllama) {
+            await this.wllama.kvClear().catch(() => {});
+        }
+    }
+
+    async hardResetSession() {
+        await this.resetSession();
+
+        const current = this.wllama;
+        this.wllama = null;
+        this.isReady = false;
+        this.isLoading = false;
+
+        if (current) {
+            for (const methodName of ["dispose", "destroy", "unload", "unloadModel", "terminate", "exit"]) {
+                const method = current?.[methodName];
+                if (typeof method === "function") {
+                    await Promise.resolve(method.call(current)).catch(() => {});
+                }
             }
-        });
+        }
+
+        await this.initialize(2);
     }
 
     _status(kind, message) {
@@ -428,7 +439,7 @@ class ModelCoderLLM {
     }
 
     async request(payload) {
-        return this._enqueueOperation(() => this._requestInternal(payload));
+        return this._requestInternal(payload);
     }
 }
 
@@ -452,6 +463,10 @@ const modelCoderResetSession = async () => {
     await llmRuntime.resetSession();
 };
 
+const modelCoderHardResetSession = async () => {
+    await llmRuntime.hardResetSession();
+};
+
 const modelCoderNextStreamChunk = async (streamId) => {
     const next = await llmRuntime.nextStreamChunk(streamId);
     return JSON.stringify(next);
@@ -462,6 +477,7 @@ const modelCoderBridge = {
     modelCoderInit,
     modelCoderRequest,
     modelCoderResetSession,
+    modelCoderHardResetSession,
     modelCoderNextStreamChunk,
 };
 
@@ -473,6 +489,7 @@ function attachBridge(target) {
     target.modelCoderInit = modelCoderInit;
     target.modelCoderRequest = modelCoderRequest;
     target.modelCoderResetSession = modelCoderResetSession;
+    target.modelCoderHardResetSession = modelCoderHardResetSession;
     target.modelCoderNextStreamChunk = modelCoderNextStreamChunk;
     target.modelCoderBridge = modelCoderBridge;
 }
