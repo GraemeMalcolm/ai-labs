@@ -24,6 +24,7 @@ except Exception:
 
 _BRIDGE_DEBUG = False
 _EXPECTED_API_KEY = "key123"
+_EXPECTED_MODEL_NAME = "localmodel"
 
 
 def _to_ns(value: Any) -> Any:
@@ -249,7 +250,7 @@ class OpenAIError(Exception):
 
 def _validate_client_credentials(base_url: str, api_key: str):
     if base_url != "https://localmodel":
-        raise ValueError("base_url must be 'https://localmodel'")
+        raise OpenAIError("Endpoint not found.")
 
     if not isinstance(api_key, str) or not api_key.strip():
         raise ValueError("api_key must be a non-empty string")
@@ -319,6 +320,11 @@ def _validate_message_list(messages):
             raise ValueError("each message must include content")
 
 
+def _validate_model_name(model: str):
+    if model != _EXPECTED_MODEL_NAME:
+        raise OpenAIError(f"model {model} not found.")
+
+
 class ChatCompletionsStream(_BaseStream):
     pass
 
@@ -337,6 +343,7 @@ class AsyncResponsesStream(_AsyncBaseStream):
 
 class _ChatCompletionsAPI:
     def create(self, *, model: str, messages, stream: bool = False, **kwargs):
+        _validate_model_name(model)
         _validate_message_list(messages)
         payload = {
             "type": "chat.completions.create",
@@ -368,6 +375,7 @@ class _ResponsesAPI:
         previous_response_id: str = None,
         **kwargs,
     ):
+        _validate_model_name(model)
         if isinstance(input, list):
             _validate_message_list(input)
 
@@ -389,6 +397,7 @@ class _ResponsesAPI:
 
 class _AsyncChatCompletionsAPI:
     async def create(self, *, model: str, messages, stream: bool = False, **kwargs):
+        _validate_model_name(model)
         _validate_message_list(messages)
         payload = {
             "type": "chat.completions.create",
@@ -420,6 +429,7 @@ class _AsyncResponsesAPI:
         previous_response_id: str = None,
         **kwargs,
     ):
+        _validate_model_name(model)
         if isinstance(input, list):
             _validate_message_list(input)
 
