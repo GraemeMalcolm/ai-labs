@@ -593,6 +593,33 @@ function applyEmbeddedEditorTheme() {
             background-color: #aafe661a !important;
         }
 
+        /* Selection-only hardening: keep One Dark theme but make selection unmistakable. */
+        .cm-editor .cm-selectionLayer {
+            z-index: 2 !important;
+            mix-blend-mode: normal !important;
+        }
+
+        .cm-editor .cm-selectionLayer .cm-selectionBackground,
+        .cm-editor .cm-selectionBackground {
+            background-color: rgba(82, 139, 255, 0.42) !important;
+        }
+
+        .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground,
+        .cm-editor.cm-focused .cm-selectionBackground {
+            background-color: rgba(82, 139, 255, 0.62) !important;
+            outline: 1px solid rgba(173, 204, 255, 0.7) !important;
+        }
+
+        .cm-editor ::selection,
+        .cm-editor *::selection,
+        .cm-editor .cm-content::selection,
+        .cm-editor .cm-content *::selection,
+        .cm-editor .cm-line::selection,
+        .cm-editor .cm-line *::selection {
+            background-color: rgba(82, 139, 255, 0.62) !important;
+            color: #f0f6fc !important;
+        }
+
         .cm-editor .cm-searchMatch {
             background-color: #72a1ff59 !important;
             outline: 1px solid #457dff !important;
