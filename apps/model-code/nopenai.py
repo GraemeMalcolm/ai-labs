@@ -22,7 +22,7 @@ try:
 except Exception:
     _pyscript_window = None
 
-_BRIDGE_DEBUG = True
+_BRIDGE_DEBUG = False
 
 
 def _to_ns(value: Any) -> Any:
