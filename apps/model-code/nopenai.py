@@ -23,6 +23,7 @@ except Exception:
     _pyscript_window = None
 
 _BRIDGE_DEBUG = False
+_EXPECTED_API_KEY = "key123"
 
 
 def _to_ns(value: Any) -> Any:
@@ -246,6 +247,17 @@ class OpenAIError(Exception):
     pass
 
 
+def _validate_client_credentials(base_url: str, api_key: str):
+    if base_url != "https://localmodel":
+        raise ValueError("base_url must be 'https://localmodel'")
+
+    if not isinstance(api_key, str) or not api_key.strip():
+        raise ValueError("api_key must be a non-empty string")
+
+    if api_key != _EXPECTED_API_KEY:
+        raise OpenAIError(f"Incorrect API key provided: {api_key}.")
+
+
 class _BaseStream:
     def __init__(self, stream_id: str):
         self.stream_id = stream_id
@@ -429,10 +441,7 @@ class _AsyncResponsesAPI:
 
 class OpenAI:
     def __init__(self, *, base_url: str, api_key: str, **kwargs):
-        if base_url != "https://localmodel":
-            raise ValueError("base_url must be 'https://localmodel'")
-        if not isinstance(api_key, str) or not api_key.strip():
-            raise ValueError("api_key must be a non-empty string")
+        _validate_client_credentials(base_url, api_key)
 
         self.base_url = base_url
         self.api_key = api_key
@@ -443,10 +452,7 @@ class OpenAI:
 
 class AsyncOpenAI:
     def __init__(self, *, base_url: str, api_key: str, **kwargs):
-        if base_url != "https://localmodel":
-            raise ValueError("base_url must be 'https://localmodel'")
-        if not isinstance(api_key, str) or not api_key.strip():
-            raise ValueError("api_key must be a non-empty string")
+        _validate_client_credentials(base_url, api_key)
 
         self.base_url = base_url
         self.api_key = api_key
