@@ -404,7 +404,10 @@ const state = {
     selectedTemplate: templateSelect?.value || "",
     activeRunId: 0,
     aboutReturnFocus: null,
+    switchingTemplate: false,
 };
+
+let modelResetInFlight = Promise.resolve();
 
 function openAboutModal() {
     if (!aboutModalBackdrop || !aboutModal) {
@@ -597,7 +600,7 @@ function setPill(el, text, mode = "") {
 }
 
 function updateRunState() {
-    runBtn.disabled = !state.pyReady || !state.terminalReady || !state.modelReady || state.running || state.sessionActive;
+    runBtn.disabled = !state.pyReady || !state.terminalReady || !state.modelReady || state.running || state.sessionActive || state.switchingTemplate;
     if (stopBtn) {
         stopBtn.disabled = !(state.sessionActive || state.running);
     }
@@ -733,10 +736,16 @@ function resetTerminalContainer() {
 
 function requestModelSessionReset() {
     if (typeof window.modelCoderResetSession !== "function") {
-        return;
+        return Promise.resolve();
     }
 
-    void window.modelCoderResetSession().catch((error) => {
+    modelResetInFlight = modelResetInFlight
+        .catch(() => {
+            // Keep reset chain alive even if a previous reset failed.
+        })
+        .then(() => window.modelCoderResetSession());
+
+    return modelResetInFlight.catch((error) => {
         console.warn("Unable to reset model session.", error);
     });
 }
@@ -787,7 +796,7 @@ function stopActiveRun(message = "Run stopped. You can load another template or 
 
     state.sessionActive = false;
     state.running = false;
-    requestModelSessionReset();
+    void requestModelSessionReset();
     updateRunState();
 }
 
@@ -802,7 +811,7 @@ function completeActiveRun(runId = state.activeRunId) {
 
     state.sessionActive = false;
     state.running = false;
-    requestModelSessionReset();
+    void requestModelSessionReset();
     updateRunState();
 }
 
@@ -815,7 +824,7 @@ function clearTerminalOutput() {
     resetTerminalContainer();
     state.sessionActive = false;
     state.running = false;
-    requestModelSessionReset();
+    void requestModelSessionReset();
     updateRunState();
 }
 
@@ -877,23 +886,24 @@ async function loadSelectedTemplate() {
 
     const snippet = TEMPLATE_SNIPPETS[selected];
 
-    if (templateChanged) {
-        clearTerminalOutput();
-    }
+    state.switchingTemplate = true;
+    updateRunState();
 
     try {
-        if (typeof window.modelCoderResetSession === "function") {
-            await window.modelCoderResetSession();
+        if (templateChanged) {
+            clearTerminalOutput();
+            await requestModelSessionReset();
         }
-    } catch (error) {
-        console.warn("Unable to reset model session on template switch.", error);
-    }
 
-    const ok = setEditorCode(snippet);
-    state.selectedTemplate = selected;
-    savedIndicator.textContent = ok
-        ? `Loaded template: ${selected}`
-        : "Unable to load template into editor.";
+        const ok = setEditorCode(snippet);
+        state.selectedTemplate = selected;
+        savedIndicator.textContent = ok
+            ? `Loaded template: ${selected}`
+            : "Unable to load template into editor.";
+    } finally {
+        state.switchingTemplate = false;
+        updateRunState();
+    }
 }
 
 function initializeEditorEmpty() {
