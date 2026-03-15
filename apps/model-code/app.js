@@ -582,18 +582,11 @@ function applyEmbeddedEditorTheme() {
             background-color: #2c313a !important;
         }
 
-        .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground,
-        .cm-editor .cm-selectionBackground,
-        .cm-editor .cm-content ::selection,
-        .cm-editor .cm-content::selection {
-            background-color: #3e4451 !important;
-        }
-
         .cm-editor .cm-selectionMatch {
             background-color: #aafe661a !important;
         }
 
-        /* Selection-only hardening: keep One Dark theme but make selection unmistakable. */
+        /* Keep selection styling explicit and centralized to avoid override conflicts. */
         .cm-editor .cm-selectionLayer {
             z-index: 2 !important;
             mix-blend-mode: normal !important;
@@ -613,9 +606,7 @@ function applyEmbeddedEditorTheme() {
         .cm-editor ::selection,
         .cm-editor *::selection,
         .cm-editor .cm-content::selection,
-        .cm-editor .cm-content *::selection,
-        .cm-editor .cm-line::selection,
-        .cm-editor .cm-line *::selection {
+        .cm-editor .cm-line::selection {
             background-color: rgba(82, 139, 255, 0.62) !important;
             color: #f0f6fc !important;
         }
