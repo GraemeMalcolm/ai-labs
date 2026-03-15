@@ -502,8 +502,8 @@ function applyEmbeddedEditorTheme() {
 
     if (editor) {
         editor.setAttribute("data-theme", state.darkTheme ? "dark" : "light");
-        editor.style.backgroundColor = state.darkTheme ? "#0d0f12" : "#ffffff";
-        editor.style.color = state.darkTheme ? "#f5f6f8" : "#111111";
+        editor.style.backgroundColor = "";
+        editor.style.color = "";
     }
 
     const styleId = "model-coder-embedded-theme";
@@ -536,64 +536,8 @@ function applyEmbeddedEditorTheme() {
             root.appendChild(styleEl);
         }
 
-        if (state.darkTheme) {
-            styleEl.textContent = `
-        .cm-editor,
-        .cm-scroller,
-        .cm-content,
-        .cm-gutters,
-        .cm-activeLine,
-        .cm-activeLineGutter {
-            background: #0d0f12 !important;
-            color: #e6edf3 !important;
-        }
-
-        .cm-gutters {
-            border-right: 1px solid #2f353d !important;
-        }
-
-        .cm-line {
-            color: #e6edf3 !important;
-        }
-
-        .cm-gutterElement {
-            color: #9aa4af !important;
-        }
-
-        .cm-cursor,
-        .cm-dropCursor {
-            border-left-color: #f5f6f8 !important;
-        }
-
-        /* Force native selection rendering to avoid token-theme interference. */
-        .cm-editor .cm-selectionLayer {
-            display: none !important;
-        }
-
-        .cm-editor .cm-content::selection,
-        .cm-editor .cm-content *::selection,
-        .cm-editor .cm-line::selection,
-        .cm-editor .cm-line *::selection,
-        .cm-editor .cm-content [class*="tok-"]::selection,
-        .cm-editor .cm-content [class*="cm-"]::selection {
-            background-color: rgba(56, 139, 253, 0.68) !important;
-            color: #ffffff !important;
-            -webkit-text-fill-color: #ffffff !important;
-            text-shadow: none !important;
-        }
-
-        .cm-content span,
-        .cm-line span,
-        .cm-line span *,
-        [class*="tok-"],
-        [class*="cm-"] {
-            color: #ffffff !important;
-        }
-        `;
-    } else {
-        // Keep PyScript/CodeMirror default syntax colors in light mode.
+        // Keep PyScript/CodeMirror default theme for both light and dark modes.
         styleEl.textContent = "";
-        }
     }
 }
 
