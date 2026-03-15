@@ -562,6 +562,15 @@ function applyEmbeddedEditorTheme() {
             border-left-color: #f5f6f8 !important;
         }
 
+        /* Readability-first fallback: prevent any token class from rendering black text. */
+        .cm-editor .cm-content,
+        .cm-editor .cm-content *,
+        .cm-editor .cm-line,
+        .cm-editor .cm-line * {
+            color: #e6edf3 !important;
+            -webkit-text-fill-color: #e6edf3 !important;
+        }
+
         .cm-editor .cm-selectionBackground,
         .cm-editor .cm-selectionLayer .cm-selectionBackground,
         .cm-editor .cm-focused .cm-selectionBackground,
@@ -569,11 +578,26 @@ function applyEmbeddedEditorTheme() {
             background-color: rgba(56, 139, 253, 0.45) !important;
         }
 
+        .cm-editor .cm-selectionMatch,
+        .cm-editor .cm-selectionMatch-main {
+            background-color: rgba(56, 139, 253, 0.35) !important;
+            color: #f8fbff !important;
+            -webkit-text-fill-color: #f8fbff !important;
+        }
+
         .cm-editor .cm-content::selection,
         .cm-editor .cm-content *::selection,
         .cm-editor .cm-line::selection,
         .cm-editor .cm-line *::selection {
             background-color: rgba(56, 139, 253, 0.45) !important;
+            color: #f8fbff !important;
+            -webkit-text-fill-color: #f8fbff !important;
+        }
+
+        .cm-editor .cm-selectionLayer .cm-selectionBackground + span,
+        .cm-editor .cm-selectionLayer .cm-selectionBackground ~ span {
+            color: #f8fbff !important;
+            -webkit-text-fill-color: #f8fbff !important;
         }
         `;
         } else {
