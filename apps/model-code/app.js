@@ -536,8 +536,50 @@ function applyEmbeddedEditorTheme() {
             root.appendChild(styleEl);
         }
 
-        // Keep PyScript/CodeMirror default theme for both light and dark modes.
-        styleEl.textContent = "";
+        if (state.darkTheme) {
+            // Minimal dark theme overrides: set base readability while preserving token styles.
+            styleEl.textContent = `
+        .cm-editor,
+        .cm-scroller,
+        .cm-content,
+        .cm-gutters {
+            background: #0d0f12 !important;
+            color: #e6edf3 !important;
+            caret-color: #f5f6f8 !important;
+            color-scheme: dark;
+        }
+
+        .cm-gutters {
+            border-right: 1px solid #2f353d !important;
+        }
+
+        .cm-gutterElement {
+            color: #9aa4af !important;
+        }
+
+        .cm-cursor,
+        .cm-dropCursor {
+            border-left-color: #f5f6f8 !important;
+        }
+
+        .cm-editor .cm-selectionBackground,
+        .cm-editor .cm-selectionLayer .cm-selectionBackground,
+        .cm-editor .cm-focused .cm-selectionBackground,
+        .cm-editor .cm-focused .cm-selectionLayer .cm-selectionBackground {
+            background-color: rgba(56, 139, 253, 0.45) !important;
+        }
+
+        .cm-editor .cm-content::selection,
+        .cm-editor .cm-content *::selection,
+        .cm-editor .cm-line::selection,
+        .cm-editor .cm-line *::selection {
+            background-color: rgba(56, 139, 253, 0.45) !important;
+        }
+        `;
+        } else {
+            // Keep PyScript/CodeMirror default theme in light mode.
+            styleEl.textContent = "";
+        }
     }
 }
 
