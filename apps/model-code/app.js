@@ -565,17 +565,21 @@ function applyEmbeddedEditorTheme() {
             border-left-color: #f5f6f8 !important;
         }
 
-        .cm-selectionBackground,
-        .cm-focused .cm-selectionBackground,
-        .cm-line::selection,
-        .cm-line span::selection,
-        .cm-content ::selection {
-            background: rgba(58, 130, 246, 0.45) !important;
-            color: #ffffff !important;
+        .cm-editor .cm-selectionBackground,
+        .cm-editor .cm-selectionLayer .cm-selectionBackground,
+        .cm-editor .cm-focused .cm-selectionBackground,
+        .cm-editor .cm-focused .cm-selectionLayer .cm-selectionBackground {
+            background: rgba(56, 139, 253, 0.62) !important;
         }
 
-        .cm-focused .cm-selectionLayer .cm-selectionBackground {
-            background: rgba(58, 130, 246, 0.5) !important;
+        .cm-editor ::selection,
+        .cm-editor .cm-content ::selection,
+        .cm-editor .cm-line::selection,
+        .cm-editor .cm-line span::selection,
+        .cm-editor .cm-line span *::selection {
+            background: rgba(56, 139, 253, 0.62) !important;
+            color: #ffffff !important;
+            text-shadow: none !important;
         }
 
         .cm-content span,
