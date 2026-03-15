@@ -6,11 +6,15 @@ const runBtn = document.getElementById("run-btn");
 const stopBtn = document.getElementById("stop-btn");
 const retryBtn = document.getElementById("retry-btn");
 const themeBtn = document.getElementById("theme-btn");
+const aboutBtn = document.getElementById("about-btn");
 const savedIndicator = document.getElementById("saved-indicator");
 const templateSelect = document.getElementById("template-select");
 const resetLayoutBtn = document.getElementById("reset-layout-btn");
 const paneSplitter = document.getElementById("pane-splitter");
 const workspace = document.querySelector(".workspace");
+const aboutModalBackdrop = document.getElementById("about-modal-backdrop");
+const aboutModal = document.getElementById("about-modal");
+const aboutCloseBtn = document.getElementById("about-close-btn");
 const THEME_STORAGE_KEY = "model-coder-theme";
 
 const PY_PACKAGES = ["numpy", "pandas", "matplotlib", "scikit-learn"];
@@ -270,37 +274,110 @@ def main():
 if __name__ == '__main__': 
     main()
 `,
-    "async-chat": String.raw`import asyncio
+    "async-chat": String.raw`# import namespaces for async
+import asyncio
+from openai import AsyncOpenAI
+
+async def main(): 
+
+    try:
+        # Configuration settings 
+        endpoint = "https://localmodel"
+        key = "key123"
+        model_name = "localmodel"
+
+        # Initialize an async OpenAI client
+        async_client = AsyncOpenAI(
+            base_url=endpoint,
+            api_key=key
+        )
+        
+        # Track responses
+        last_response_id = None
+
+        # Loop until the user wants to quit
+        print("Enter a prompt (or type 'quit' to exit)")
+        while True:
+            input_text = input('You: ')
+            if input_text.lower() == "quit":
+                print("Goodbye!")
+                break
+            if len(input_text) == 0:
+                print("Please enter a prompt:")
+                continue
+
+            # Await an asynchronous response
+            response = await async_client.responses.create(
+                        model=model_name,
+                        instructions="You are a helpful AI assistant that answers questions and provides information.",
+                        input=input_text,
+                        previous_response_id=last_response_id
+            )
+            assistant_text = response.output_text
+            print("Assistant:", assistant_text)
+            last_response_id = response.id
+            
+
+    except Exception as ex:
+        print(ex)
+
+if __name__ == '__main__': 
+    asyncio.run(main())
+`,
+    "async-stream": String.raw`# import namespaces for async
+import asyncio
 from openai import AsyncOpenAI
 
 
-async def main():
-    client = AsyncOpenAI(base_url="https://localmodel", api_key="key123")
+async def main(): 
 
-    # Async response (wait for complete response)
-    response = await client.responses.create(
-        model="localmodel",
-        instructions="You are a concise Python tutor.",
-        input="Show a Python class with __init__ and one method."
-    )
-    print("Async response:\n", response.output_text)
+    try:
+        # Configuration settings 
+        endpoint = "https://localmodel"
+        key = "key123"
+        model_name = "localmodel"
 
-    # Async Streaming response
-    print("\nStreaming response:")
-    stream = await client.responses.create(
-        model="localmodel",
-        input="Give 3 bullet points about Python dictionaries.",
-        stream=True
-    )
+        # Initialize the OpenAI client
+        async_client = AsyncOpenAI(
+            base_url=endpoint,
+            api_key=key
+        )
+        
+        # Track responses
+        last_response_id = None
 
-    async for event in stream:
-        if hasattr(event, "delta"):
-            print(event.delta, end="")
+        # Loop until the user wants to quit
+        print("Enter a prompt (or type 'quit' to exit)")
+        while True:
+            input_text = input('You: ')
+            if input_text.lower() == "quit":
+                print("Goodbye!")
+                break
+            if len(input_text) == 0:
+                print("Please enter a prompt:")
+                continue
 
-    print("\n")
+            # Await an asynchronous stream response
+            stream = await async_client.responses.create(
+                        model=model_name,
+                        instructions="You are a helpful AI assistant that answers questions and provides information.",
+                        input=input_text,
+                        previous_response_id=last_response_id,
+                        stream=True
+            )
+            print("Assistant:")
+            async for event in stream:
+                if event.type == "response.output_text.delta":
+                    print(event.delta, end="")
+                elif event.type == "response.completed":
+                    last_response_id = event.response.id
+            print()
 
+    except Exception as ex:
+        print(ex)
 
-asyncio.run(main())
+if __name__ == '__main__': 
+    asyncio.run(main())
 `
 };
 
@@ -314,7 +391,63 @@ const state = {
     darkTheme: false,
     savedCode: "",
     nopenaiSource: "",
+    selectedTemplate: templateSelect?.value || "",
+    activeRunId: 0,
+    aboutReturnFocus: null,
 };
+
+function openAboutModal() {
+    if (!aboutModalBackdrop || !aboutModal) {
+        return;
+    }
+
+    state.aboutReturnFocus = document.activeElement;
+    aboutModalBackdrop.hidden = false;
+    document.body.style.overflow = "hidden";
+    aboutModal.focus();
+}
+
+function closeAboutModal() {
+    if (!aboutModalBackdrop) {
+        return;
+    }
+
+    aboutModalBackdrop.hidden = true;
+    document.body.style.overflow = "";
+
+    if (state.aboutReturnFocus && typeof state.aboutReturnFocus.focus === "function") {
+        state.aboutReturnFocus.focus();
+    } else if (aboutBtn) {
+        aboutBtn.focus();
+    }
+
+    state.aboutReturnFocus = null;
+}
+
+function initializeAboutModal() {
+    if (!aboutBtn || !aboutModalBackdrop || !aboutModal) {
+        return;
+    }
+
+    aboutBtn.addEventListener("click", openAboutModal);
+
+    if (aboutCloseBtn) {
+        aboutCloseBtn.addEventListener("click", closeAboutModal);
+    }
+
+    aboutModalBackdrop.addEventListener("click", (event) => {
+        if (event.target === aboutModalBackdrop) {
+            closeAboutModal();
+        }
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !aboutModalBackdrop.hidden) {
+            event.preventDefault();
+            closeAboutModal();
+        }
+    });
+}
 
 function applyTheme(isDark) {
     state.darkTheme = Boolean(isDark);
@@ -588,7 +721,17 @@ function resetTerminalContainer() {
     return replacement;
 }
 
-function launchTerminalScript(scriptCode) {
+function requestModelSessionReset() {
+    if (typeof window.modelCoderResetSession !== "function") {
+        return;
+    }
+
+    void window.modelCoderResetSession().catch((error) => {
+        console.warn("Unable to reset model session.", error);
+    });
+}
+
+function launchTerminalScript(scriptCode, runId) {
     const terminalContainer = resetTerminalContainer();
 
     // Remove any stale terminal scripts still bound to this target.
@@ -603,10 +746,22 @@ function launchTerminalScript(scriptCode) {
     runner.setAttribute("target", "terminal-container");
     runner.setAttribute("config", JSON.stringify({ packages: PY_PACKAGES }));
     runner.textContent = scriptCode;
+
+    const markCompleted = () => {
+        completeActiveRun(runId);
+    };
+
+    // PyScript emits lifecycle events when the script finishes or errors.
+    runner.addEventListener("py:done", markCompleted, { once: true });
+    runner.addEventListener("py:error", markCompleted, { once: true });
+    runner.addEventListener("error", markCompleted, { once: true });
+
     document.body.appendChild(runner);
 }
 
 function stopActiveRun(message = "Run stopped. You can load another template or run code again.") {
+    state.activeRunId += 1;
+
     const staleRunners = document.querySelectorAll('script[type="py"][terminal][target="terminal-container"]');
     staleRunners.forEach((node) => node.remove());
 
@@ -620,6 +775,35 @@ function stopActiveRun(message = "Run stopped. You can load another template or 
 
     state.sessionActive = false;
     state.running = false;
+    requestModelSessionReset();
+    updateRunState();
+}
+
+function completeActiveRun(runId = state.activeRunId) {
+    if (runId !== state.activeRunId) {
+        return;
+    }
+
+    // End the active terminal session but keep existing terminal output visible.
+    const staleRunners = document.querySelectorAll('script[type="py"][terminal][target="terminal-container"]');
+    staleRunners.forEach((node) => node.remove());
+
+    state.sessionActive = false;
+    state.running = false;
+    requestModelSessionReset();
+    updateRunState();
+}
+
+function clearTerminalOutput() {
+    state.activeRunId += 1;
+
+    const staleRunners = document.querySelectorAll('script[type="py"][terminal][target="terminal-container"]');
+    staleRunners.forEach((node) => node.remove());
+
+    resetTerminalContainer();
+    state.sessionActive = false;
+    state.running = false;
+    requestModelSessionReset();
     updateRunState();
 }
 
@@ -677,11 +861,12 @@ async function loadSelectedTemplate() {
     if (!(selected in TEMPLATE_SNIPPETS)) {
         return;
     }
+    const templateChanged = state.selectedTemplate !== selected;
 
     const snippet = TEMPLATE_SNIPPETS[selected];
 
-    if (state.sessionActive || hasTerminalRunner()) {
-        stopActiveRun("Previous run stopped to load a new template.");
+    if (templateChanged) {
+        clearTerminalOutput();
     }
 
     try {
@@ -693,6 +878,7 @@ async function loadSelectedTemplate() {
     }
 
     const ok = setEditorCode(snippet);
+    state.selectedTemplate = selected;
     savedIndicator.textContent = ok
         ? `Loaded template: ${selected}`
         : "Unable to load template into editor.";
@@ -719,6 +905,7 @@ function markRuntimeReady() {
     setPill(statusRuntime, "PyScript runtime ready", "ready");
     setupEditorAsEditOnly();
     suppressNativeEditorRunButton();
+    enableEditorEscapeToTabOut();
     queueEmbeddedEditorThemeSync();
     initializeEditorEmpty();
     updateRunState();
@@ -789,9 +976,45 @@ function suppressNativeEditorRunButton() {
     container.dataset.runButtonObserverAttached = "true";
 }
 
-function buildExecutionCode(userCode) {
+function enableEditorEscapeToTabOut() {
+    if (document.body.dataset.editorEscapeFocusBound === "true") {
+        return;
+    }
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") {
+            return;
+        }
+
+        const editor = getEditor();
+        if (!editor) {
+            return;
+        }
+
+        const active = document.activeElement;
+        const hostFocused = active === editor || editor.contains(active);
+        const shadowFocused = Boolean(editor.shadowRoot?.activeElement);
+        if (!hostFocused && !shadowFocused) {
+            return;
+        }
+
+        event.preventDefault();
+        if (paneSplitter) {
+            paneSplitter.focus();
+            return;
+        }
+
+        const terminalContainer = document.getElementById("terminal-container");
+        terminalContainer?.focus();
+    });
+
+    document.body.dataset.editorEscapeFocusBound = "true";
+}
+
+function buildExecutionCode(userCode, runId) {
     const serializedNopenai = JSON.stringify(state.nopenaiSource || "");
     const serializedUserCode = JSON.stringify(String(userCode || ""));
+    const serializedRunId = Number.isFinite(runId) ? runId : -1;
     return `
 import sys
 import types
@@ -804,6 +1027,7 @@ sys.modules["openai"] = module
 
 globals()["__name__"] = "__main__"
 __user_code = ${serializedUserCode}
+__run_id = ${serializedRunId}
 print("Model Coder ready. Running script...")
 try:
     exec(__user_code, globals())
@@ -811,7 +1035,9 @@ finally:
     try:
         import js
         if hasattr(js, "modelCoderMarkRunComplete"):
-            js.modelCoderMarkRunComplete()
+            js.modelCoderMarkRunComplete(__run_id)
+        elif hasattr(js, "window") and hasattr(js.window, "modelCoderMarkRunComplete"):
+            js.window.modelCoderMarkRunComplete(__run_id)
     except Exception:
         pass
 `;
@@ -831,18 +1057,26 @@ async function runCurrentCode() {
 
         const code = readEditorCode();
         if (!code.trim()) {
-            launchTerminalScript("print('Editor is empty. Load a template or type code first.')");
+            const runId = state.activeRunId + 1;
+            state.activeRunId = runId;
+            state.sessionActive = true;
+            launchTerminalScript("print('Editor is empty. Load a template or type code first.')", runId);
             return;
         }
 
         state.savedCode = code;
         savedIndicator.textContent = `Saved and ran at ${new Date().toLocaleTimeString()}`;
 
-        launchTerminalScript(buildExecutionCode(code));
+        const runId = state.activeRunId + 1;
+        state.activeRunId = runId;
         state.sessionActive = true;
+        launchTerminalScript(buildExecutionCode(code, runId), runId);
     } catch (error) {
         const msg = JSON.stringify(`Execution failed: ${String(error.message || error)}`);
-        launchTerminalScript(`print(${msg})`);
+        const runId = state.activeRunId + 1;
+        state.activeRunId = runId;
+        state.sessionActive = true;
+        launchTerminalScript(`print(${msg})`, runId);
         state.sessionActive = false;
     } finally {
         state.running = false;
@@ -883,9 +1117,9 @@ async function initializeApp() {
         setPill(statusModel, message);
     });
 
-    window.modelCoderMarkRunComplete = () => {
-        state.sessionActive = false;
-        updateRunState();
+    window.modelCoderMarkRunComplete = (runId) => {
+        const parsedRunId = Number(runId);
+        completeActiveRun(Number.isFinite(parsedRunId) ? parsedRunId : state.activeRunId);
     };
 
     const savedTheme = getSavedThemePreference();
@@ -913,6 +1147,8 @@ async function initializeApp() {
     if (themeBtn) {
         themeBtn.addEventListener("click", toggleTheme);
     }
+
+    initializeAboutModal();
 
     await loadNopenaiSource();
     const pyReadyFallback = setInterval(() => {

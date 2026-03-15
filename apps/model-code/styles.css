@@ -91,6 +91,34 @@ body {
     background: var(--bg);
 }
 
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.sr-only:focus,
+.sr-only:active {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    padding: 8px 10px;
+    border: 1px solid var(--accent-strong);
+    border-radius: 8px;
+    background: var(--panel);
+    color: var(--ink);
+}
+
 .app-shell {
     min-height: 100%;
     max-width: 1200px;
@@ -131,6 +159,12 @@ body {
     gap: 8px;
 }
 
+#about-btn {
+    font-weight: 800;
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
 .template-label {
     font-size: 0.95rem;
     color: #ffffff;
@@ -165,6 +199,12 @@ body {
 #template-select:focus {
     outline: 2px solid rgba(255, 255, 255, 0.6);
     outline-offset: 1px;
+}
+
+#template-select:focus-visible {
+    outline: 3px solid #ffffff;
+    outline-offset: 1px;
+    box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.35);
 }
 
 button {
@@ -207,6 +247,12 @@ button.secondary {
 
 button.secondary:hover:not(:disabled) {
     background: var(--accent-strong);
+}
+
+button:focus-visible {
+    outline: 3px solid #ffffff;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.35);
 }
 
 .status-row {
@@ -253,9 +299,96 @@ button.secondary:hover:not(:disabled) {
     user-select: none;
 }
 
-.pane-splitter:focus {
+.pane-splitter:focus,
+.pane-splitter:focus-visible {
     outline: 2px solid rgba(0, 120, 212, 0.4);
     outline-offset: 2px;
+}
+
+#editor-container:focus,
+#editor-container:focus-visible,
+#terminal-container:focus,
+#terminal-container:focus-visible {
+    outline: 3px solid rgba(0, 120, 212, 0.55);
+    outline-offset: -3px;
+}
+
+body.dark-theme button:focus-visible,
+body.dark-theme #template-select:focus-visible {
+    outline-color: #84f0ad;
+    box-shadow: 0 0 0 3px rgba(132, 240, 173, 0.28);
+}
+
+body.dark-theme #editor-container:focus,
+body.dark-theme #editor-container:focus-visible,
+body.dark-theme #terminal-container:focus,
+body.dark-theme #terminal-container:focus-visible {
+    outline-color: rgba(132, 240, 173, 0.75);
+}
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(8, 12, 18, 0.55);
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    z-index: 1000;
+}
+
+.modal-backdrop[hidden] {
+    display: none !important;
+}
+
+.modal-card {
+    width: min(640px, 100%);
+    background: var(--panel);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.modal-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+.modal-body {
+    padding: 14px;
+    display: grid;
+    gap: 10px;
+}
+
+.modal-body p {
+    margin: 0;
+    line-height: 1.5;
+    color: var(--ink);
+}
+
+body.dark-theme .modal-backdrop {
+    background: rgba(3, 6, 10, 0.7);
+}
+
+.modal-card:focus,
+.modal-card:focus-visible {
+    outline: 3px solid rgba(0, 120, 212, 0.55);
+    outline-offset: 2px;
+}
+
+body.dark-theme .modal-card:focus,
+body.dark-theme .modal-card:focus-visible {
+    outline-color: rgba(132, 240, 173, 0.75);
 }
 
 .pane-splitter.dragging {
