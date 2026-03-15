@@ -1018,12 +1018,46 @@ function buildExecutionCode(userCode, runId) {
     return `
 import sys
 import types
+import builtins
+import asyncio
 
 module = types.ModuleType("nopenai")
 __nopenai_source = ${serializedNopenai}
 exec(__nopenai_source, module.__dict__)
 sys.modules["nopenai"] = module
 sys.modules["openai"] = module
+
+__original_input = builtins.input
+
+def __modelcoder_input(*args, **kwargs):
+    value = __original_input(*args, **kwargs)
+    if not hasattr(value, "__await__"):
+        return value
+
+    try:
+        import pyodide.webloop as __webloop
+        runner = getattr(__webloop, "run_until_complete", None)
+        if callable(runner):
+            return runner(value)
+    except Exception:
+        pass
+
+    try:
+        return asyncio.run(value)
+    except Exception:
+        pass
+
+    try:
+        loop = asyncio.get_event_loop()
+        if not loop.is_running():
+            return loop.run_until_complete(value)
+    except Exception:
+        pass
+
+    # If resolution fails, return original object and allow user code to handle it.
+    return value
+
+builtins.input = __modelcoder_input
 
 globals()["__name__"] = "__main__"
 __user_code = ${serializedUserCode}
