@@ -657,11 +657,16 @@ function getTerminal() {
 
 function getActiveTerminalInstance() {
     const container = document.getElementById("terminal-container");
-    if (!container) {
-        return null;
+    const candidates = [];
+
+    if (container) {
+        candidates.push(container, ...container.querySelectorAll("*"));
     }
 
-    const candidates = [container, ...container.querySelectorAll("*")];
+    // PyScript stores terminal instance on the runner script element.
+    const runnerScripts = document.querySelectorAll('script[type="py"][data-model-coder-runner="true"]');
+    candidates.push(...runnerScripts);
+
     for (const node of candidates) {
         const terminal = node?.terminal;
         if (terminal && typeof terminal.resize === "function") {
@@ -980,14 +985,14 @@ function completeActiveRun(runId = state.activeRunId) {
         return;
     }
 
-    // End the active terminal session but keep existing terminal output visible.
-    const staleRunners = document.querySelectorAll('script[type="py"][data-model-coder-runner="true"]');
-    staleRunners.forEach((node) => node.remove());
+    // Keep runner element so its terminal instance remains available for resizing.
+    // It will be removed by the next run, stop, template switch, or clear action.
 
     state.sessionActive = false;
     state.running = false;
     void requestModelSessionReset();
     updateRunState();
+    requestTerminalResizeSync();
 }
 
 function clearTerminalOutput(options = {}) {
