@@ -562,37 +562,41 @@ function applyEmbeddedEditorTheme() {
             border-left-color: #f5f6f8 !important;
         }
 
-        /* Readability-first fallback: prevent any token class from rendering black text. */
+        /* Readability fallback: force token spans to inherit editor foreground. */
         .cm-editor .cm-content,
-        .cm-editor .cm-content *,
         .cm-editor .cm-line,
-        .cm-editor .cm-line * {
+        .cm-editor .cm-line span,
+        .cm-editor .cm-line span * {
             color: #e6edf3 !important;
-            -webkit-text-fill-color: #e6edf3 !important;
         }
 
         /* Match CodeMirror guidance: style both library-drawn and native selection. */
+        .cm-editor .cm-selectionLayer {
+            z-index: 3;
+        }
+
         .cm-editor .cm-selectionLayer .cm-selectionBackground,
         .cm-editor .cm-selectionBackground {
-            background-color: rgba(56, 139, 253, 0.36) !important;
+            background-color: rgba(56, 139, 253, 0.48) !important;
         }
 
         .cm-editor.cm-focused .cm-selectionLayer .cm-selectionBackground,
         .cm-editor.cm-focused .cm-selectionBackground {
-            background-color: rgba(56, 139, 253, 0.56) !important;
-            outline: 1px solid rgba(184, 218, 255, 0.75) !important;
+            background-color: rgba(56, 139, 253, 0.78) !important;
+            outline: 1px solid rgba(201, 229, 255, 0.95) !important;
         }
 
         .cm-editor .cm-content ::selection,
         .cm-editor .cm-line ::selection,
         .cm-editor .cm-content::selection,
         .cm-editor .cm-line::selection {
-            background-color: rgba(56, 139, 253, 0.56) !important;
+            background-color: rgba(56, 139, 253, 0.78) !important;
+            color: #ffffff !important;
         }
 
         .cm-editor .cm-selectionMatch,
         .cm-editor .cm-selectionMatch-main {
-            background-color: rgba(56, 139, 253, 0.4) !important;
+            background-color: rgba(56, 139, 253, 0.52) !important;
         }
         `;
         } else {
