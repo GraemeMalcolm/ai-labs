@@ -565,11 +565,9 @@ function applyEmbeddedEditorTheme() {
             border-left-color: #f5f6f8 !important;
         }
 
-        .cm-editor .cm-selectionBackground,
-        .cm-editor .cm-selectionLayer .cm-selectionBackground,
-        .cm-editor .cm-focused .cm-selectionBackground,
-        .cm-editor .cm-focused .cm-selectionLayer .cm-selectionBackground {
-            background-color: rgba(56, 139, 253, 0.68) !important;
+        /* Force native selection rendering to avoid token-theme interference. */
+        .cm-editor .cm-selectionLayer {
+            display: none !important;
         }
 
         .cm-editor .cm-content::selection,
