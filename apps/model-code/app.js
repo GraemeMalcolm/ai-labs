@@ -742,7 +742,11 @@ function launchTerminalScript(scriptCode, runId) {
     runner.id = "python-terminal-runner";
     runner.type = "py";
     runner.setAttribute("terminal", "");
-    runner.setAttribute("worker", "");
+    // GitHub Pages typically cannot provide cross-origin isolation headers,
+    // so worker mode may not have access to the JS bridge globals.
+    if (window.crossOriginIsolated) {
+        runner.setAttribute("worker", "");
+    }
     runner.setAttribute("target", "terminal-container");
     runner.setAttribute("config", JSON.stringify({ packages: PY_PACKAGES }));
     runner.textContent = scriptCode;
