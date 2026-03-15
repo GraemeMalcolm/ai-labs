@@ -16,8 +16,17 @@ const aboutModalBackdrop = document.getElementById("about-modal-backdrop");
 const aboutModal = document.getElementById("about-modal");
 const aboutCloseBtn = document.getElementById("about-close-btn");
 const THEME_STORAGE_KEY = "model-coder-theme";
+const IS_GITHUB_PAGES = window.location.hostname.endsWith("github.io");
 
 const PY_PACKAGES = ["numpy", "pandas", "matplotlib", "scikit-learn"];
+
+function shouldUseTerminalWorker() {
+    // GitHub Pages requires worker mode for reliable terminal input() behavior.
+    if (IS_GITHUB_PAGES) {
+        return true;
+    }
+    return Boolean(window.crossOriginIsolated);
+}
 
 const TEMPLATE_SNIPPETS = {
     "blank-page": "",
@@ -742,9 +751,7 @@ function launchTerminalScript(scriptCode, runId) {
     runner.id = "python-terminal-runner";
     runner.type = "py";
     runner.setAttribute("terminal", "");
-    // GitHub Pages typically cannot provide cross-origin isolation headers,
-    // so worker mode may not have access to the JS bridge globals.
-    if (window.crossOriginIsolated) {
+    if (shouldUseTerminalWorker()) {
         runner.setAttribute("worker", "");
     }
     runner.setAttribute("target", "terminal-container");
@@ -906,7 +913,8 @@ function markRuntimeReady() {
     state.runtimeInitialized = true;
     state.pyReady = true;
     state.terminalReady = true;
-    setPill(statusRuntime, "PyScript runtime ready", "ready");
+    const runtimeMode = shouldUseTerminalWorker() ? "worker" : "main-thread";
+    setPill(statusRuntime, `PyScript runtime ready (${runtimeMode})`, "ready");
     setupEditorAsEditOnly();
     suppressNativeEditorRunButton();
     enableEditorEscapeToTabOut();

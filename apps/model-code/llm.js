@@ -407,29 +407,42 @@ class ModelCoderLLM {
 
 const llmRuntime = new ModelCoderLLM();
 
-const host = globalThis;
-
-host.modelCoderSetStatusListener = (callback) => {
+const modelCoderSetStatusListener = (callback) => {
     llmRuntime.setStatusCallback(callback);
 };
 
-host.modelCoderInit = async (maxRetries = 3) => {
+const modelCoderInit = async (maxRetries = 3) => {
     await llmRuntime.initialize(maxRetries);
 };
 
-host.modelCoderRequest = async (requestJson) => {
+const modelCoderRequest = async (requestJson) => {
     const payload = JSON.parse(requestJson);
     const response = await llmRuntime.request(payload);
     return JSON.stringify(response);
 };
 
-host.modelCoderResetSession = async () => {
+const modelCoderResetSession = async () => {
     await llmRuntime.resetSession();
 };
 
-host.modelCoderNextStreamChunk = async (streamId) => {
+const modelCoderNextStreamChunk = async (streamId) => {
     const next = await llmRuntime.nextStreamChunk(streamId);
     return JSON.stringify(next);
 };
+
+function attachBridge(target) {
+    if (!target) {
+        return;
+    }
+    target.modelCoderSetStatusListener = modelCoderSetStatusListener;
+    target.modelCoderInit = modelCoderInit;
+    target.modelCoderRequest = modelCoderRequest;
+    target.modelCoderResetSession = modelCoderResetSession;
+    target.modelCoderNextStreamChunk = modelCoderNextStreamChunk;
+}
+
+attachBridge(globalThis);
+attachBridge(typeof window !== "undefined" ? window : null);
+attachBridge(typeof self !== "undefined" ? self : null);
 
 export default llmRuntime;

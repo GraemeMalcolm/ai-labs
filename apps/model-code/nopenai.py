@@ -88,25 +88,35 @@ async def _next_chunk(stream_id: str) -> Dict[str, Any]:
     return json.loads(str(chunk_json))
 
 
+def _safe_getattr(obj: Any, attr: str):
+    try:
+        return getattr(obj, attr)
+    except Exception:
+        return None
+
+
+def _has_bridge(obj: Any) -> bool:
+    if obj is None:
+        return False
+    return _safe_getattr(obj, "modelCoderRequest") is not None and _safe_getattr(obj, "modelCoderNextStreamChunk") is not None
+
+
 def _get_js_bridge():
+    candidates = []
+
     if _pyscript_window is not None:
-        if hasattr(_pyscript_window, "modelCoderRequest") and hasattr(
-            _pyscript_window, "modelCoderNextStreamChunk"
-        ):
-            return _pyscript_window
+        candidates.append(_pyscript_window)
 
-    if hasattr(js, "modelCoderRequest") and hasattr(js, "modelCoderNextStreamChunk"):
-        return js
+    candidates.append(js)
 
-    if hasattr(js, "window"):
-        window_obj = js.window
-        if hasattr(window_obj, "modelCoderRequest") and hasattr(window_obj, "modelCoderNextStreamChunk"):
-            return window_obj
+    for attr in ("globalThis", "window", "self"):
+        obj = _safe_getattr(js, attr)
+        if obj is not None:
+            candidates.append(obj)
 
-    if hasattr(js, "self"):
-        self_obj = js.self
-        if hasattr(self_obj, "modelCoderRequest") and hasattr(self_obj, "modelCoderNextStreamChunk"):
-            return self_obj
+    for candidate in candidates:
+        if _has_bridge(candidate):
+            return candidate
 
     raise OpenAIError(
         "Model bridge not available in this Python runtime. "
