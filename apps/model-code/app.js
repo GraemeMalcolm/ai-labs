@@ -565,6 +565,19 @@ function applyEmbeddedEditorTheme() {
             border-left-color: #f5f6f8 !important;
         }
 
+        .cm-selectionBackground,
+        .cm-focused .cm-selectionBackground,
+        .cm-line::selection,
+        .cm-line span::selection,
+        .cm-content ::selection {
+            background: rgba(58, 130, 246, 0.45) !important;
+            color: #ffffff !important;
+        }
+
+        .cm-focused .cm-selectionLayer .cm-selectionBackground {
+            background: rgba(58, 130, 246, 0.5) !important;
+        }
+
         .cm-content span,
         .cm-line span,
         .cm-line span *,
