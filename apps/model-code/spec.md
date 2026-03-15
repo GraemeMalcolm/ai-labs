@@ -1,370 +1,132 @@
-# Model Coder
+# Model Coder (As-Built Specification)
 
-This is a spec for a Web app named Model Coder. The app is designed as a hands-on learning environment in which students can learn common Python syntax for using the OpenAI library to chat with a model.
+## Changelog
 
-The app does not use the official openai Python library; but instead provides a set of Python "wrapper" classes that run in PyScript within the browser, and use JavaScript Interopt to call wllama interfaces and submit chatml-based prompts to a local SMOLLM2 model. The wrapper classes enable users to write Python code as if using the real openai classes.
+- 2026-03-14: Replaced original aspirational draft with as-built specification.
+- 2026-03-14: Documented current GitHub Pages/static-host runtime approach, including COI service worker integration.
+- 2026-03-14: Added implemented UX/accessibility features (theme toggle persistence, splitter, About modal, keyboard/focus behaviors).
+- 2026-03-14: Captured actual run/session lifecycle behavior and OpenAI-compatible wrapper support as implemented in code.
 
-Overall, the app must be a useful "sandbox" environment in which learners can run openai-compatible Python code against a local smollm2 model in wllama in the browser.
+## Overview
 
-## Technical Requirements
+Model Coder is a browser-based educational sandbox for learning OpenAI-style Python coding patterns against a local LLM.
 
-The app must consists of:
- - A single HTML file for the app interface
- - A single CSS file for visual styles
- - An app.js JavaScript file for the app UI, and a separate llm.js file to handle chatml-based interactions with the smollm2 model running in wllama.
- - A single nopenai.py file containing the PyScript-supported Python classes that emulate the openai library and abstract the code in the llm.js file. 
+Users write Python code in a PyScript editor and execute it in a terminal pane. The app provides a local `openai`-compatible wrapper so students can practice common syntax for:
 
- The app must run completely in-browser when hosted in a GitHub Pages site - with no server-side dependencies or additional client configuration.
+- `OpenAI().chat.completions.create(...)`
+- `OpenAI().responses.create(...)`
+- Streaming responses
+- Async usage with `AsyncOpenAI`
 
- ## Interface and functionality
+The model runtime is local and in-browser via `wllama` with SmolLM2.
 
- The app must present users with a Python editor in th top half of the page. The editor should use the PyScript editor (https://docs.pyscript.net/2026.3.1/user-guide/editor/), but should be used ONLY for editing code.
+## Core Goals
 
- When the user clicks a button to run their code, the code should be saved "internally" and run in a PyScript terminal (https://docs.pyscript.net/2026.3.1/user-guide/terminal/) under the editor. This allows for interactive use of "print" and "input" statements within the terminal.
+- Run fully in-browser on static hosting (including GitHub Pages).
+- Provide an OpenAI-like Python authoring experience without external API calls.
+- Support interactive terminal workflows (`print`, `input`, loop-based chat samples).
+- Provide beginner-friendly sample templates that can be edited and rerun quickly.
 
-### Python functionality in PyScript
+## Architecture
 
- The PyScript environment should include common Python packages like numpy, pandas, and so on; and also the locally implemented "openai" library, which is based on the classes in the nopenai.py file. These classes should support common openai syntax for chatting with a model through both the Responses API and the ChatCompletions API as described in the openai documentation examples at https://pypi.org/project/openai/. At a minimum, it must support the necessary classes and methods for students to use it to complete the coding tasks in the lab at https://microsoftlearning.github.io/mslearn-ai-studio/Instructions/Exercises/03-foundry-sdk.html.
- 
- The constructor of the openai class requires that users provide the following parameters:
- - *base_url* (which must have the value "https://localmodel)
- - *api_key* (which can be any string)
+The implementation is split across these files:
 
- The ChatCompletions API supports a *chat.completions.create* method that includes:
- - a *model* parameter (which must have the value "localmodel") 
- - a *messages* parameter that can contain a JSON formatted collection of role-specific messages (for *developer*, *user*, and *assistant* roles)
+- `index.html`: app shell, toolbar, editor/terminal containers, accessibility landmarks, About modal.
+- `styles.css`: responsive layout, light/dark themes, terminal/editor styling, focus-visible and a11y styles, modal styles.
+- `app.js`: UI controller, templates, run lifecycle, session cleanup, theme/splitter/accessibility behavior.
+- `llm.js`: local model lifecycle and request handling through `wllama`.
+- `nopenai.py`: Python-side OpenAI-compatible wrapper and stream abstractions.
+- `coi-serviceworker.js`: COOP/COEP service-worker bootstrap for cross-origin isolation support on static hosting.
 
- The Responses API supports a *responses.create* method that inckudes:
- - a *model* parameter (which must have the value "localmodel") 
- - an optional *insructions* parameter that can contain a string value for a system prompt
- - an *input* parameter that contain a string value for a user prompt, or a JSON fomatted collection of messages in the same format as the ChatCompletions API.
- - an optional *stream* parameter with a default value of *false*. When set to *true*, responses from the model should be streamed incrementally rather than the defauly behavior of waiting for the full response.
- - an optional *previous_response_id* parameter that can contain a unique identifier fo a previous response to be includes in the prompt.
+## Hosting and Runtime Model
 
- ### Wllama and smollm2 implementation
+- Designed for static hosting and GitHub Pages.
+- Includes `coi-serviceworker.js` bootstrap in `index.html` to support cross-origin isolation patterns needed by advanced browser runtime features.
+- Terminal execution uses PyScript script runners targeted at `terminal-container`.
+- Runtime mode selection is managed in `app.js` by `shouldUseTerminalWorker()`.
 
- The wllama package should be imported using cdn.
+## UI and Interaction Requirements
 
-The smollm2 model should be downloaded and loaded on startup (with a "loading status" indicator) from ngxson/SmolLM2-360M-Instruct-Q8_0-GGUF.
+### Layout
 
-The prompts to the model should be based on the Python openai code specified by the user, but translated to chatml format to optimize for the small model,
+- Top toolbar with:
+  - sample picker
+  - Run, Stop, Reset Layout, Theme toggle, About button, Retry Model button
+- Status pills for runtime/model state
+- Two-pane workspace:
+  - editor pane (top)
+  - terminal pane (bottom)
+  - draggable splitter with keyboard support
 
-Use the existing code in the /apps/chat-playground app as a guide for how to get a working implementation of wllama and the smollm2 model.
+### Theming
 
+- Light and dark themes
+- Theme preference persisted in `localStorage`
+- Editor and terminal themed consistently with app shell
 
-## Sample code
+### Accessibility
 
-The app should include the following samples that a user can select and run, and use as a starting point for their own code:
+- Labeled toolbar controls and landmarks
+- `aria-live` status updates
+- keyboard-resizable splitter
+- skip link to workspace
+- focus-visible styling for keyboard navigation
+- About dialog with proper dialog semantics and keyboard close behavior
 
-### Blank Page
+## Python API Compatibility (Implemented)
 
-An empty code editor - this is the default sample when the app opens.
+The wrapper exposed via `nopenai.py` supports:
 
-### Simple chat (ChatCompletions API)
+- `OpenAI(base_url="https://localmodel", api_key="...")`
+- `AsyncOpenAI(base_url="https://localmodel", api_key="...")`
+- Chat Completions:
+  - `chat.completions.create(model="localmodel", messages=[...], stream=False|True)`
+- Responses API:
+  - `responses.create(model="localmodel", input=..., instructions=..., previous_response_id=..., stream=False|True)`
+- Synchronous and asynchronous stream iterators
 
-```python
-# import namespace
-from openai import OpenAI
+Validation behavior:
 
+- `base_url` must be `https://localmodel`
+- `model` must be `localmodel`
+- message role/content types are validated
 
-def main(): 
+## Local Model Runtime
 
-    try:
-        # Configuration settings 
-        endpoint = "https://localmodel"
-        key = "key123"
-        model_name = "localmodel"
+- Uses `@wllama/wllama` from CDN.
+- Loads model `ngxson/SmolLM2-360M-Instruct-Q8_0-GGUF` (`smollm2-360m-instruct-q8_0.gguf`).
+- Converts request message structures to ChatML prompt format.
+- Supports full and streaming completion paths.
+- Maintains response/session maps for continuation semantics and stream retrieval.
 
-        # Initialize the OpenAI client
-        openai_client = OpenAI(
-            base_url=endpoint,
-            api_key=key
-        )
-        
-        # Loop until the user wants to quit
-        while True:
-            input_text = input('\nEnter a prompt (or type "quit" to exit): ')
-            if input_text.lower() == "quit":
-                print("Goodbye!")
-                break
-            if len(input_text) == 0:
-                print("Please enter a prompt.")
-                continue
+## Run Lifecycle Behavior
 
-            # Get a response
-            completion = openai_client.chat.completions.create(
-                model=model_name,
-                messages=[
-                    {
-                        "role": "developer",
-                        "content": "You are a helpful AI assistant that answers questions and provides information."
-                    },
-                    {
-                        "role": "user",
-                        "content": input_text
-                    }
-                ]
-            )
-            print(completion.choices[0].message.content)
-            
-
-    except Exception as ex:
-        print(ex)
-
-if __name__ == '__main__': 
-    main()
-```
-
-### Simple chat (Responses API)
-
-```python
-# import namespace
-from openai import OpenAI
-
-
-def main(): 
-
-    try:
-        # Configuration settings 
-        endpoint = "https://localmodel"
-        key = "key123"
-        model_name = "localmodel"
-
-        # Initialize the OpenAI client
-        openai_client = OpenAI(
-            base_url=endpoint,
-            api_key=key
-        )
-        
-        # Loop until the user wants to quit
-        while True:
-            input_text = input('\nEnter a prompt (or type "quit" to exit): ')
-            if input_text.lower() == "quit":
-                print("Goodbye!")
-                break
-            if len(input_text) == 0:
-                print("Please enter a prompt.")
-                continue
-
-            # Get a response
-            response = openai_client.responses.create(
-                        model=model_name,
-                        instructions="You are a helpful AI assistant that answers questions and provides information.",
-                        input=input_text
-            )
-            print(response.output_text)
-            
-
-    except Exception as ex:
-        print(ex)
-
-if __name__ == '__main__': 
-    main()
-```
-
-### Conversation Tracking (ChatCompletions API)
-
-```python
-# import namespace
-from openai import OpenAI
-
-
-def main(): 
-
-    try:
-        # Configuration settings 
-        endpoint = "https://localmodel"
-        key = "key123"
-        model_name = "localmodel"
-
-        # Initialize the OpenAI client
-        openai_client = OpenAI(
-            base_url=endpoint,
-            api_key=key
-        )
-
-        # Initial messages
-        conversation_messages=[
-                    {
-                        "role": "developer",
-                        "content": "You are a helpful AI assistant that answers questions and provides information."
-                    }
-        ]
-        
-        # Loop until the user wants to quit
-        print("Enter a prompt (or type 'quit' to exit)")
-        while True:
-            input_text = input('You: ')
-            if input_text.lower() == "quit":
-                print("Goodbye!")
-                break
-            if len(input_text) == 0:
-                print("Please enter a prompt:")
-                continue
-
-            # Add the user message
-            conversation_messages.append({"role": "user", "content": input_text})
-
-            # Get a response
-            completion = openai_client.chat.completions.create(
-                model=model_name,
-                messages=conversation_messages
-            )
-            assistant_text = response.choices[0].message.content
-            print("Assistant:", assistant_text)
-            conversation_messages.append({"role": "assistant", "content": assistant_text})
-            
-
-    except Exception as ex:
-        print(ex)
-
-if __name__ == '__main__': 
-    main()
-```
-
-### Conversation Tracking (Responses API)
-
-```python
-# import namespace
-from openai import OpenAI
-
-
-def main(): 
-
-    try:
-        # Configuration settings 
-        endpoint = "https://localmodel"
-        key = "key123"
-        model_name = "localmodel"
-
-        # Initialize the OpenAI client
-        openai_client = OpenAI(
-            base_url=endpoint,
-            api_key=key
-        )
-        
-        # Track responses
-        last_response_id = None
-
-        # Loop until the user wants to quit
-        print("Enter a prompt (or type 'quit' to exit)")
-        while True:
-            input_text = input('You: ')
-            if input_text.lower() == "quit":
-                print("Goodbye!")
-                break
-            if len(input_text) == 0:
-                print("Please enter a prompt:")
-                continue
-
-            # Get a response
-            response = openai_client.responses.create(
-                        model=model_name,
-                        instructions="You are a helpful AI assistant that answers questions and provides information.",
-                        input=input_text,
-                        previous_response_id=last_response_id
-            )
-            assistant_text = response.output_text
-            print("Assistant:", assistant_text)
-            last_response_id = response.response.id
-            
-
-    except Exception as ex:
-        print(ex)
-
-if __name__ == '__main__': 
-    main()
-```
-
-### Streaming (Responses API)
-
-```python
-# import namespace
-from openai import OpenAI
-
-
-def main(): 
-
-    try:
-        # Configuration settings 
-        endpoint = "https://localmodel"
-        key = "key123"
-        model_name = "localmodel"
-
-        # Initialize the OpenAI client
-        openai_client = OpenAI(
-            base_url=endpoint,
-            api_key=key
-        )
-        
-        # Track responses
-        last_response_id = None
-        print("Enter a prompt (or type 'quit' to exit)")
-        while True:
-            input_text = input('You: ')
-            if input_text.lower() == "quit":
-                print("Goodbye!")
-                break
-            if len(input_text) == 0:
-                print("Please enter a prompt:")
-                continue
-
-            # Get a response
-            stream = openai_client.responses.create(
-                        model=model_deployment,
-                        instructions="You are a helpful AI assistant that answers questions and provides information.",
-                        input=input_text,
-                        previous_response_id=last_response_id,
-                        stream=True
-            )
-            print("Assistant:")
-            for event in stream:
-                if event.type == "response.output_text.delta":
-                    print(event.delta, end="")
-                elif event.type == "response.completed":
-                    last_response_id = event.response.id
-            print()
-            
-
-    except Exception as ex:
-        print(ex)
-
-if __name__ == '__main__': 
-    main()
-```
-
-### Async chat
-
-```python
-import asyncio
-from openai import AsyncOpenAI
-
-
-async def main():
-    client = AsyncOpenAI(base_url="https://localmodel", api_key="key123")
-
-    # Async response (wait for complete response)
-    response = await client.responses.create(
-        model="localmodel",
-        instructions="You are a concise Python tutor.",
-        input="Show a Python class with __init__ and one method."
-    )
-    print("Async response:\n", response.output_text)
-
-    # Async Streaming response
-    print("\nStreaming response:")
-    stream = await client.responses.create(
-        model="localmodel",
-        input="Give 3 bullet points about Python dictionaries.",
-        stream=True
-    )
-
-    async for event in stream:
-        if hasattr(event, "delta"):
-            print(event.delta, end="")
-
-    print("\n")
-
-
-asyncio.run(main())
-```
+- Editor is used for authoring only; execution is routed through terminal run button.
+- Running code injects `nopenai.py` source and aliases it as both `nopenai` and `openai`.
+- Run sessions are tracked with run IDs to prevent stale async completion events from corrupting UI state.
+- Stop and completion both reset active session state while preserving expected terminal behavior.
+- Switching to a different sample clears terminal output and resets model session context.
+
+## Built-in Samples
+
+Current sample set:
+
+- Blank Page
+- Simple chat (ChatCompletions API)
+- Simple chat (Responses API)
+- Conversation Tracking (ChatCompletions API)
+- Conversation Tracking (Responses API)
+- Streaming (Responses API)
+- Async chat (Responses API)
+- Async streaming (Responses API)
+
+## Privacy and Data Flow
+
+- The app is designed for local, in-browser execution.
+- User code, prompts, and outputs are processed locally in the browser runtime.
+- No server-side inference pipeline is used by this app.
+
+## Notes for Contributors
+
+- This document is intentionally as-built, not aspirational.
+- For implementation walkthrough and function-by-function flow, see `implementation_details.md`.
