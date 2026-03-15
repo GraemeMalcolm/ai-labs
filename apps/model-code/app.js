@@ -575,12 +575,13 @@ function applyEmbeddedEditorTheme() {
         .cm-editor .cm-selectionLayer .cm-selectionBackground,
         .cm-editor .cm-focused .cm-selectionBackground,
         .cm-editor .cm-focused .cm-selectionLayer .cm-selectionBackground {
-            background-color: rgba(56, 139, 253, 0.45) !important;
+            background-color: rgba(56, 139, 253, 0.72) !important;
+            outline: 1px solid rgba(184, 218, 255, 0.85) !important;
         }
 
         .cm-editor .cm-selectionMatch,
         .cm-editor .cm-selectionMatch-main {
-            background-color: rgba(56, 139, 253, 0.35) !important;
+            background-color: rgba(56, 139, 253, 0.52) !important;
             color: #f8fbff !important;
             -webkit-text-fill-color: #f8fbff !important;
         }
@@ -589,15 +590,9 @@ function applyEmbeddedEditorTheme() {
         .cm-editor .cm-content *::selection,
         .cm-editor .cm-line::selection,
         .cm-editor .cm-line *::selection {
-            background-color: rgba(56, 139, 253, 0.45) !important;
-            color: #f8fbff !important;
-            -webkit-text-fill-color: #f8fbff !important;
-        }
-
-        .cm-editor .cm-selectionLayer .cm-selectionBackground + span,
-        .cm-editor .cm-selectionLayer .cm-selectionBackground ~ span {
-            color: #f8fbff !important;
-            -webkit-text-fill-color: #f8fbff !important;
+            background-color: rgba(56, 139, 253, 0.78) !important;
+            color: #0b1220 !important;
+            -webkit-text-fill-color: #0b1220 !important;
         }
         `;
         } else {
