@@ -526,8 +526,6 @@ function applyEmbeddedEditorTheme() {
         return;
     }
 
-    // Keep CodeMirror/PyScript defaults inside the shadow root.
-    // Custom dark-mode overrides have repeatedly broken selection visibility.
     for (const root of roots) {
         let styleEl = root.getElementById(styleId);
         if (!styleEl) {
@@ -535,7 +533,62 @@ function applyEmbeddedEditorTheme() {
             styleEl.id = styleId;
             root.appendChild(styleEl);
         }
-        styleEl.textContent = "";
+
+        if (!state.darkTheme) {
+            styleEl.textContent = "";
+            continue;
+        }
+
+        // Minimal CM dark theme: readable text, visible selection, no text-fill hacks.
+        styleEl.textContent = `
+        .cm-editor,
+        .cm-scroller,
+        .cm-content,
+        .cm-gutters {
+            background-color: #0d1117 !important;
+            color: #e6edf3 !important;
+            caret-color: #f0f6fc !important;
+        }
+
+        .cm-gutters {
+            border-right: 1px solid #30363d !important;
+        }
+
+        .cm-gutterElement {
+            color: #8b949e !important;
+        }
+
+        .cm-editor .cm-line,
+        .cm-editor .cm-line span {
+            color: inherit !important;
+        }
+
+        .cm-editor .cm-cursor,
+        .cm-editor .cm-dropCursor {
+            border-left-color: #f0f6fc !important;
+        }
+
+        .cm-editor .cm-activeLine,
+        .cm-editor .cm-activeLineGutter {
+            background-color: rgba(110, 118, 129, 0.15) !important;
+        }
+
+        .cm-editor .cm-selectionLayer .cm-selectionBackground,
+        .cm-editor .cm-selectionBackground {
+            background-color: rgba(56, 139, 253, 0.35) !important;
+        }
+
+        .cm-editor.cm-focused .cm-selectionLayer .cm-selectionBackground,
+        .cm-editor.cm-focused .cm-selectionBackground {
+            background-color: rgba(56, 139, 253, 0.5) !important;
+        }
+
+        .cm-editor ::selection,
+        .cm-editor .cm-content::selection,
+        .cm-editor .cm-line::selection {
+            background-color: rgba(56, 139, 253, 0.5) !important;
+        }
+        `;
     }
 }
 
