@@ -1,275 +1,287 @@
 # Model Coder Implementation Details
 
-This document explains the current implementation and how to trace runtime behavior across files.
+This document describes the current implementation and gives a code-trace map for debugging and maintenance.
 
 ## 1. File Map
 
 - `index.html`
-  - Declares app shell, toolbar controls, status pills, editor/terminal containers, splitter, and About modal.
-  - Includes `coi-serviceworker.js`, `styles.css`, PyScript runtime, and `app.js`.
+  - Declares the app shell, toolbar controls, status pills, editor/terminal panes, splitter, and About modal.
+  - Loads `coi-serviceworker.js`, `styles.css`, PyScript runtime, then `app.js`.
 - `styles.css`
-  - Contains layout, theming (light/dark), terminal/editor visual integration, splitter styles, focus/a11y styles, and modal styles.
+  - Contains responsive layout, light/dark theme variables, editor/terminal styling, splitter behavior, focus-visible styles, and modal styles.
 - `app.js`
-  - Main orchestration layer for UI, template loading, run lifecycle, terminal session control, theme persistence, accessibility helpers, modal behavior.
+  - Main UI/runtime controller: template loading, run lifecycle, terminal runner creation, run-id sync, theme/modal behavior, and accessibility helpers.
 - `llm.js`
-  - Local model runtime using `wllama`; receives OpenAI-like payloads, builds ChatML prompts, returns response data/streams.
+  - Local model runtime wrapper over `wllama`: initialization, request translation to ChatML, streaming chunk queues, session reset/hard reset.
 - `nopenai.py`
-  - Python compatibility layer exposing `OpenAI` and `AsyncOpenAI` with chat/responses APIs and streaming interfaces.
+  - Python OpenAI-compatible wrapper used inside PyScript execution, including sync/async APIs and bridge invocation logic.
 - `coi-serviceworker.js`
-  - Service worker bootstrap to support COOP/COEP behavior on static hosting.
+  - COI bootstrap service worker for static hosting scenarios.
 
 ## 2. Startup Flow
 
-### 2.1 HTML and runtime bootstrap
+### 2.1 Bootstrap sequence
 
 1. Browser loads `index.html`.
-2. `coi-serviceworker.js` is loaded early.
-3. PyScript runtime scripts load.
-4. `app.js` loads as module and imports `llm.js`.
+2. `coi-serviceworker.js` executes first.
+3. PyScript assets load.
+4. `app.js` imports `llm.js` and runs `initializeApp()`.
 
-### 2.2 Bridge and model runtime registration (`llm.js`)
+### 2.2 Bridge registration (`llm.js`)
 
-1. `llm.js` creates `ModelCoderLLM` instance (`llmRuntime`).
-2. It defines bridge functions:
-   - `modelCoderSetStatusListener`
-   - `modelCoderInit`
-   - `modelCoderRequest`
-   - `modelCoderResetSession`
-   - `modelCoderNextStreamChunk`
-3. It builds `modelCoderBridge` object and attaches both object + individual functions to:
-   - `globalThis`
-   - `window` (if present)
-   - `self` (if present)
+`llm.js` creates one `ModelCoderLLM` instance and exposes bridge methods:
 
-This attachment strategy is critical for PyScript execution contexts.
+- `modelCoderSetStatusListener`
+- `modelCoderInit`
+- `modelCoderSetActiveRunId`
+- `modelCoderRequest`
+- `modelCoderResetSession`
+- `modelCoderHardResetSession`
+- `modelCoderNextStreamChunk`
+
+These are attached to `globalThis`, `window`, and `self`, and also grouped under `modelCoderBridge`.
 
 ### 2.3 App initialization (`app.js`)
 
-`initializeApp()` performs:
+`initializeApp()`:
 
-1. Sets initial status pills.
-2. Registers status callback through `window.modelCoderSetStatusListener(...)`.
-3. Registers `window.modelCoderMarkRunComplete` callback used by Python wrapper completion path.
-4. Applies saved theme and initializes splitter.
-5. Hooks all UI events:
-   - Run/Stop/Retry
-   - template change
-   - reset layout
-   - theme toggle
-   - About modal open/close
+1. Sets initial runtime/model status text.
+2. Registers model status listener.
+3. Registers `window.modelCoderMarkRunComplete` callback.
+4. Applies saved theme, initializes splitter, wires UI handlers.
+5. Initializes About dialog interactions.
 6. Loads `nopenai.py` source into memory (`state.nopenaiSource`).
-7. Waits for `py:ready` (with fallback polling) and calls `markRuntimeReady()`.
-8. Initializes local model via `initializeModel()`.
+7. Waits for PyScript ready (event + fallback polling) and marks runtime ready.
+8. Initializes local model through bridge `modelCoderInit`.
 
-## 3. UI Behavior and State Management (`app.js`)
+## 3. UI and State (`app.js`)
 
-## 3.1 State model
+## 3.1 Core state
 
-`state` tracks runtime and UI status:
+Key state fields:
 
-- runtime readiness (`pyReady`, `terminalReady`, `modelReady`)
-- run/session control (`running`, `sessionActive`, `activeRunId`)
-- theme and editor state (`darkTheme`, `savedCode`)
-- template selection (`selectedTemplate`)
-- modal focus restoration (`aboutReturnFocus`)
+- Readiness: `pyReady`, `terminalReady`, `modelReady`
+- Run/session: `running`, `sessionActive`, `activeRunId`
+- Template switching safety: `switchingTemplate`
+- Theme/UI: `darkTheme`, `savedCode`, `selectedTemplate`
+- Modal focus restore: `aboutReturnFocus`
 
-### 3.2 Run/Stop button enablement
+`updateRunState()` disables Run when switching templates or when run/session prerequisites are not satisfied.
 
-`updateRunState()` enforces:
+### 3.2 Template switching behavior
 
-- Run enabled only when runtime+terminal+model are ready and nothing is actively running.
-- Stop enabled only when a run/session is active.
+`loadSelectedTemplate()` is transactional:
 
-### 3.3 Sample loading
-
-`loadSelectedTemplate()`:
-
-1. Validates selected key from `TEMPLATE_SNIPPETS`.
+1. Sets `switchingTemplate = true` and disables Run.
 2. If sample changed:
-   - clears terminal output (`clearTerminalOutput()`)
-   - resets model session context
-3. Loads code into editor via `setEditorCode(...)`.
-4. Updates selected-template tracking and status text.
+   - clears terminal output (`clearTerminalOutput({ resetModel: false })`)
+   - awaits `requestModelSessionReset({ hard: true })`
+3. Loads snippet into editor.
+4. Clears switching flag and re-enables controls.
 
-### 3.4 About modal
+This is intended to start the next sample from fresh model state.
 
-- `openAboutModal()` stores previous focus and opens dialog.
-- `closeAboutModal()` closes dialog and restores focus.
-- `initializeAboutModal()` wires:
-  - toolbar ? button
-  - modal close button
-  - backdrop click to close
-  - Escape key close
+### 3.3 Run-id synchronization
+
+`syncActiveRunId()` pushes `state.activeRunId` to JS bridge (`modelCoderSetActiveRunId`).
+
+It is called when:
+
+- app initializes
+- a run starts
+- stop is pressed
+- terminal output is cleared
 
 ## 4. Editor and Terminal Integration
 
-### 4.1 Editor as authoring-only surface
+### 4.1 Editor mode
 
-`setupEditorAsEditOnly()` disables native editor execution pathway so app-level Run controls execution.
+- PyScript editor is used for authoring only.
+- Native embedded run controls are hidden and app-level Run controls execution.
 
-`suppressNativeEditorRunButton()` hides embedded run-like controls using mutation observation.
-
-### 4.2 Terminal runner creation
+### 4.2 Terminal runner lifecycle
 
 `launchTerminalScript(scriptCode, runId)`:
 
-1. Replaces `terminal-container` to clear stale DOM hooks.
-2. Removes stale `<script type="py" terminal ...>` runners.
-3. Creates new runner with attributes:
+1. Replaces `terminal-container` with a fresh node.
+2. Creates a unique per-run terminal target element: `terminal-run-${runId}`.
+3. Removes stale tagged runner scripts: `script[type="py"][data-model-coder-runner="true"]`.
+4. Creates a new runner script with:
    - `type="py"`
    - `terminal`
-   - `target="terminal-container"`
-   - `worker` when `shouldUseTerminalWorker()` returns true
-4. Registers completion listeners (`py:done`, `py:error`, `error`) that call `completeActiveRun(runId)`.
-5. Appends script to document body.
+   - `worker` if `shouldUseTerminalWorker()`
+   - `target=<unique run target id>`
+   - `config` packages
+5. Tags runner with `data-model-coder-runner="true"`.
+6. Hooks completion events (`py:done`, `py:error`, `error`) to `completeActiveRun(runId)`.
+
+This unique-target strategy reduces cross-run terminal worker/proxy interference.
 
 ### 4.3 Runtime mode decision
 
-`shouldUseTerminalWorker()` currently prefers worker mode for GitHub Pages and otherwise checks `window.crossOriginIsolated`.
+`shouldUseTerminalWorker()`:
+
+- GitHub Pages host detection (`github.io` or `*.github.io`) returns worker mode.
+- Otherwise, returns `window.crossOriginIsolated`.
 
 ## 5. Python Execution Wrapper (`buildExecutionCode` in `app.js`)
 
-Before user code executes, the wrapper performs these steps:
+Every Run wraps user code with prelude logic:
 
-1. Imports runtime helpers (`sys`, `types`, `builtins`, `asyncio`).
-2. Loads the fetched `nopenai.py` source into a synthetic module and registers aliases:
+1. Creates in-memory module from fetched `nopenai.py` source.
+2. Injects `_MODELCODER_RUN_ID` into that module.
+3. Registers aliases:
    - `sys.modules["nopenai"]`
    - `sys.modules["openai"]`
-3. Wraps `builtins.input` as `__modelcoder_input` to normalize async-returning input values to strings.
-4. Executes user code via `exec(__user_code, globals())`.
-5. Calls JS completion callback in `finally` block:
-   - `js.modelCoderMarkRunComplete(__run_id)` when available.
+4. Wraps `builtins.input` as `__modelcoder_input` to normalize async-returning terminal input values.
+5. Executes user code with `exec(__user_code, globals())`.
+6. In `finally`, signals JS completion callback with run id.
 
-This wrapper is applied to all user-entered code, not only built-in samples.
+This wrapper applies to all user-authored code, not only built-in samples.
 
-## 6. Run Lifecycle and Async Safety
+## 6. Run Lifecycle and Cleanup
 
-### 6.1 Starting a run
+### 6.1 Run start (`runCurrentCode`)
 
-`runCurrentCode()`:
-
-1. Marks `state.running = true`.
+1. Sets `running = true`.
 2. Loads `nopenai.py` source if needed.
-3. Reads code from editor.
-4. Assigns monotonic `runId` (`state.activeRunId + 1`) and marks `sessionActive = true`.
-5. Launches terminal runner.
+3. Generates new run id (`activeRunId + 1`), syncs it to model bridge.
+4. Sets `sessionActive = true`.
+5. Launches terminal runner script.
 
-### 6.2 Completion and cleanup
+### 6.2 Completion (`completeActiveRun`)
 
-- `completeActiveRun(runId)` ignores stale completion events by checking against `state.activeRunId`.
-- It removes stale runners, resets running/session flags, and calls `requestModelSessionReset()`.
-- Output stays visible after normal completion.
+- Validates callback run id equals current active run id.
+- Removes runner scripts.
+- Clears run/session flags.
+- Requests soft model session reset.
+- Leaves terminal output visible.
 
-### 6.3 Manual stop
+### 6.3 Manual stop (`stopActiveRun`)
 
-`stopActiveRun()`:
+- Increments run id, syncs run id, removes runners.
+- Writes stop note to terminal.
+- Clears run/session flags and requests soft reset.
 
-1. Invalidates run id (`activeRunId += 1`).
-2. Removes runners.
-3. Replaces terminal with a stop note.
-4. Resets run/session and model session.
+### 6.4 Terminal clear (`clearTerminalOutput`)
 
-### 6.4 Terminal clear (sample switch)
+- Increments run id and syncs run id.
+- Removes runners and replaces terminal container.
+- Optionally triggers soft reset (default true).
 
-`clearTerminalOutput()`:
+## 7. Model Runtime (`llm.js`)
 
-- removes runner scripts
-- resets terminal container
-- resets run/session/model session state
+### 7.1 Initialization and stability settings
 
-## 7. Local Model Runtime (`llm.js`)
+`_loadModel()` uses:
 
-### 7.1 Initialization
+- model: `ngxson/SmolLM2-360M-Instruct-Q8_0-GGUF`
+- file: `smollm2-360m-instruct-q8_0.gguf`
+- `n_ctx: 2048`
+- `n_threads: 1`
 
-`ModelCoderLLM.initialize(maxRetries)`:
-
-- retries model load with status updates
-- uses `Wllama.loadModelFromHF(...)`
-- emits loading/ready/error statuses to UI callback
+`WASM_PATHS` currently maps both single-thread and multi-thread keys to single-thread wasm for stability.
 
 ### 7.2 Request handling
 
-`request(payload)` supports two request types:
+`_requestInternal(payload)` supports:
 
 - `chat.completions.create`
 - `responses.create`
 
-For both:
+Flow:
 
-1. validates model and messages
-2. builds ChatML prompt (`_toChatML`)
-3. either returns full response or creates streaming session metadata
+1. validates payload and model constraints
+2. validates run token (`payload.run_id`) via `_ensureActiveRun(...)`
+3. builds ChatML prompt
+4. executes full response path or streaming path
 
-### 7.3 Streaming
+### 7.3 Run token gating
 
-- `_createStreamSession(...)` stores queue + metadata in `streamSessions`.
-- `_complete(...)` pushes deltas into queue.
-- `nextStreamChunk(streamId)` drains queue for Python stream iterators.
+- `setActiveRunId(runId)` stores current active run id.
+- `_ensureActiveRun(runId, context)` rejects stale calls from older runs.
+- stream sessions store `requestedRunId`; chunk retrieval drops sessions that do not match active run.
 
-### 7.4 Session reset semantics
+This prevents stale scripts from previous samples from issuing new model requests/chunks.
 
-`resetSession()`:
+### 7.4 Streaming
+
+- `_createStreamSession(...)` initializes a queue-backed stream session.
+- `_complete(...)` pushes text deltas.
+- `nextStreamChunk(streamId, runId)` drains queue with run-id and session-version checks.
+
+### 7.5 Reset semantics
+
+Soft reset (`resetSession`):
 
 - increments `sessionVersion`
 - clears stream/response maps
+- waits briefly for active generations to unwind
 - clears KV cache
 
-`sessionVersion` is checked in generation/stream paths to ignore stale outputs after reset.
+Hard reset (`hardResetSession`):
 
-## 8. Python OpenAI Wrapper (`nopenai.py`)
+- runs soft reset
+- clears current model instance references
+- attempts engine cleanup (`dispose`, `destroy`, `unload`, etc. when available)
+- re-initializes model
+
+## 8. Python Wrapper and Bridge (`nopenai.py`)
 
 ### 8.1 API surface
 
 - `OpenAI` and `AsyncOpenAI`
-- nested `chat.completions.create(...)`
-- nested `responses.create(...)`
-- stream iterators:
-  - sync: `ChatCompletionsStream`, `ResponsesStream`
-  - async: `AsyncChatCompletionsStream`, `AsyncResponsesStream`
+- `chat.completions.create(...)`
+- `responses.create(...)`
+- sync and async stream iterators
 
-### 8.2 Bridge invocation strategy
+### 8.2 Run-id propagation
+
+- `_current_run_id()` reads `_MODELCODER_RUN_ID` from module globals.
+- `_request(...)` injects `run_id` into every model request payload.
+- `_next_chunk(...)` passes run id with stream chunk polling.
+
+### 8.3 Bridge invocation strategy
 
 `_bridge_call(method_name, *args)`:
 
-1. Enumerates candidate JS bridge objects from multiple globals.
-2. Prefers `modelCoderBridge.<method>` if available.
+1. Enumerates candidate bridge objects across `pyscript.window`, `js`, `pyscript.sync`, and `js` globals (`globalThis/window/self/parent/top`).
+2. Prefers `modelCoderBridge.<method>` when available.
 3. Falls back to direct method calls.
 4. Falls back to `.call(...)` style invocation.
-5. Handles both sync and awaitable return values.
-
-This design is to survive runtime differences between PyScript contexts.
+5. Handles both sync and awaitable returns.
 
 ## 9. COI Service Worker (`coi-serviceworker.js`)
 
-- Registers service worker in browser context when supported.
-- Reloads page once when controller is first established.
-- Intercepts fetches in worker context and sets response headers:
+- Registers service worker when available in secure context.
+- On first controller activation, triggers reload.
+- Intercepts fetch and adds COI headers:
   - `Cross-Origin-Embedder-Policy: require-corp`
   - `Cross-Origin-Opener-Policy: same-origin`
   - `Cross-Origin-Resource-Policy: cross-origin`
 
-This is included to improve static-host compatibility for browser features that benefit from COI semantics.
+## 10. Accessibility and Keyboard UX
 
-## 10. Accessibility and Keyboard Navigation
+Implemented across `index.html`, `styles.css`, and `app.js`:
 
-Implemented in `index.html`, `styles.css`, and `app.js`:
-
-- semantic toolbar labels and status announcements
+- semantic labels/landmarks
+- `aria-live` status pills
 - skip link
 - keyboard splitter controls
-- clear focus-visible styles
-- Escape key behavior:
-  - closes About modal
-  - exits editor focus trap behavior to splitter (`enableEditorEscapeToTabOut()`)
+- visible focus styles
+- Escape handling:
+  - close About modal
+  - move focus out of editor to splitter (`enableEditorEscapeToTabOut()`)
 
-## 11. Developer Trace Recipe
+## 11. Debug Trace Recipe
 
-For most debugging tasks, follow this sequence:
+Use this sequence when troubleshooting run hangs or stale-state behavior:
 
-1. Start at `initializeApp()` in `app.js`.
-2. Check model initialization path in `initializeModel()` (`app.js`) and `initialize()` (`llm.js`).
-3. Check run flow in `runCurrentCode()` and `launchTerminalScript()` (`app.js`).
-4. Inspect generated Python wrapper from `buildExecutionCode()` (`app.js`).
-5. Inspect bridge calls in `_bridge_call()` (`nopenai.py`).
-6. Inspect model request translation and generation in `request()` / `_complete()` (`llm.js`).
-7. Validate cleanup behavior via `completeActiveRun()`, `stopActiveRun()`, and `resetSession()`.
+1. `initializeApp()` in `app.js` for startup and listeners.
+2. `runCurrentCode()` in `app.js` for run-id assignment and runner launch.
+3. `buildExecutionCode()` in `app.js` for Python wrapper/run-id stamping.
+4. `_request(...)` and `_bridge_call(...)` in `nopenai.py` for payload + bridge path.
+5. `modelCoderRequest` and `_requestInternal(...)` in `llm.js` for model request execution.
+6. `_ensureActiveRun(...)`, `_createStreamSession(...)`, and `nextStreamChunk(...)` in `llm.js` for stale-run filtering.
+7. `loadSelectedTemplate()` + `requestModelSessionReset({ hard: true })` in `app.js` for sample-switch reset flow.
+8. `hardResetSession()` in `llm.js` for full model reinitialization path.
