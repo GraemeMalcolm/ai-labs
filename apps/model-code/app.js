@@ -495,17 +495,15 @@ function getSavedThemePreference() {
 
 function applyEmbeddedEditorTheme() {
     const editor = getEditor();
-    const container = document.getElementById("editor-container");
-    if (!editor && !container) {
+    if (!editor) {
         return;
     }
 
-    if (editor) {
-        editor.setAttribute("data-theme", state.darkTheme ? "dark" : "light");
-        editor.style.backgroundColor = "";
-        editor.style.color = "";
-    }
+    editor.setAttribute("data-theme", state.darkTheme ? "dark" : "light");
+    editor.style.backgroundColor = "";
+    editor.style.color = "";
 
+    const container = document.getElementById("editor-container");
     const styleId = "model-coder-embedded-theme";
     const roots = [];
 
@@ -528,6 +526,8 @@ function applyEmbeddedEditorTheme() {
         return;
     }
 
+    // Keep CodeMirror/PyScript defaults inside the shadow root.
+    // Custom dark-mode overrides have repeatedly broken selection visibility.
     for (const root of roots) {
         let styleEl = root.getElementById(styleId);
         if (!styleEl) {
@@ -535,85 +535,7 @@ function applyEmbeddedEditorTheme() {
             styleEl.id = styleId;
             root.appendChild(styleEl);
         }
-
-        if (state.darkTheme) {
-            // Minimal dark theme overrides: set base readability while preserving token styles.
-            styleEl.textContent = `
-        .cm-editor,
-        .cm-scroller,
-        .cm-content,
-        .cm-gutters {
-            background: #0d0f12 !important;
-            color: #e6edf3 !important;
-            caret-color: #f5f6f8 !important;
-            color-scheme: dark;
-        }
-
-        .cm-gutters {
-            border-right: 1px solid #2f353d !important;
-        }
-
-        .cm-gutterElement {
-            color: #9aa4af !important;
-        }
-
-        .cm-cursor,
-        .cm-dropCursor {
-            border-left-color: #f5f6f8 !important;
-        }
-
-        /* Readability fallback: force token spans to inherit editor foreground. */
-        .cm-editor .cm-content,
-        .cm-editor .cm-line,
-        .cm-editor .cm-line span,
-        .cm-editor .cm-line span * {
-            color: #e6edf3 !important;
-        }
-
-        .cm-editor .cm-content {
-            user-select: text !important;
-            -webkit-user-select: text !important;
-        }
-
-        /* Match CodeMirror guidance: style both library-drawn and native selection. */
-        .cm-editor .cm-selectionLayer {
-            z-index: 3;
-            mix-blend-mode: normal !important;
-        }
-
-        .cm-editor .cm-selectionLayer .cm-selectionBackground,
-        .cm-editor .cm-selectionBackground {
-            background-color: rgba(255, 190, 11, 0.55) !important;
-        }
-
-        .cm-editor .cm-selectionBackground + span,
-        .cm-editor .cm-selectionBackground ~ span {
-            color: #f8fbff !important;
-        }
-
-        .cm-editor.cm-focused .cm-selectionLayer .cm-selectionBackground,
-        .cm-editor.cm-focused .cm-selectionBackground {
-            background-color: rgba(255, 190, 11, 0.78) !important;
-            outline: 1px solid rgba(255, 236, 179, 0.95) !important;
-        }
-
-        .cm-editor ::selection,
-        .cm-editor .cm-content::selection,
-        .cm-editor .cm-line::selection {
-            background-color: rgba(255, 190, 11, 0.78) !important;
-            color: #f8fbff !important;
-            -webkit-text-fill-color: currentColor !important;
-        }
-
-        .cm-editor .cm-selectionMatch,
-        .cm-editor .cm-selectionMatch-main {
-            background-color: rgba(255, 190, 11, 0.52) !important;
-        }
-        `;
-        } else {
-            // Keep PyScript/CodeMirror default theme in light mode.
-            styleEl.textContent = "";
-        }
+        styleEl.textContent = "";
     }
 }
 
