@@ -21,10 +21,10 @@ const IS_GITHUB_PAGES = window.location.hostname.endsWith("github.io");
 const PY_PACKAGES = ["numpy", "pandas", "matplotlib", "scikit-learn"];
 
 function shouldUseTerminalWorker() {
-    // GitHub Pages lacks COOP/COEP headers needed for SharedArrayBuffer.
-    // Without SAB, worker scripts cannot reliably access terminal/document internals.
+    // Terminal-style input requires worker mode in PyScript.
+    // Cross-origin isolation is provided on GitHub Pages via the COI service worker.
     if (IS_GITHUB_PAGES) {
-        return false;
+        return true;
     }
     return Boolean(window.crossOriginIsolated);
 }
@@ -1033,14 +1033,6 @@ import sys
 import types
 import builtins
 import asyncio
-import js
-
-__running_in_worker = False
-try:
-    import pyscript as __pyscript
-    __running_in_worker = bool(getattr(__pyscript, "RUNNING_IN_WORKER", False))
-except Exception:
-    __running_in_worker = False
 
 module = types.ModuleType("nopenai")
 __nopenai_source = ${serializedNopenai}
@@ -1051,19 +1043,6 @@ sys.modules["openai"] = module
 __original_input = builtins.input
 
 def __modelcoder_input(*args, **kwargs):
-    prompt_text = str(args[0]) if len(args) > 0 else ""
-
-    # On main-thread runtimes (GitHub Pages), py-terminal input is read-only.
-    # Use a browser prompt fallback so user-authored input() code still works.
-    if not __running_in_worker:
-        try:
-            prompt_value = js.prompt(prompt_text)
-            if prompt_value is None:
-                return ""
-            return str(prompt_value)
-        except Exception:
-            pass
-
     value = __original_input(*args, **kwargs)
     if not hasattr(value, "__await__"):
         if value is None:
