@@ -93,6 +93,13 @@ def _safe_getattr(obj: Any, attr: str):
         return None
 
 
+def _is_callable(value: Any) -> bool:
+    try:
+        return callable(value)
+    except Exception:
+        return False
+
+
 def _iter_js_bridge_candidates():
     seen = set()
 
@@ -124,17 +131,25 @@ async def _bridge_call(method_name: str, *args):
 
     for bridge in _iter_js_bridge_candidates():
         method = _safe_getattr(bridge, method_name)
-        if method is None:
-            continue
+        if method is not None and _is_callable(method):
+            try:
+                result = method(*args)
+                if hasattr(result, "__await__"):
+                    result = await result
+                return result
+            except Exception as exc:
+                last_error = exc
 
-        try:
-            result = method(*args)
-            if hasattr(result, "__await__"):
-                result = await result
-            return result
-        except Exception as exc:
-            last_error = exc
-            continue
+        bridge_call = _safe_getattr(bridge, "call")
+        if bridge_call is not None and _is_callable(bridge_call):
+            try:
+                result = bridge_call(method_name, *args)
+                if hasattr(result, "__await__"):
+                    result = await result
+                return result
+            except Exception as exc:
+                last_error = exc
+                continue
 
     if last_error is not None:
         raise OpenAIError(
