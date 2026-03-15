@@ -586,6 +586,11 @@ function applyEmbeddedEditorTheme() {
             background-color: rgba(255, 190, 11, 0.55) !important;
         }
 
+        .cm-editor .cm-selectionBackground + span,
+        .cm-editor .cm-selectionBackground ~ span {
+            color: #f8fbff !important;
+        }
+
         .cm-editor.cm-focused .cm-selectionLayer .cm-selectionBackground,
         .cm-editor.cm-focused .cm-selectionBackground {
             background-color: rgba(255, 190, 11, 0.78) !important;
@@ -596,8 +601,8 @@ function applyEmbeddedEditorTheme() {
         .cm-editor .cm-content::selection,
         .cm-editor .cm-line::selection {
             background-color: rgba(255, 190, 11, 0.78) !important;
-            color: #111111 !important;
-            -webkit-text-fill-color: #111111 !important;
+            color: #f8fbff !important;
+            -webkit-text-fill-color: currentColor !important;
         }
 
         .cm-editor .cm-selectionMatch,
