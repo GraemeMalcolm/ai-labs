@@ -54,6 +54,14 @@ class ModelCoderLLM {
         this.streamSessions = new Map();
         this.responsesById = new Map();
         this.sessionVersion = 0;
+        this.operationQueue = Promise.resolve();
+        this.activeGenerationTasks = new Set();
+    }
+
+    _enqueueOperation(operation) {
+        const queued = this.operationQueue.then(operation, operation);
+        this.operationQueue = queued.then(() => undefined, () => undefined);
+        return queued;
     }
 
     setStatusCallback(callback) {
@@ -61,13 +69,23 @@ class ModelCoderLLM {
     }
 
     async resetSession() {
-        this.sessionVersion += 1;
-        this.streamSessions.clear();
-        this.responsesById.clear();
+        return this._enqueueOperation(async () => {
+            this.sessionVersion += 1;
+            this.streamSessions.clear();
+            this.responsesById.clear();
 
-        if (this.wllama) {
-            await this.wllama.kvClear().catch(() => {});
-        }
+            // Let in-flight generation loops observe the new sessionVersion and unwind.
+            if (this.activeGenerationTasks.size > 0) {
+                await Promise.race([
+                    Promise.allSettled(Array.from(this.activeGenerationTasks)),
+                    sleep(1500)
+                ]);
+            }
+
+            if (this.wllama) {
+                await this.wllama.kvClear().catch(() => {});
+            }
+        });
     }
 
     _status(kind, message) {
@@ -225,7 +243,8 @@ class ModelCoderLLM {
 
         this.streamSessions.set(streamId, session);
 
-        this._complete(prompt, (delta) => {
+        let generationTask;
+        generationTask = this._complete(prompt, (delta) => {
             if (createdAtVersion !== this.sessionVersion) {
                 return;
             }
@@ -280,7 +299,11 @@ class ModelCoderLLM {
         }).catch((error) => {
             session.error = error;
             session.done = true;
+        }).finally(() => {
+            this.activeGenerationTasks.delete(generationTask);
         });
+
+        this.activeGenerationTasks.add(generationTask);
 
         return { stream_id: streamId, response_id: responseId };
     }
@@ -318,7 +341,7 @@ class ModelCoderLLM {
         return { done: false, chunk: null };
     }
 
-    async request(payload) {
+    async _requestInternal(payload) {
         if (!payload || typeof payload !== "object") {
             throw new Error("Invalid request payload.");
         }
@@ -402,6 +425,10 @@ class ModelCoderLLM {
         }
 
         throw new Error(`Unsupported request type: ${payload.type}`);
+    }
+
+    async request(payload) {
+        return this._enqueueOperation(() => this._requestInternal(payload));
     }
 }
 
