@@ -24,7 +24,7 @@ except Exception:
 
 _BRIDGE_DEBUG = False
 _EXPECTED_API_KEY = "key123"
-_EXPECTED_MODEL_NAME = "localmodel"
+_EXPECTED_MODEL_NAME = "smollm2"
 
 
 def _to_ns(value: Any) -> Any:
@@ -249,7 +249,7 @@ class OpenAIError(Exception):
 
 
 def _validate_client_credentials(base_url: str, api_key: str):
-    if base_url != "https://localmodel":
+    if base_url != "http://localwllama":
         raise OpenAIError("Endpoint not found.")
 
     if not isinstance(api_key, str) or not api_key.strip():

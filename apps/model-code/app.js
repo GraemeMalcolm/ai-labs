@@ -40,9 +40,9 @@ def main():
 
     try:
         # Configuration settings 
-        endpoint = "https://localmodel"
+        endpoint = "http://localwllama"
         key = "key123"
-        model_name = "localmodel"
+        model_name = "smollm2"
 
         # Initialize the OpenAI client
         openai_client = OpenAI(
@@ -91,9 +91,9 @@ def main():
 
     try:
         # Configuration settings 
-        endpoint = "https://localmodel"
+        endpoint = "http://localwllama"
         key = "key123"
-        model_name = "localmodel"
+        model_name = "smollm2"
 
         # Initialize the OpenAI client
         openai_client = OpenAI(
@@ -134,9 +134,9 @@ def main():
 
     try:
         # Configuration settings 
-        endpoint = "https://localmodel"
+        endpoint = "http://localwllama"
         key = "key123"
-        model_name = "localmodel"
+        model_name = "smollm2"
 
         # Initialize the OpenAI client
         openai_client = OpenAI(
@@ -190,9 +190,9 @@ def main():
 
     try:
         # Configuration settings 
-        endpoint = "https://localmodel"
+        endpoint = "http://localwllama"
         key = "key123"
-        model_name = "localmodel"
+        model_name = "smollm2"
 
         # Initialize the OpenAI client
         openai_client = OpenAI(
@@ -240,9 +240,9 @@ def main():
 
     try:
         # Configuration settings 
-        endpoint = "https://localmodel"
+        endpoint = "http://localwllama"
         key = "key123"
-        model_name = "localmodel"
+        model_name = "smollm2"
 
         # Initialize the OpenAI client
         openai_client = OpenAI(
@@ -293,9 +293,9 @@ async def main():
 
     try:
         # Configuration settings 
-        endpoint = "https://localmodel"
+        endpoint = "http://localwllama"
         key = "key123"
-        model_name = "localmodel"
+        model_name = "smollm2"
 
         # Initialize an async OpenAI client
         async_client = AsyncOpenAI(
@@ -344,9 +344,9 @@ async def main():
 
     try:
         # Configuration settings 
-        endpoint = "https://localmodel"
+        endpoint = "http://localwllama"
         key = "key123"
-        model_name = "localmodel"
+        model_name = "smollm2"
 
         # Initialize the OpenAI client
         async_client = AsyncOpenAI(
@@ -1341,7 +1341,7 @@ async function initializeModel() {
     try {
         await window.modelCoderInit(3);
         state.modelReady = true;
-        setPill(statusModel, "Model ready: localmodel", "ready");
+        setPill(statusModel, "Model ready: smollm2", "ready");
     } catch (error) {
         setPill(statusModel, `Model failed: ${error.message}`, "error");
         retryBtn.hidden = false;
@@ -1420,3 +1420,4 @@ initializeApp().catch((error) => {
     setPill(statusRuntime, `Startup failed: ${error.message}`, "error");
     console.error(error);
 });
+
