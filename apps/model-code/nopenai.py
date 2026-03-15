@@ -22,6 +22,8 @@ try:
 except Exception:
     _pyscript_window = None
 
+_BRIDGE_DEBUG = True
+
 
 def _to_ns(value: Any) -> Any:
     if isinstance(value, dict):
@@ -100,56 +102,91 @@ def _is_callable(value: Any) -> bool:
         return False
 
 
+def _debug_bridge(message: str):
+    if not _BRIDGE_DEBUG:
+        return
+    try:
+        print(f"[bridge-debug] {message}")
+    except Exception:
+        pass
+
+
+def _candidate_name(obj: Any, fallback: str) -> str:
+    try:
+        ctor = _safe_getattr(obj, "constructor")
+        ctor_name = _safe_getattr(ctor, "name")
+        if ctor_name:
+            return f"{fallback}:{ctor_name}"
+    except Exception:
+        pass
+    return fallback
+
+
 def _iter_js_bridge_candidates():
     seen = set()
 
-    def _add(value):
+    def _add(value, label):
         if value is None:
             return
         marker = id(value)
         if marker in seen:
             return
         seen.add(marker)
-        candidates.append(value)
+        candidates.append((_candidate_name(value, label), value))
 
     candidates = []
 
-    _add(_pyscript_window)
-    _add(js)
+    _add(_pyscript_window, "pyscript.window")
+    _add(js, "js")
 
     if _pyscript is not None:
-        _add(_safe_getattr(_pyscript, "sync"))
+        _add(_safe_getattr(_pyscript, "sync"), "pyscript.sync")
 
-    for attr in ("globalThis", "window", "self"):
-        _add(_safe_getattr(js, attr))
+    for attr in ("globalThis", "window", "self", "parent", "top"):
+        _add(_safe_getattr(js, attr), f"js.{attr}")
 
     return candidates
 
 
 async def _bridge_call(method_name: str, *args):
     last_error = None
+    attempts = []
 
-    for bridge in _iter_js_bridge_candidates():
+    for bridge_name, bridge in _iter_js_bridge_candidates():
         method = _safe_getattr(bridge, method_name)
+        call_method = _safe_getattr(bridge, "call")
+        has_direct = method is not None
+        has_direct_callable = _is_callable(method)
+        has_call = call_method is not None
+        has_call_callable = _is_callable(call_method)
+        attempts.append(
+            f"{bridge_name}: direct={has_direct}/{has_direct_callable}, call={has_call}/{has_call_callable}"
+        )
+
         if method is not None and _is_callable(method):
             try:
                 result = method(*args)
                 if hasattr(result, "__await__"):
                     result = await result
+                _debug_bridge(f"{method_name} resolved via direct call on {bridge_name}")
                 return result
             except Exception as exc:
                 last_error = exc
+                _debug_bridge(f"{method_name} direct call failed on {bridge_name}: {exc}")
 
-        bridge_call = _safe_getattr(bridge, "call")
-        if bridge_call is not None and _is_callable(bridge_call):
+        if call_method is not None and _is_callable(call_method):
             try:
-                result = bridge_call(method_name, *args)
+                result = call_method(method_name, *args)
                 if hasattr(result, "__await__"):
                     result = await result
+                _debug_bridge(f"{method_name} resolved via .call on {bridge_name}")
                 return result
             except Exception as exc:
                 last_error = exc
+                _debug_bridge(f"{method_name} .call failed on {bridge_name}: {exc}")
                 continue
+
+    _debug_bridge(f"{method_name} candidates: {' | '.join(attempts)}")
 
     if last_error is not None:
         raise OpenAIError(

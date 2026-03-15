@@ -21,9 +21,10 @@ const IS_GITHUB_PAGES = window.location.hostname.endsWith("github.io");
 const PY_PACKAGES = ["numpy", "pandas", "matplotlib", "scikit-learn"];
 
 function shouldUseTerminalWorker() {
-    // GitHub Pages requires worker mode for reliable terminal input() behavior.
+    // GitHub Pages lacks COOP/COEP headers needed for SharedArrayBuffer.
+    // Without SAB, worker scripts cannot reliably access terminal/document internals.
     if (IS_GITHUB_PAGES) {
-        return true;
+        return false;
     }
     return Boolean(window.crossOriginIsolated);
 }
