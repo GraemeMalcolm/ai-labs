@@ -28,8 +28,8 @@ body.dark-theme {
     --terminal-bg: #0d0f12;
     --terminal-fg: #f5f6f8;
     --terminal-cursor: #f5f6f8;
-    --editor-bg: #0d1117;
-    --editor-fg: #e6edf3;
+    --editor-bg: #282c34;
+    --editor-fg: #abb2bf;
 }
 
 

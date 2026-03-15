@@ -539,54 +539,63 @@ function applyEmbeddedEditorTheme() {
             continue;
         }
 
-        // Minimal CM dark theme: readable text, visible selection, no text-fill hacks.
+        // Third-party fix: One Dark-inspired theme from @codemirror/theme-one-dark.
         styleEl.textContent = `
         .cm-editor,
         .cm-scroller,
         .cm-content,
         .cm-gutters {
-            background-color: #0d1117 !important;
-            color: #e6edf3 !important;
-            caret-color: #f0f6fc !important;
+            background-color: #282c34 !important;
+            color: #abb2bf !important;
+        }
+
+        .cm-content {
+            caret-color: #528bff !important;
         }
 
         .cm-gutters {
-            border-right: 1px solid #30363d !important;
+            background-color: #282c34 !important;
+            color: #7d8799 !important;
+            border: none !important;
         }
 
-        .cm-gutterElement {
-            color: #8b949e !important;
+        .cm-panels {
+            background-color: #21252b !important;
+            color: #abb2bf !important;
         }
 
-        .cm-editor .cm-line,
-        .cm-editor .cm-line span {
-            color: inherit !important;
+        .cm-panels.cm-panels-top {
+            border-bottom: 2px solid #000 !important;
+        }
+
+        .cm-panels.cm-panels-bottom {
+            border-top: 2px solid #000 !important;
         }
 
         .cm-editor .cm-cursor,
         .cm-editor .cm-dropCursor {
-            border-left-color: #f0f6fc !important;
+            border-left-color: #528bff !important;
         }
 
         .cm-editor .cm-activeLine,
         .cm-editor .cm-activeLineGutter {
-            background-color: rgba(110, 118, 129, 0.15) !important;
+            background-color: #2c313a !important;
         }
 
-        .cm-editor .cm-selectionLayer .cm-selectionBackground,
-        .cm-editor .cm-selectionBackground {
-            background-color: rgba(56, 139, 253, 0.35) !important;
+        .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground,
+        .cm-editor .cm-selectionBackground,
+        .cm-editor .cm-content ::selection,
+        .cm-editor .cm-content::selection {
+            background-color: #3e4451 !important;
         }
 
-        .cm-editor.cm-focused .cm-selectionLayer .cm-selectionBackground,
-        .cm-editor.cm-focused .cm-selectionBackground {
-            background-color: rgba(56, 139, 253, 0.5) !important;
+        .cm-editor .cm-selectionMatch {
+            background-color: #aafe661a !important;
         }
 
-        .cm-editor ::selection,
-        .cm-editor .cm-content::selection,
-        .cm-editor .cm-line::selection {
-            background-color: rgba(56, 139, 253, 0.5) !important;
+        .cm-editor .cm-searchMatch {
+            background-color: #72a1ff59 !important;
+            outline: 1px solid #457dff !important;
         }
         `;
     }
