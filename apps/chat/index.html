@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhiChat - Local Browser AI</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="coi-serviceworker.js"></script>
+</head>
+
+<body>
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <div id="loading-text">Initializing AI Model...</div>
+        <div class="progress-container">
+            <div id="progress-bar" class="progress-bar"></div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <header>
+            <h1>PhiChat</h1>
+            <div id="status-indicator">
+                <div id="status-dot" class="status-dot"></div>
+                <span id="status-text">Disconnected</span>
+            </div>
+            <button id="clear-btn" class="secondary-btn">Clear Chat</button>
+        </header>
+
+        <main id="chat-history">
+            <!-- Messages will be added here -->
+        </main>
+
+        <div class="input-area">
+            <textarea id="user-input" placeholder="Type a message..." disabled></textarea>
+            <button id="send-btn" disabled>
+                <span>Send</span>
+            </button>
+        </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+
+</html>
