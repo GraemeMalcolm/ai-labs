@@ -18,6 +18,7 @@ let wllama = null; // Wllama instance for text generation
 let wllamaReady = false; // Track if wllama is initialized
 let mobilenetReady = false; // Track if MobileNet is initialized
 let conversationHistory = []; // Track conversation for context
+let inappropriateWords = []; // Loaded from moderation file
 const MODEL_URL = './image_model/retro-classifier-model.json'; // Path to your exported model
 const BASE_MODEL_URL = 'https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_0.25_224/model.json';
 
@@ -32,19 +33,22 @@ const CLASSES = [
     'Unknown' // 6
 ];
 
-// Initialize
+/**
+ * Initializes the application by loading both ML models in parallel
+ */
 async function init() {
     // Show loading overlay
     updateLoadingStatus('mobilenet', 'loading', 'Loading...');
     updateLoadingStatus('smollm', 'loading', 'Loading...');
-    
+
     // Load both models in parallel
     const mobilenetPromise = loadModel();
     const wllamaPromise = initWllama();
-    
+    const moderationPromise = loadInappropriateWords();
+
     try {
-        await Promise.all([mobilenetPromise, wllamaPromise]);
-        
+        await Promise.all([mobilenetPromise, wllamaPromise, moderationPromise]);
+
         // Both models loaded successfully
         hideLoadingOverlay();
     } catch (e) {
@@ -57,6 +61,37 @@ async function init() {
     }
 }
 
+function reverseWord(text) {
+    return text.split('').reverse().join('');
+}
+
+function escapeRegex(text) {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function loadInappropriateWords() {
+    try {
+        const response = await fetch('./moderation/mod.txt');
+        if (!response.ok) throw new Error('Failed to load inappropriate words');
+
+        const reversedWordsText = await response.text();
+        inappropriateWords = reversedWordsText
+            .split(/\r?\n/)
+            .map(word => word.trim())
+            .filter(word => word.length > 0)
+            .map(word => reverseWord(word.toLowerCase()));
+
+        console.log('Loaded inappropriate words:', inappropriateWords.length);
+    } catch (error) {
+        console.error('Error loading inappropriate words:', error);
+        throw error;
+    }
+}
+
+/**
+ * Loads the MobileNet and custom classifier models for image classification
+ * @throws {Error} If models fail to load
+ */
 async function loadModel() {
     // Attempt to load the model
     // Note: If you used the Browser Trainer, it might be a LayersModel.
@@ -74,7 +109,7 @@ async function loadModel() {
         model = await tf.loadLayersModel(MODEL_URL);
         console.log("Classifier model loaded");
         updateLoadingStatus('mobilenet', 'loading', '75%');
-        
+
         // Warmup prediction to initialize GPU kernels and prevent first-run issues
         console.log("Warming up model...");
         tf.tidy(() => {
@@ -99,21 +134,25 @@ async function loadModel() {
     }
 }
 
+/**
+ * Initializes the Wllama language model for text generation
+ * @throws {Error} If Wllama initialization fails
+ */
 async function initWllama() {
     try {
         console.log("Initializing wllama...");
         updateLoadingStatus('smollm', 'loading', '10%');
-        
+
         // Configure WASM paths for CDN
         const CONFIG_PATHS = {
             'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.7/esm/single-thread/wllama.wasm',
             'multi-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.7/esm/multi-thread/wllama.wasm',
         };
-        
+
         // Initialize wllama with CDN-hosted WASM files
         wllama = new Wllama(CONFIG_PATHS);
         updateLoadingStatus('smollm', 'loading', '20%');
-        
+
         // Load model from HuggingFace with optimized settings
         await wllama.loadModelFromHF(
             'ngxson/SmolLM2-360M-Instruct-Q8_0-GGUF',
@@ -129,7 +168,7 @@ async function initWllama() {
                 }
             }
         );
-        
+
         wllamaReady = true;
         updateLoadingStatus('smollm', 'ready', '100%');
         console.log("Wllama initialized successfully");
@@ -141,17 +180,23 @@ async function initWllama() {
     }
 }
 
+/**
+ * Updates the loading status display for a specific model
+ * @param {string} modelType - Either 'mobilenet' or 'smollm'
+ * @param {string} status - One of 'loading', 'ready', or 'error'
+ * @param {string} progress - Progress text to display
+ */
 function updateLoadingStatus(modelType, status, progress) {
     const statusId = modelType === 'mobilenet' ? 'mobilenetStatus' : 'smollmStatus';
     const progressId = modelType === 'mobilenet' ? 'mobilenetProgress' : 'smollmProgress';
-    
+
     const statusElement = document.getElementById(statusId);
     const progressElement = document.getElementById(progressId);
-    
+
     if (!statusElement || !progressElement) return;
-    
+
     const iconSpan = statusElement.querySelector('.status-icon');
-    
+
     if (status === 'loading') {
         iconSpan.textContent = '⏳';
         statusElement.classList.remove('ready', 'error');
@@ -165,10 +210,13 @@ function updateLoadingStatus(modelType, status, progress) {
         statusElement.classList.remove('loading', 'ready');
         statusElement.classList.add('error');
     }
-    
+
     progressElement.textContent = progress;
 }
 
+/**
+ * Hides the loading overlay with a fade-out animation
+ */
 function hideLoadingOverlay() {
     const overlay = document.getElementById('loadingOverlay');
     if (overlay) {
@@ -179,7 +227,12 @@ function hideLoadingOverlay() {
     }
 }
 
-// UI Helpers
+/**
+ * Adds a message to the chat interface
+ * @param {string} text - The message text
+ * @param {string} sender - Either 'user' or 'bot'
+ * @param {string|null} imageUrl - Optional image URL to display
+ */
 function addMessage(text, sender, imageUrl = null) {
     const div = document.createElement('div');
     div.className = `message ${sender}`;
@@ -188,7 +241,7 @@ function addMessage(text, sender, imageUrl = null) {
 
     const bubble = document.createElement('div');
     bubble.className = 'bubble';
-    
+
     // Sanitize text to prevent XSS attacks
     if (typeof DOMPurify !== 'undefined') {
         bubble.innerHTML = DOMPurify.sanitize(text, {
@@ -200,7 +253,7 @@ function addMessage(text, sender, imageUrl = null) {
         // Fallback to textContent if DOMPurify not available to prevent XSS
         bubble.textContent = text;
     }
-    
+
     if (imageUrl) {
         const br = document.createElement('br');
         const img = document.createElement('img');
@@ -211,9 +264,9 @@ function addMessage(text, sender, imageUrl = null) {
         bubble.appendChild(br);
         bubble.appendChild(img);
     }
-    
+
     div.appendChild(bubble);
-    
+
     const timestamp = document.createElement('span');
     timestamp.className = 'timestamp';
     timestamp.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -232,10 +285,16 @@ function addMessage(text, sender, imageUrl = null) {
     }
 }
 
+/**
+ * Scrolls the chat container to the bottom
+ */
 function scrollToBottom() {
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
+/**
+ * Shows a typing indicator in the chat
+ */
 function showTyping() {
     const div = document.createElement('div');
     div.id = 'typing-indicator';
@@ -249,17 +308,22 @@ function showTyping() {
     `;
     chatContainer.appendChild(div);
     scrollToBottom();
-    
+
     // Enable stop button when bot starts responding
     startResponse();
 }
 
+/**
+ * Removes the typing indicator from the chat
+ */
 function removeTyping() {
     const el = document.getElementById('typing-indicator');
     if (el) el.remove();
 }
 
-// Response state management
+/**
+ * Marks the bot as responding (enables stop button)
+ */
 function startResponse() {
     isResponding = true;
     shouldStopResponse = false;
@@ -268,6 +332,9 @@ function startResponse() {
     sendBtn.title = 'Stop';
 }
 
+/**
+ * Marks the bot as done responding (disables stop button)
+ */
 function endResponse() {
     // Only end if not speaking
     if (!speechSynthesis.speaking) {
@@ -279,6 +346,10 @@ function endResponse() {
     }
 }
 
+/**
+ * Checks if the user has requested to stop the response
+ * @returns {boolean} True if response should be stopped
+ */
 function checkStopResponse() {
     return shouldStopResponse;
 }
@@ -298,7 +369,9 @@ const STOPWORDS = new Set([
 // Initialize
 // ...
 
-// Handlers
+/**
+ * Main message handler - processes text input, images, and commands
+ */
 async function handleSend() {
     const text = textInput.value.trim();
 
@@ -313,6 +386,18 @@ async function handleSend() {
     if (text) {
         addMessage(text, "user");
 
+        // Check for inappropriate content
+        const lowerText = text.toLowerCase();
+        const containsInappropriate = inappropriateWords.some(word => {
+            const regex = new RegExp(`\\b${escapeRegex(word)}\\b`, 'i');
+            return regex.test(lowerText);
+        });
+
+        if (containsInappropriate) {
+            addMessage("I'm sorry, I can't help with that. I can only help with information about the history of computing.", "bot");
+            return;
+        }
+
         // Check for Summarization Command
         const lines = text.split('\n');
         if (lines.length > 1 && lines[0].trim().toLowerCase().startsWith('summarize')) {
@@ -325,7 +410,7 @@ async function handleSend() {
                     removeTyping();
                     return;
                 }
-                
+
                 const summary = summarizeText(contentToSummarize);
 
                 // Entity Extraction
@@ -400,9 +485,10 @@ async function handleSend() {
         return;
     }
 
-    // 3. Text Only Response (Language model or eBay)
+    // 3. Text Only Response (Language model, eBay, or Bing search)
     const lowerText = text.toLowerCase();
     const isEbay = lowerText.includes('ebay') || lowerText.includes('for sale') || lowerText.includes('buy');
+    const isBing = lowerText.includes('bing') || lowerText.includes('search') || lowerText.includes('find');
 
     const keywords = extractKeywords(text);
     if (!keywords) {
@@ -416,7 +502,19 @@ async function handleSend() {
         // Brief delay for effect
         setTimeout(() => {
             if (!checkStopResponse()) {
-                addMessage(`Found it! <a href="${url}" target="_blank" style="color: #4ade80; text-decoration: underline;">Click here to search eBay for ${keywords}</a>`, "bot");
+                addMessage(`Found it! <a href="${url}" target="_blank" style="color: #4ade80; text-decoration: underline;">Click here to see results for ${keywords}</a>`, "bot");
+            }
+        }, 600);
+        return;
+    }
+
+    if (isBing) {
+        addMessage(`Searching Bing for <b>"${keywords}"</b>...`, "bot");
+        const url = `https://www.bing.com/search?q=${keywords.replace(/ /g, '+')}`;
+        // Brief delay for effect
+        setTimeout(() => {
+            if (!checkStopResponse()) {
+                addMessage(`Found it! <a href="${url}" target="_blank" style="color: #4ade80; text-decoration: underline;">Click here to see results for ${keywords}</a>`, "bot");
             }
         }, 600);
         return;
@@ -432,8 +530,11 @@ async function handleSend() {
 
         if (summary) {
             addMessage(`${summary}`, "bot");
-            // Store in conversation history
-            conversationHistory.push({ user: text, assistant: summary });
+            // Store in conversation history (truncated to first sentence)
+            conversationHistory.push({
+                user: truncateToFirstSentence(text),
+                assistant: truncateToFirstSentence(summary)
+            });
             // Keep only last 2 exchanges to avoid context overflow
             if (conversationHistory.length > 2) {
                 conversationHistory.shift();
@@ -448,6 +549,11 @@ async function handleSend() {
     }
 }
 
+/**
+ * Extracts keywords from text by removing stopwords
+ * @param {string} text - The text to extract keywords from
+ * @returns {string} Space-separated keywords
+ */
 function extractKeywords(text) {
     // Remove punctuation and split
     const words = text.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/);
@@ -456,6 +562,26 @@ function extractKeywords(text) {
     return words.filter(w => !STOPWORDS.has(w) && w.length > 0).join(' ');
 }
 
+/**
+ * Extracts the first sentence from a given text string
+ * @param {string} text - The text to truncate
+ * @returns {string} The first sentence or first 100 characters
+ */
+function truncateToFirstSentence(text) {
+    // Find first sentence-ending punctuation
+    const match = text.match(/^[^.!?]+[.!?]/);
+    if (match) {
+        return match[0].trim();
+    }
+    // No sentence-ending punctuation found, take first 100 characters
+    return text.substring(0, 100).trim();
+}
+
+/**
+ * Summarizes text using TextRank algorithm
+ * @param {string} text - The text to summarize
+ * @returns {string} Summary of top 3 sentences
+ */
 function summarizeText(text) {
     // 1. Split into sentences (simple approximation)
     const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
@@ -505,6 +631,10 @@ function summarizeText(text) {
     return topIndices.map(i => sentences[i].trim()).join(' ');
 }
 
+/**
+ * Handles image file selection from input
+ * @param {Event} e - The change event
+ */
 function handleImageInput(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -524,6 +654,9 @@ function handleImageInput(e) {
     imageUpload.value = '';
 }
 
+/**
+ * Removes the selected image and hides preview
+ */
 function removeImage() {
     pendingFile = null;
     document.getElementById('preview-img').src = '';
@@ -531,6 +664,11 @@ function removeImage() {
     imageUpload.value = '';
 }
 
+/**
+ * Performs image classification and generates response
+ * @param {HTMLImageElement} imgEl - The image element to classify
+ * @param {string} userText - Optional user text for context
+ */
 async function performClassification(imgEl, userText = "") {
     try {
         const result = await classify(imgEl);
@@ -552,97 +690,40 @@ async function performClassification(imgEl, userText = "") {
         if (classIndex === 5) {
             const confidence = (topMatch.probability * 100).toFixed(1);
             let reply = `I am <b>${confidence}%</b> sure this is a <b>${topMatch.className}</b>.`;
-            
+
             // Perform OCR using the same approach as info-extractor
             showTyping();
             try {
                 addMessage(reply, "bot");
                 addMessage("Scanning for text...", "bot");
-                
+
                 console.log('Starting OCR for image');
-                
+
                 // Initialize Tesseract with progress tracking (same as info-extractor)
                 const worker = await Tesseract.createWorker('eng', 1, {
                     logger: m => {
                         console.log('Tesseract log:', m);
                     }
                 });
-                
+
                 // Perform OCR directly on the image element (same as info-extractor)
                 console.log('Performing OCR recognition...');
                 const result = await worker.recognize(imgEl);
                 const data = result.data;
-                
+
                 console.log('OCR completed. Text length:', data.text?.length || 0);
                 console.log('OCR text preview:', data.text?.substring(0, 200) || 'No text');
-                
+
                 // Clean up worker (same as info-extractor)
                 await worker.terminate();
-                
+
                 removeTyping();
 
                 if (checkStopResponse()) return;
 
-                // Debug: log all levels of the data structure
-                console.log("=== OCR DEBUG - FULL RESULTS ===");
-                console.log("Raw text:", data.text);
-                console.log("Overall confidence:", data.confidence);
-                console.log("\n--- BLOCKS ---");
-                console.log("Blocks:", data.blocks);
-                
-                if (data.blocks && data.blocks.length > 0) {
-                    data.blocks.forEach((block, i) => {
-                        console.log(`\nBlock ${i}:`, {
-                            text: block.text,
-                            confidence: block.confidence,
-                            bbox: block.bbox,
-                            paragraphs: block.paragraphs?.length || 0
-                        });
-                        
-                        block.paragraphs?.forEach((para, j) => {
-                            console.log(`  Paragraph ${i}.${j}:`, {
-                                text: para.text,
-                                confidence: para.confidence,
-                                lines: para.lines?.length || 0
-                            });
-                            
-                            para.lines?.forEach((line, k) => {
-                                console.log(`    Line ${i}.${j}.${k}:`, {
-                                    text: line.text,
-                                    confidence: line.confidence,
-                                    words: line.words?.length || 0
-                                });
-                                
-                                line.words?.forEach((word, l) => {
-                                    console.log(`      Word ${i}.${j}.${k}.${l}:`, {
-                                        text: word.text,
-                                        confidence: word.confidence,
-                                        bbox: word.bbox,
-                                        symbols: word.symbols?.length || 0
-                                    });
-                                    
-                                    if (word.symbols) {
-                                        word.symbols.forEach((symbol, m) => {
-                                            console.log(`        Symbol ${i}.${j}.${k}.${l}.${m}:`, {
-                                                text: symbol.text,
-                                                confidence: symbol.confidence
-                                            });
-                                        });
-                                    }
-                                });
-                            });
-                        });
-                    });
-                }
-                
-                console.log("\n--- OTHER FORMATS ---");
-                console.log("HOCR length:", data.hocr?.length || 0);
-                console.log("TSV length:", data.tsv?.length || 0);
-                console.log("=================================\n");
-                
-                // Use the extracted text (same as info-extractor approach)
+                // Use the extracted text
                 const rawText = data.text || '';
-                
+
                 if (!rawText || rawText.trim().length === 0) {
                     addMessage("I couldn't extract any text from the board.", "bot");
                 } else {
@@ -656,9 +737,7 @@ async function performClassification(imgEl, userText = "") {
                         })
                         .join(' ')
                         .trim();
-                    
-                    console.log("OCR DEBUG - Cleaned text:", cleanText);
-                    
+
                     // Validate: require at least 3 total alphanumeric characters
                     if (cleanText && cleanText.replace(/[^a-zA-Z0-9]/g, '').length >= 3) {
                         addMessage(`The following details are printed on the board:<br><br><i>${cleanText}</i>`, "bot");
@@ -718,7 +797,7 @@ async function performClassification(imgEl, userText = "") {
                         removeTyping();
                     }
                 }
-                
+
                 // Class 4: Computer - Add uncertainty message
                 if (classIndex === 4) {
                     reply += `<br><br>Unfortunately, I'm not sure what kind of computer this is.`;
@@ -735,23 +814,29 @@ async function performClassification(imgEl, userText = "") {
     }
 }
 
+/**
+ * Generates computing-related information using Wllama LLM
+ * @param {string} query - The query to generate information about
+ * @returns {Promise<string|null>} Generated text or null if unavailable
+ */
 async function generateComputingInfo(query) {
     // If wllama is not ready, return a fallback message
     if (!wllamaReady || !wllama) {
         console.warn("Wllama not ready, skipping generation");
         return null;
     }
-    
+
     try {
         // Build ChatML formatted prompt
         let chatMLPrompt = '<|im_start|>system\n';
-        chatMLPrompt += 'You are a knowledgeable assistant about computing history. Provide factual, concise information.\n\n';
+        chatMLPrompt += 'You are a knowledgeable assistant about computing history. You follow the rules at all times.\n\n';
         chatMLPrompt += 'Rules:\n';
-        chatMLPrompt += '- Computing and technology topics only\n';
-        chatMLPrompt += '- One or two clear sentences, simple language\n';
+        chatMLPrompt += '- You may discuss computing and technology topics only\n';
+        chatMLPrompt += '- Respond with one or two clear sentences, using simple language\n';
         chatMLPrompt += '- Focus on key facts and historical context\n';
+        chatMLPrompt += '- You must not provide assistance with activities that are illegal or may cause harm\n';
         chatMLPrompt += '<|im_end|>\n\n';
-        
+
         // Include conversation history for context (last 2 exchanges)
         if (conversationHistory.length > 0) {
             conversationHistory.forEach(exchange => {
@@ -763,15 +848,15 @@ async function generateComputingInfo(query) {
                 chatMLPrompt += '<|im_end|>\n\n';
             });
         }
-        
+
         // Add current user query (full text, not keywords)
         chatMLPrompt += '<|im_start|>user\n';
-        chatMLPrompt += query + '\n';
+        chatMLPrompt += query + '\n' + "Provide a concise and factually accurate response.\n";
         chatMLPrompt += '<|im_end|>\n\n';
         chatMLPrompt += '<|im_start|>assistant\n';
-        
+
         console.log('Generating info for:', query);
-        
+
         // Generate response
         let responseText = '';
         const completion = await wllama.createCompletion(chatMLPrompt, {
@@ -785,13 +870,13 @@ async function generateComputingInfo(query) {
             stopTokens: ['<|im_end|>', '<|im_start|>'],
             stream: true
         });
-        
+
         for await (const chunk of completion) {
             if (chunk.currentText) {
                 responseText = chunk.currentText;
             }
         }
-        
+
         // Clear KV cache after generation to free memory
         // Suppress munmap warnings - these are harmless WASM memory management messages
         try {
@@ -799,10 +884,10 @@ async function generateComputingInfo(query) {
         } catch (error) {
             // Silently ignore - kvClear can throw harmless warnings
         }
-        
+
         // Clean up the response
         responseText = responseText.trim();
-        
+
         // Remove incomplete last sentence (doesn't end with . ? !)
         if (responseText && !responseText.match(/[.!?]$/)) {
             // Find the last complete sentence
@@ -811,14 +896,14 @@ async function generateComputingInfo(query) {
                 responseText = lastCompleteMatch[1].trim();
             }
         }
-        
+
         // If response is too short or empty, return null
         if (!responseText || responseText.length < 10) {
             return null;
         }
-        
+
         return responseText;
-        
+
     } catch (error) {
         console.error('Error generating info:', error);
         // Clear cache on error (suppress warnings)
@@ -831,6 +916,11 @@ async function generateComputingInfo(query) {
     }
 }
 
+/**
+ * Classifies an image using TensorFlow.js models
+ * @param {HTMLImageElement} imgElement - The image to classify
+ * @returns {Promise<Array>} Array of classification results sorted by probability
+ */
 async function classify(imgElement) {
     if (!model || !featureExtractor) throw new Error("Model not loaded");
 
@@ -894,6 +984,11 @@ imageUpload.addEventListener('change', handleImageInput);
 document.getElementById('remove-img-btn').addEventListener('click', removeImage);
 
 // Modal and UI buttons
+const aboutBtn = document.getElementById('aboutBtn');
+if (aboutBtn) {
+    aboutBtn.addEventListener('click', showAbout);
+}
+
 const viewDetailsBtn = document.getElementById('viewDetailsBtn');
 if (viewDetailsBtn) {
     viewDetailsBtn.addEventListener('click', showAppDetails);
@@ -909,9 +1004,17 @@ if (closeAppDetailsBtn) {
     closeAppDetailsBtn.addEventListener('click', closeAppDetails);
 }
 
+const closeAboutBtn = document.getElementById('closeAboutBtn');
+if (closeAboutBtn) {
+    closeAboutBtn.addEventListener('click', closeAbout);
+}
+
 // Voice Input (Speech-to-Text)
 micBtn.addEventListener('click', handleVoiceInput);
 
+/**
+ * Handles voice input using Web Speech API
+ */
 function handleVoiceInput() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -947,7 +1050,10 @@ function handleVoiceInput() {
     };
 }
 
-// Text-to-Speech Helper
+/**
+ * Converts text to speech using Web Speech Synthesis API
+ * @param {HTMLElement} element - The element containing text to speak
+ */
 function speakText(element) {
     if (!('speechSynthesis' in window)) {
         endResponse();
@@ -981,58 +1087,108 @@ function speakText(element) {
     speechSynthesis.speak(utterance);
 }
 
-// Stop response handler (both text and speech)
+/**
+ * Stops any ongoing bot response (text generation or speech)
+ */
 function handleStopResponse() {
     // Set flag to stop any ongoing text generation
     shouldStopResponse = true;
-    
+
     // Stop speech if playing
     if (speechSynthesis.speaking) {
         speechSynthesis.cancel();
     }
-    
+
     // Remove typing indicator
     removeTyping();
-    
+
     // Reset button state
     endResponse();
 }
 
-// Restart conversation
-function restartConversation() {
+/**
+ * Restarts the conversation by clearing chat history and state
+ */
+async function restartConversation() {
     if (confirm('Are you sure you want to clear the conversation history?')) {
         // Stop any ongoing response
         handleStopResponse();
-        
-        // Clear the chat
+
+        // Clear the chat UI
         chatContainer.innerHTML = '<div class="welcome-message">Let\'s chat about computing history...</div>';
-        
+
         // Remove any selected image
         removeImage();
-        
+
         // Reset voice input flag
         isVoiceInput = false;
-        
-        // Clear conversation history
+
+        // Clear conversation history (browser-side cache)
         conversationHistory = [];
+
+        // Clear model's KV cache to completely reset context
+        if (wllama && wllamaReady) {
+            try {
+                await wllama.kvClear();
+                console.log('Model KV cache cleared');
+            } catch (error) {
+                // Silently ignore - kvClear can throw harmless warnings
+                console.debug('KV cache clear warning (harmless):', error);
+            }
+        }
     }
 }
 
-// Show app details modal
-function showAppDetails() {
-    const modal = document.getElementById('appDetailsModal');
+/**
+ * Shows the app details modal with focus management
+ */
+function showAbout() {
+    const modal = document.getElementById('aboutModal');
+    const closeBtn = document.getElementById('closeAboutBtn');
     modal.style.display = 'flex';
-    modal.focus();
+    if (closeBtn) {
+        closeBtn.focus();
+    }
 }
 
-// Close app details modal
+function closeAbout() {
+    const modal = document.getElementById('aboutModal');
+    const aboutBtn = document.getElementById('aboutBtn');
+    modal.style.display = 'none';
+    if (aboutBtn) {
+        aboutBtn.focus();
+    }
+}
+
+function showAppDetails() {
+    const modal = document.getElementById('appDetailsModal');
+    const closeBtn = document.getElementById('closeAppDetailsBtn');
+
+    modal.style.display = 'flex';
+
+    // Focus the close button for keyboard accessibility
+    if (closeBtn) {
+        closeBtn.focus();
+    }
+}
+
+/**
+ * Closes the app details modal
+ */
 function closeAppDetails() {
     const modal = document.getElementById('appDetailsModal');
+    const viewDetailsBtn = document.getElementById('viewDetailsBtn');
+
     modal.style.display = 'none';
+
+    // Return focus to the button that opened the modal
+    if (viewDetailsBtn) {
+        viewDetailsBtn.focus();
+    }
 }
 
 // Close modal when clicking outside of it
-document.addEventListener('click', function(event) {
+document.addEventListener('click', function (event) {
     const modal = document.getElementById('appDetailsModal');
     if (event.target === modal) {
         closeAppDetails();
@@ -1040,8 +1196,13 @@ document.addEventListener('click', function(event) {
 });
 
 // Close modal with Escape key
-document.addEventListener('keydown', function(event) {
+document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape') {
+        const aboutModal = document.getElementById('aboutModal');
+        if (aboutModal && aboutModal.style.display === 'flex') {
+            closeAbout();
+            return;
+        }
         const modal = document.getElementById('appDetailsModal');
         if (modal.style.display === 'flex') {
             closeAppDetails();
