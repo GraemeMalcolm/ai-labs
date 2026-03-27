@@ -328,7 +328,7 @@ function startResponse() {
     isResponding = true;
     shouldStopResponse = false;
     sendBtn.classList.add('stop-mode');
-    sendBtn.textContent = '■';
+    sendBtn.textContent = '⬜';
     sendBtn.title = 'Stop';
 }
 
