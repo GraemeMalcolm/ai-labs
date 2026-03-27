@@ -55,8 +55,8 @@ IMPORTANT: Follow these guidelines when responding:
 - Explain concepts clearly and concisely based on the provided context.
 - Keep responses short and focused on the question, with no headings.
 - Use examples and analogies when helpful.
-- Provide a general descriptions and overviews, and use the web search tool when necessary; providing links to relevant pages that you find.
-- Keep your responses concise and to the point.`;
+- When external information is needed, use the Microsoft Learn MCP server and rely on Microsoft Learn content only.
+- Only provide code examples when specifically asked, and only from official documentation found using the Microsoft Learn MCP server.`;
 
         this.initialize();
     }
@@ -1027,13 +1027,13 @@ IMPORTANT: Follow these guidelines when responding:
         const requestBody = {
             model: this.config.deployment,
             input: input,
-            instructions: `${this.systemPrompt}\n- When external information is needed, use the Microsoft Learn MCP server and rely on Microsoft Learn content only.`,
+            instructions: this.systemPrompt,
             store: true,
             tools: [
                 {
                     type: 'mcp',
                     server_label: 'microsoft_learn',
-                    server_description: 'Microsoft Learn MCP server for searching and fetching Microsoft documentation.',
+                    server_description: 'Microsoft Learn MCP server for searching and fetching Microsoft documentation, and provide links to relevant pages that you find.',
                     server_url: 'https://learn.microsoft.com/api/mcp',
                     require_approval: 'never'
                 }
