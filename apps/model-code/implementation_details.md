@@ -175,8 +175,8 @@ This wrapper applies to all user-authored code, not only built-in samples.
 
 `_loadModel()` uses:
 
-- model: `ngxson/SmolLM2-360M-Instruct-Q8_0-GGUF`
-- file: `smollm2-360m-instruct-q8_0.gguf`
+- model: `TKDKid1000/phi-1_5-GGUF`
+- file: `phi-1_5-Q4_K_M.gguf`
 - `n_ctx: 2048`
 - `n_threads: 1`
 

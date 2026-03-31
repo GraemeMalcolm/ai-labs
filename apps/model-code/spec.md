@@ -18,7 +18,7 @@ Users write Python code in a PyScript editor and execute it in a terminal pane. 
 - Streaming responses
 - Async usage with `AsyncOpenAI`
 
-The model runtime is local and in-browser via `wllama` with SmolLM2.
+The model runtime is local and in-browser via `wllama` with Phi-1.5.
 
 ## Core Goals
 
@@ -80,15 +80,15 @@ The wrapper exposed via `nopenai.py` supports:
 - `OpenAI(base_url="http://localwllama", api_key="...")`
 - `AsyncOpenAI(base_url="http://localwllama", api_key="...")`
 - Chat Completions:
-  - `chat.completions.create(model="smollm2", messages=[...], stream=False|True)`
+  - `chat.completions.create(model="phi-1.5", messages=[...], stream=False|True)`
 - Responses API:
-  - `responses.create(model="smollm2", input=..., instructions=..., previous_response_id=..., stream=False|True)`
+  - `responses.create(model="phi-1.5", input=..., instructions=..., previous_response_id=..., stream=False|True)`
 - Synchronous and asynchronous stream iterators
 
 Validation behavior:
 
 - `base_url` must be `http://localwllama`
-- `model` must be `smollm2`
+- `model` must be `phi-1.5`
 - message role/content types are validated
 - user prompts are checked against `moderation/mod.txt` reversed-term filters in JS before ChatML assembly
 - matched prompts return `I'm sorry. I can't help with that` as the model response
@@ -96,7 +96,7 @@ Validation behavior:
 ## Local Model Runtime
 
 - Uses `@wllama/wllama` from CDN.
-- Loads model `ngxson/SmolLM2-360M-Instruct-Q8_0-GGUF` (`smollm2-360m-instruct-q8_0.gguf`).
+- Loads model `TKDKid1000/phi-1_5-GGUF` (`phi-1_5-Q4_K_M.gguf`).
 - Converts request message structures to ChatML prompt format.
 - Supports full and streaming completion paths.
 - Maintains response/session maps for continuation semantics and stream retrieval.
