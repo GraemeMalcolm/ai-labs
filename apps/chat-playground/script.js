@@ -70,7 +70,16 @@ class ChatPlayground {
         this.recognition = null;
         this.voicesAvailable = false;
         this.voicesLoaded = false;
+        this.voiceHealthCacheKey = 'chat-playground-voice-health-v1';
+        this.voiceHealthCacheTtlMs = 7 * 24 * 60 * 60 * 1000;
+        this.voiceHealthCache = {};
+        this.voiceHealthCheckPromise = null;
+        this.voiceSelectionProbeNonce = 0;
+        this.voiceSelectionProbePromise = null;
         this.showCaptions = false; // Track whether to show conversation text
+        this.prohibitedTerms = []; // Content moderation terms loaded from file
+
+        this.loadVoiceHealthCache();
 
         // Initialize DOM element registry
         this.elements = {};
@@ -100,11 +109,15 @@ class ChatPlayground {
             SYSTEM_MESSAGE_UPDATED: 'System message updated',
             PARAMETERS_RESET: 'Parameters reset to defaults',
             SETTINGS_UPDATED: 'Chat settings updated'
+        },
+        MODERATION: {
+            BLOCKED: "I'm sorry. I can't help with that because it triggered a content-safety filter."
         }
     };
 
     // Centralized initialization
-    initialize() {
+    async initialize() {
+        await this.loadProhibitedTerms();
         this.initializeElements();
         this.attachEventListeners();
         this.initializeParameterControls();
@@ -115,7 +128,41 @@ class ChatPlayground {
         this.initializeAvatars();
         this.initializeModel();
     }
-    
+
+    reverseWord(text) {
+        return text.split('').reverse().join('');
+    }
+
+    shiftWord(text, amount) {
+        return text
+            .split('')
+            .map(char => String.fromCharCode(char.charCodeAt(0) + amount))
+            .join('');
+    }
+
+    escapeRegex(text) {
+        return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    async loadProhibitedTerms() {
+        try {
+            const response = await fetch('moderation/mod.txt');
+            if (!response.ok) throw new Error('Failed to load prohibited terms');
+
+            const encodedTermsText = await response.text();
+            this.prohibitedTerms = encodedTermsText
+                .split(/\r?\n/)
+                .map(term => term.trim())
+                .filter(term => term.length > 0)
+                .map(term => this.shiftWord(this.reverseWord(term.toLowerCase()), 1));
+
+            console.log('Loaded prohibited terms:', this.prohibitedTerms.length);
+        } catch (error) {
+            console.error('Error loading prohibited terms:', error);
+            throw error;
+        }
+    }
+
     initializeElements() {
         // Define all element selectors in one place for easier maintenance
         const elementSelectors = {
@@ -123,31 +170,31 @@ class ChatPlayground {
             progressContainer: 'progress-container',
             progressFill: 'progress-fill',
             progressText: 'progress-text',
-            
+
             // Model and system elements
             modelSelect: 'model-select',
             systemMessage: 'system-message',
-            
+
             // Chat elements
             chatMessages: 'chat-messages',
             userInput: 'user-input',
             sendBtn: 'send-btn',
             stopBtn: 'stop-btn',
             attachBtn: 'attach-btn',
-            
+
             // File upload elements
             fileInput: 'file-input',
             fileInfo: 'file-info',
             fileName: 'file-name',
             fileSize: 'file-size',
             addDataBtn: 'add-data-btn',
-            
+
             // Vision elements
             imageAnalysisToggle: 'image-analysis-toggle',
             visionProgressContainer: 'vision-progress-container',
             visionProgressFill: 'vision-progress-fill',
             visionProgressText: 'vision-progress-text',
-            
+
             // Input image elements
             inputThumbnailContainer: 'input-thumbnail-container',
             inputThumbnail: 'input-thumbnail',
@@ -186,7 +233,7 @@ class ChatPlayground {
     set modelParameters(value) {
         this.config.modelParameters = value;
     }
-    
+
     // Get model-specific default parameters
     getModelDefaults() {
         if (this.usingWllama) {
@@ -207,7 +254,7 @@ class ChatPlayground {
             };
         }
     }
-    
+
     // Update UI sliders to reflect current parameter values
     updateParameterUI() {
         const params = this.config.modelParameters;
@@ -217,7 +264,7 @@ class ChatPlayground {
             { slider: 'max-tokens-slider', value: 'max-tokens-value', param: 'max_tokens' },
             { slider: 'repetition-penalty-slider', value: 'repetition-penalty-value', param: 'repetition_penalty' }
         ];
-        
+
         updates.forEach(({ slider, value, param }) => {
             const sliderEl = document.getElementById(slider);
             const valueEl = document.getElementById(value);
@@ -226,7 +273,7 @@ class ChatPlayground {
                 valueEl.textContent = params[param];
                 sliderEl.setAttribute('aria-valuetext', params[param].toString());
             }
-            
+
             // Also update modal sliders if they exist
             const modalSlider = 'modal-' + slider;
             const modalValue = 'modal-' + value;
@@ -310,54 +357,54 @@ class ChatPlayground {
     }
 
     validateFileType(file, allowedTypes, maxSize = null) {
-        if (!allowedTypes.some(type => 
-            file.name.toLowerCase().endsWith(type.toLowerCase()) || 
+        if (!allowedTypes.some(type =>
+            file.name.toLowerCase().endsWith(type.toLowerCase()) ||
             file.type === type
         )) {
             return { valid: false, error: `Please select a ${allowedTypes.join(', ')} file.` };
         }
-        
+
         if (maxSize && file.size > maxSize) {
             const sizeMB = (maxSize / (1024 * 1024)).toFixed(1);
             return { valid: false, error: `File too large. Maximum size: ${sizeMB}MB` };
         }
-        
+
         return { valid: true };
     }
 
     initializeParameterControls() {
         // Centralized parameter configuration
         this.parameterConfig = [
-            { 
-                id: 'temperature-slider', 
-                valueId: 'temperature-value', 
+            {
+                id: 'temperature-slider',
+                valueId: 'temperature-value',
                 param: 'temperature',
                 type: 'float',
                 displayName: 'Temperature'
             },
-            { 
-                id: 'top-p-slider', 
-                valueId: 'top-p-value', 
+            {
+                id: 'top-p-slider',
+                valueId: 'top-p-value',
                 param: 'top_p',
                 type: 'float',
                 displayName: 'Top P'
             },
-            { 
-                id: 'max-tokens-slider', 
-                valueId: 'max-tokens-value', 
+            {
+                id: 'max-tokens-slider',
+                valueId: 'max-tokens-value',
                 param: 'max_tokens',
                 type: 'int',
                 displayName: 'Max Tokens'
             },
-            { 
-                id: 'repetition-penalty-slider', 
-                valueId: 'repetition-penalty-value', 
+            {
+                id: 'repetition-penalty-slider',
+                valueId: 'repetition-penalty-value',
                 param: 'repetition_penalty',
                 type: 'float',
                 displayName: 'Repetition Penalty'
             }
         ];
-        
+
         this.parameterConfig.forEach(config => {
             this.initializeSlider(config);
         });
@@ -366,16 +413,16 @@ class ChatPlayground {
     initializeSlider({ id, valueId, param, type, displayName }) {
         const slider = this.getElement(id);
         const valueDisplay = this.getElement(valueId);
-        
+
         if (!slider || !valueDisplay) return;
 
         const initialValue = this.config.modelParameters[param];
-        
+
         // Set initial values
         slider.value = initialValue;
         valueDisplay.textContent = initialValue;
         slider.setAttribute('aria-valuetext', initialValue.toString());
-        
+
         // Add event listener
         this.addEventListenerTracked(slider, 'input', (e) => {
             const value = type === 'int' ? parseInt(e.target.value) : parseFloat(e.target.value);
@@ -383,12 +430,12 @@ class ChatPlayground {
             valueDisplay.textContent = value;
             slider.setAttribute('aria-valuetext', value.toString());
             this.showToast(`${displayName}: ${value}`);
-            
+
             // Also update modal slider if it exists
             updateModalSliderFromSource(id, valueId, value);
         });
     }
-    
+
     formatParameterName(param) {
         const names = {
             'temperature': 'Temperature',
@@ -398,28 +445,28 @@ class ChatPlayground {
         };
         return names[param] || param;
     }
-    
+
     initializeFileUpload() {
         this.addEventListenerTracked('fileInput', 'change', (e) => this.handleFileUpload(e));
     }
-    
+
     handleFileUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
-        
+
         // Use centralized file validation
         const validation = this.validateFileType(
-            file, 
-            this.config.fileUpload.allowedTypes, 
+            file,
+            this.config.fileUpload.allowedTypes,
             this.config.fileUpload.maxSize
         );
-        
+
         if (!validation.valid) {
             alert(validation.error);
             event.target.value = '';
             return;
         }
-        
+
         // Read file content
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -427,40 +474,40 @@ class ChatPlayground {
             this.config.fileUpload.fileName = file.name;
             this.displayFileInfo(file);
             this.showToast(`${ChatPlayground.MESSAGES.SUCCESS.FILE_UPLOADED}: ${file.name}`);
-            
+
             // Restart conversation to apply the new file data to system message
             this.restartConversation('file-upload');
         };
-        
+
         reader.onerror = () => {
             alert('Error reading file');
             event.target.value = '';
         };
-        
+
         reader.readAsText(file);
     }
-    
+
     displayFileInfo(file) {
         this.setElementText('fileName', file.name);
         this.setElementText('fileSize', `${(file.size / 1024).toFixed(1)}KB`);
         this.setElementStyle('fileInfo', 'display', 'flex');
         this.hideElement('addDataBtn');
     }
-    
+
     removeFile() {
         // Clear file data
         this.config.fileUpload.content = null;
         this.config.fileUpload.fileName = null;
-        
+
         // Update UI using utility functions
         this.hideElement('fileInfo');
         this.setElementProperty('fileInput', 'value', '');
         this.showElement('addDataBtn');
-        
+
         this.showToast(ChatPlayground.MESSAGES.SUCCESS.FILE_REMOVED);
         this.restartConversation('file-remove');
     }
-    
+
     getEffectiveSystemMessage() {
         // Return system message without file upload content
         // File content will be appended to user messages instead
@@ -475,7 +522,7 @@ class ChatPlayground {
         // but rather rebuild the messages array with the current system message
         // at request time to avoid storing large amounts of duplicate system messages.
     }
-    
+
     setupImageAnalysisToggle() {
         // Handle image analysis toggle
         const imageAnalysisToggle = document.getElementById('image-analysis-toggle');
@@ -484,14 +531,14 @@ class ChatPlayground {
                 const isEnabled = e.target.checked;
                 this.visionSettings.imageAnalysis = isEnabled;
                 this.updateAttachButtonState();
-                
+
                 // Download model when enabled for the first time
                 if (isEnabled && !this.mobileNetModel && !this.isModelDownloading) {
                     this.updateSaveButtonState(); // Disable save button before download
                     await this.downloadMobileNetModel();
                     this.updateSaveButtonState(); // Re-enable save button after download
                 }
-                
+
                 console.log('Image analysis:', isEnabled ? 'enabled' : 'disabled');
             });
             // Initialize state
@@ -512,7 +559,7 @@ class ChatPlayground {
         if (saveBtn) {
             const shouldDisable = this.isModelDownloading;
             saveBtn.disabled = shouldDisable;
-            
+
             if (shouldDisable) {
                 saveBtn.textContent = 'Downloading Model...';
                 saveBtn.style.opacity = '0.6';
@@ -528,11 +575,11 @@ class ChatPlayground {
     openConfigFlyout() {
         const flyoutOverlay = document.getElementById('config-flyout-overlay');
         const voiceSelect = document.getElementById('config-voice-select');
-        
+
         if (flyoutOverlay) {
             flyoutOverlay.style.display = 'block';
         }
-        
+
         // Restore voice selection if we have one
         if (voiceSelect && this.speechSettings.voice) {
             voiceSelect.value = this.speechSettings.voice;
@@ -548,7 +595,7 @@ class ChatPlayground {
 
     async toggleVoiceMode(isEnabled) {
         this.voiceMode = isEnabled;
-        
+
         const chatPanel = document.querySelector('.chat-panel');
         const voiceControls = document.getElementById('voice-controls');
         const textInputWrapper = document.getElementById('text-input-wrapper');
@@ -561,7 +608,7 @@ class ChatPlayground {
         if (isEnabled) {
             // Clear conversation history
             await this.clearChat();
-            
+
             // Switch to voice mode UI - hide text input
             if (chatPanel) {
                 chatPanel.classList.add('voice-mode');
@@ -578,7 +625,7 @@ class ChatPlayground {
             if (voiceWelcome) {
                 voiceWelcome.style.display = 'flex';
             }
-            
+
             // Enable voice controls
             if (voiceSelect && this.voicesAvailable) {
                 voiceSelect.disabled = false;
@@ -586,13 +633,14 @@ class ChatPlayground {
             if (previewBtn && this.voicesAvailable) {
                 previewBtn.disabled = false;
             }
-            
+
             console.log('Voice mode enabled');
         } else {
             // Switch back to text mode UI
             if (chatPanel) {
                 chatPanel.classList.remove('voice-mode');
             }
+            this.closeVoiceInputErrorModal();
             if (voiceControls) {
                 voiceControls.style.display = 'none';
             }
@@ -605,7 +653,7 @@ class ChatPlayground {
             if (voiceWelcome) {
                 voiceWelcome.style.display = 'none';
             }
-            
+
             // Disable voice controls
             if (voiceSelect) {
                 voiceSelect.disabled = true;
@@ -613,18 +661,18 @@ class ChatPlayground {
             if (previewBtn) {
                 previewBtn.disabled = true;
             }
-            
+
             // Clear any messages that might have been added
             if (chatMessages) {
                 const messages = chatMessages.querySelectorAll('.message');
                 messages.forEach(msg => msg.remove());
             }
-            
+
             // Stop any ongoing speech
             if (speechSynthesis) {
                 speechSynthesis.cancel();
             }
-            
+
             console.log('Voice mode disabled');
         }
     }
@@ -636,7 +684,7 @@ class ChatPlayground {
 
         this.isModelDownloading = true;
         this.updateSaveButtonState(); // Disable save button
-        
+
         const progressContainer = document.getElementById('vision-progress-container');
         const progressFill = document.getElementById('vision-progress-fill');
         const progressText = document.getElementById('vision-progress-text');
@@ -666,7 +714,7 @@ class ChatPlayground {
                 modelUrl: undefined,
                 inputRange: [0, 1]
             });
-            
+
             // Update progress
             if (progressFill) progressFill.style.width = '90%';
             if (progressText) progressText.textContent = 'Model ready!';
@@ -694,11 +742,11 @@ class ChatPlayground {
             } else {
                 errorMessage += 'Unknown error occurred.';
             }
-            
+
             if (progressText) {
                 progressText.textContent = errorMessage;
             }
-            
+
             // Hide progress after error
             setTimeout(() => {
                 if (progressContainer) {
@@ -718,7 +766,7 @@ class ChatPlayground {
             this.showToast('Please enable image analysis first');
             return;
         }
-        
+
         // Check if model is ready
         if (!this.mobileNetModel) {
             if (this.isModelDownloading) {
@@ -728,20 +776,20 @@ class ChatPlayground {
             }
             return;
         }
-        
+
         // Create a file input element
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.accept = '.jpg,.jpeg,.png';
         fileInput.style.display = 'none';
-        
+
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
                 this.processImageFile(file);
             }
         });
-        
+
         // Trigger file selection
         document.body.appendChild(fileInput);
         fileInput.click();
@@ -751,21 +799,21 @@ class ChatPlayground {
     async processImageFile(file) {
         // Use centralized validation for image files
         const validation = this.validateFileType(
-            file, 
-            this.config.visionSettings.allowedImageTypes, 
+            file,
+            this.config.visionSettings.allowedImageTypes,
             this.config.visionSettings.maxImageSize
         );
-        
+
         if (!validation.valid) {
             this.showToast(validation.error);
             return;
         }
-        
+
         try {
             // Create image element
             const img = new Image();
             const imageUrl = URL.createObjectURL(file);
-            
+
             img.onload = async () => {
                 // Store image data for next message
                 this.pendingImage = {
@@ -773,20 +821,20 @@ class ChatPlayground {
                     fileName: file.name,
                     imageUrl: imageUrl
                 };
-                
+
                 // Display small thumbnail next to input
                 this.displayInputThumbnail(img);
-                
+
                 this.showToast(ChatPlayground.MESSAGES.SUCCESS.IMAGE_READY);
             };
-            
+
             img.onerror = () => {
                 this.showToast(ChatPlayground.MESSAGES.ERRORS.IMAGE_LOAD);
                 URL.revokeObjectURL(imageUrl);
             };
-            
+
             img.src = imageUrl;
-            
+
         } catch (error) {
             console.error('Error processing image:', error);
             this.showToast(ChatPlayground.MESSAGES.ERRORS.IMAGE_PROCESS);
@@ -798,29 +846,29 @@ class ChatPlayground {
         const thumbnailContainer = document.getElementById('input-thumbnail-container');
         const thumbnailImg = document.getElementById('input-thumbnail');
         const removeBtn = document.getElementById('remove-thumbnail-btn');
-        
+
         // Set the thumbnail image
         thumbnailImg.src = img.src;
-        
+
         // Show the thumbnail container
         thumbnailContainer.style.display = 'block';
-        
+
         // Add event listener to remove button (remove old listener first)
         const newRemoveBtn = removeBtn.cloneNode(true);
         removeBtn.parentNode.replaceChild(newRemoveBtn, removeBtn);
-        
+
         newRemoveBtn.addEventListener('click', () => {
             this.removePendingImage();
         });
     }
-    
+
     removePendingImage() {
         // Clean up pending image data
         if (this.pendingImage && this.pendingImage.imageUrl) {
             URL.revokeObjectURL(this.pendingImage.imageUrl);
         }
         this.pendingImage = null;
-        
+
         // Hide thumbnail container
         const thumbnailContainer = document.getElementById('input-thumbnail-container');
         thumbnailContainer.style.display = 'none';
@@ -855,7 +903,7 @@ class ChatPlayground {
                 this.handleSendMessage();
             }
         });
-        
+
         // Add keyboard support for collapsible buttons
         const collapsibleButtons = document.querySelectorAll('.collapsible-btn');
         collapsibleButtons.forEach(button => {
@@ -866,7 +914,7 @@ class ChatPlayground {
                 }
             });
         });
-        
+
         // Add keyboard support for icon buttons
         const iconButtons = document.querySelectorAll('.icon-btn');
         iconButtons.forEach(button => {
@@ -877,7 +925,7 @@ class ChatPlayground {
                 }
             });
         });
-        
+
         // Dynamic system message update
         this.systemMessage.addEventListener('input', () => {
             this.currentSystemMessage = this.systemMessage.value;
@@ -887,13 +935,13 @@ class ChatPlayground {
         if (this.attachBtn) {
             this.attachBtn.addEventListener('click', () => this.handleImageUpload());
         }
-        
+
         // Auto-resize textarea
         this.userInput.addEventListener('input', () => {
             this.userInput.style.height = 'auto';
             this.userInput.style.height = Math.min(this.userInput.scrollHeight, 120) + 'px';
         });
-        
+
         // Clear chat button (New Chat icon in header)
         const newChatBtn = document.querySelector('.chat-controls .icon-btn:not(.help-btn):not(.config-btn)');
         if (newChatBtn) {
@@ -901,7 +949,7 @@ class ChatPlayground {
                 await this.clearChat();
             });
         }
-        
+
         // Help/About button
         const helpBtn = document.querySelector('.chat-controls .help-btn');
         if (helpBtn) {
@@ -909,7 +957,7 @@ class ChatPlayground {
                 window.openAboutModal();
             });
         }
-        
+
         // Parameters button
         const parametersBtn = document.getElementById('parameters-btn');
         if (parametersBtn) {
@@ -917,7 +965,7 @@ class ChatPlayground {
                 window.openParametersModal();
             });
         }
-        
+
         // Configuration button
         const configBtn = document.querySelector('.config-btn');
         if (configBtn) {
@@ -925,7 +973,7 @@ class ChatPlayground {
                 this.openConfigFlyout();
             });
         }
-        
+
         // Voice mode toggle
         const voiceModeToggle = document.getElementById('voice-mode-toggle');
         if (voiceModeToggle) {
@@ -937,7 +985,7 @@ class ChatPlayground {
                 }
             });
         }
-        
+
         // Voice Start button
         const voiceStartBtn = document.getElementById('voice-start-btn');
         if (voiceStartBtn) {
@@ -945,7 +993,7 @@ class ChatPlayground {
                 this.startVoiceInput();
             });
         }
-        
+
         // Voice CC (closed captions) button
         const voiceCcBtn = document.getElementById('voice-cc-btn');
         if (voiceCcBtn) {
@@ -953,7 +1001,7 @@ class ChatPlayground {
                 this.toggleCaptions();
             });
         }
-        
+
         // Voice Cancel button
         const voiceCancelBtn = document.getElementById('voice-cancel-btn');
         if (voiceCancelBtn) {
@@ -961,16 +1009,15 @@ class ChatPlayground {
                 this.cancelVoiceInteraction();
             });
         }
-        
+
         // Voice select dropdown
         const voiceSelect = document.getElementById('config-voice-select');
         if (voiceSelect) {
-            voiceSelect.addEventListener('change', (e) => {
-                this.speechSettings.voice = e.target.value;
-                console.log('Voice selected:', e.target.value);
+            voiceSelect.addEventListener('change', async (e) => {
+                await this.handleVoiceSelectionChange(e.target.value);
             });
         }
-        
+
         // Preview voice button
         const previewVoiceBtn = document.getElementById('preview-voice-btn');
         if (previewVoiceBtn) {
@@ -978,7 +1025,7 @@ class ChatPlayground {
                 this.previewVoice();
             });
         }
-        
+
         // Avatar toggle
         const avatarToggle = document.getElementById('avatar-toggle');
         if (avatarToggle) {
@@ -986,7 +1033,7 @@ class ChatPlayground {
                 this.toggleAvatar(e.target.checked);
             });
         }
-        
+
         // Configuration flyout close button
         const closeFlyoutBtn = document.getElementById('close-config-flyout');
         if (closeFlyoutBtn) {
@@ -994,7 +1041,7 @@ class ChatPlayground {
                 this.closeConfigFlyout();
             });
         }
-        
+
         // Configuration flyout overlay click to close
         const flyoutOverlay = document.getElementById('config-flyout-overlay');
         if (flyoutOverlay) {
@@ -1005,11 +1052,54 @@ class ChatPlayground {
                 }
             });
         }
-        
+
+        // Voice input fallback modal controls
+        const voiceErrorModal = document.getElementById('voice-input-error-modal');
+        const voiceErrorCloseBtn = document.getElementById('voice-input-error-close');
+        const voiceErrorCancelBtn = document.getElementById('voice-input-error-cancel');
+        const voiceErrorSubmitBtn = document.getElementById('voice-input-error-submit');
+        const voiceFallbackInput = document.getElementById('voice-fallback-input');
+
+        if (voiceErrorCloseBtn) {
+            voiceErrorCloseBtn.addEventListener('click', () => this.closeVoiceInputErrorModal());
+        }
+
+        if (voiceErrorCancelBtn) {
+            voiceErrorCancelBtn.addEventListener('click', () => this.closeVoiceInputErrorModal());
+        }
+
+        if (voiceErrorSubmitBtn) {
+            voiceErrorSubmitBtn.addEventListener('click', () => this.submitTypedVoiceFallback());
+        }
+
+        if (voiceFallbackInput) {
+            voiceFallbackInput.addEventListener('input', () => {
+                const hasText = voiceFallbackInput.value.trim().length > 0;
+                if (voiceErrorSubmitBtn) {
+                    voiceErrorSubmitBtn.disabled = !hasText;
+                }
+            });
+
+            voiceFallbackInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    this.submitTypedVoiceFallback();
+                }
+            });
+        }
+
+        if (voiceErrorModal) {
+            voiceErrorModal.addEventListener('click', (e) => {
+                if (e.target === voiceErrorModal) {
+                    this.closeVoiceInputErrorModal();
+                }
+            });
+        }
+
         // Model selection change
         this.modelSelect.addEventListener('change', () => this.handleModelChange());
     }
-    
+
     async initializeModel() {
         try {
             await this.initializeEngine();
@@ -1017,7 +1107,7 @@ class ChatPlayground {
             console.error('Failed to initialize AI engine:', error);
         }
     }
-    
+
     async initializeEngine() {
         try {
             console.log('Attempting to initialize WebLLM first...');
@@ -1025,20 +1115,20 @@ class ChatPlayground {
             console.log('WebLLM initialized successfully');
             this.webllmAvailable = true;
             this.usingWllama = false;
-            
+
             // Set Phi-3 default parameters
             this.config.modelParameters = this.getModelDefaults();
             this.updateParameterUI();
         } catch (error) {
             console.error('WebLLM initialization failed, loading wllama fallback:', error);
             this.webllmAvailable = false;
-            
+
             try {
                 await this.initializeWllama();
                 console.log('Wllama initialized successfully as fallback');
                 this.usingWllama = true;
                 this.wllamaLoaded = true;
-                
+
                 // Set SmolLM2 default parameters
                 this.config.modelParameters = this.getModelDefaults();
                 this.updateParameterUI();
@@ -1051,7 +1141,7 @@ class ChatPlayground {
             }
         }
     }
-    
+
     async initializeWebLLM() {
         console.log('initializeWebLLM called - starting model initialization');
         this.updateProgress(0, 'Discovering available models...');
@@ -1059,7 +1149,7 @@ class ChatPlayground {
         console.log('WebLLM object:', webllm);
         console.log('WebLLM.CreateMLCEngine:', typeof webllm?.CreateMLCEngine);
         console.log('WebLLM.prebuiltAppConfig:', typeof webllm?.prebuiltAppConfig);
-        
+
         // Check if WebLLM is available
         if (!webllm || !webllm.CreateMLCEngine || !webllm.prebuiltAppConfig) {
             console.error('WebLLM check failed:', {
@@ -1069,33 +1159,33 @@ class ChatPlayground {
             });
             throw new Error('WebLLM not properly loaded');
         }
-        
+
         // Get available models from WebLLM
         const models = webllm.prebuiltAppConfig.model_list;
         console.log('All available models:', models.map(m => m.model_id));
-        
+
         // Filter for the specific Phi-3 model only
         const targetModelId = 'Phi-3-mini-4k-instruct-q4f16_1-MLC';
-        let availableModels = models.filter(model => 
+        let availableModels = models.filter(model =>
             model.model_id === targetModelId
         );
-        
+
         if (availableModels.length === 0) {
             throw new Error('Phi-3-mini-4k-instruct model not found');
         }
-        
+
         console.log('Available models for loading:', availableModels.map(m => m.model_id));
-        
+
         this.updateProgress(10, 'Loading WebLLM model (GPU mode)...');
-        
+
         // Try to load the first available model
         let engineCreated = false;
-        
+
         for (const model of availableModels) {
             try {
                 console.log(`Trying to load model: ${model.model_id}`);
                 this.updateProgress(15, `Loading ${model.model_id}...`);
-                
+
                 this.engine = await webllm.CreateMLCEngine(
                     model.model_id,
                     {
@@ -1106,22 +1196,22 @@ class ChatPlayground {
                         }
                     }
                 );
-                
+
                 console.log(`Successfully loaded model: ${model.model_id}`);
                 this.currentModelId = model.model_id;
                 engineCreated = true;
                 break;
-                
+
             } catch (modelError) {
                 console.error(`Failed to load ${model.model_id}:`, modelError);
                 continue;
             }
         }
-        
+
         if (!engineCreated) {
             throw new Error('Failed to load any available models. Please check your internet connection and try again.');
         }
-        
+
         console.log('WebLLM engine created successfully');
         this.updateProgress(100, 'Model ready! (GPU mode)');
         setTimeout(() => {
@@ -1129,26 +1219,26 @@ class ChatPlayground {
             this.enableUI();
         }, 1000);
     }
-    
+
     async initializeWllama(progressCallback) {
         console.log('Initializing wllama...');
-        
+
         const updateProgress = progressCallback || ((loaded, total) => {
             const percentage = Math.round((loaded / total) * 100);
             this.updateProgress(percentage, `Loading wllama model (CPU mode): ${percentage}%<br><small style="font-size: 0.9em; color: #666;">(First-time download may take a few minutes)</small>`, true);
         });
-        
+
         updateProgress(0, 100);
-        
+
         // Configure WASM paths for CDN
         const CONFIG_PATHS = {
             'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.7/esm/single-thread/wllama.wasm',
             'multi-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.7/esm/multi-thread/wllama.wasm',
         };
-        
+
         // Initialize wllama with CDN-hosted WASM files
         this.wllama = new Wllama(CONFIG_PATHS);
-        
+
         // Load SmolLM2 model from HuggingFace
         await this.wllama.loadModelFromHF(
             'ngxson/SmolLM2-360M-Instruct-Q8_0-GGUF',
@@ -1161,7 +1251,7 @@ class ChatPlayground {
                 }
             }
         );
-        
+
         console.log('Wllama initialized successfully');
         this.wllamaLoaded = true;
         this.updateProgress(100, 'CPU model ready!');
@@ -1170,7 +1260,7 @@ class ChatPlayground {
             this.enableUI();
         }, 1000);
     }
-    
+
     updateProgress(percentage, text, useHTML = false) {
         this.progressFill.style.width = `${percentage}%`;
         if (useHTML) {
@@ -1179,7 +1269,7 @@ class ChatPlayground {
             this.progressText.textContent = text;
         }
     }
-    
+
     enableUI() {
         this.isModelLoaded = true;
         this.modelSelect.disabled = false;
@@ -1187,104 +1277,104 @@ class ChatPlayground {
         this.userInput.disabled = false;
         this.sendBtn.disabled = false;
         this.updateAttachButtonState(); // Update attach button based on vision settings
-        
+
         // Enable voice mode start button
         const voiceStartBtn = document.getElementById('voice-start-btn');
         if (voiceStartBtn) {
             voiceStartBtn.disabled = false;
         }
-        
+
         this.userInput.focus();
-        
+
         // Populate model dropdown with available models
         this.populateModelDropdown();
-        
+
         // Set parameter controls based on whether WebLLM is available
         this.setParameterControlsEnabled(this.webllmAvailable || this.wllamaLoaded);
     }
-    
+
     disableUI() {
         this.isModelLoaded = false;
         this.systemMessage.disabled = true;
         this.userInput.disabled = true;
         this.sendBtn.disabled = true;
         this.attachBtn.disabled = true;
-        
+
         // Disable voice mode start button
         const voiceStartBtn = document.getElementById('voice-start-btn');
         if (voiceStartBtn) {
             voiceStartBtn.disabled = true;
         }
     }
-    
+
     async handleModelChange() {
         const selectedValue = this.modelSelect.value;
-        
+
         if (this.isGenerating) {
             console.log('Cannot switch models while generating');
             // Reset to current model
             this.populateModelDropdown();
             return;
         }
-        
+
         // Determine if we're actually switching models
         const previousMode = this.usingWllama;
         const newModeIsWllama = selectedValue === 'phi3-cpu';
-        
+
         if (selectedValue === 'phi3-gpu') {
             if (!this.webllmAvailable) {
                 alert('Phi-3 (GPU) is not available. WebGPU is not supported on this device.');
                 this.populateModelDropdown(); // Reset selection
                 return;
             }
-            
+
             // Clear wllama KV cache if switching from CPU mode
             if (previousMode && this.wllama) {
                 await this.wllama.kvClear();
                 console.log('Cleared wllama KV cache when switching to GPU mode');
             }
-            
+
             this.usingWllama = false;
-            
+
             // Apply Phi-3 default parameters
             this.config.modelParameters = this.getModelDefaults();
             this.updateParameterUI();
-            
+
             // Clear chat and restart conversation
             if (previousMode !== this.usingWllama) {
                 await this.clearChat();
                 this.showToast('Switched to Phi-3 (GPU) - Conversation restarted');
             }
-            
+
             console.log('Switched to Phi-3 (GPU) mode');
         } else if (selectedValue === 'phi3-cpu') {
             // Keep WebLLM engine loaded (it uses GPU memory, wllama uses system RAM)
             // If wllama not loaded yet, load it
             if (!this.wllamaLoaded) {
                 console.log('Loading wllama for the first time...');
-                
+
                 // Disable UI during model loading
                 this.disableUI();
-                
+
                 // Show progress
                 this.progressContainer.style.display = 'block';
-                
+
                 try {
                     await this.initializeWllama((loaded, total) => {
                         const percentage = Math.round((loaded / total) * 100);
                         this.updateProgress(percentage, `Loading SmolLM2 (CPU): ${percentage}%<br><small style="font-size: 0.9em; color: #666;">(First-time download may take a few minutes)</small>`, true);
                     });
-                    
+
                     this.usingWllama = true;
-                    
+
                     // Apply SmolLM2 default parameters
                     this.config.modelParameters = this.getModelDefaults();
                     this.updateParameterUI();
-                    
+
                     // Clear chat and restart conversation
                     await this.clearChat();
                     this.showToast('Switched to SmolLM2 (CPU) - Conversation restarted');
-                    
+
                     console.log('Switched to SmolLM2 (CPU) mode');
                 } catch (error) {
                     console.error('Failed to load wllama:', error);
@@ -1295,26 +1385,26 @@ class ChatPlayground {
                 }
             } else {
                 this.usingWllama = true;
-                
+
                 // Apply SmolLM2 default parameters
                 this.config.modelParameters = this.getModelDefaults();
                 this.updateParameterUI();
-                
+
                 // Clear chat and restart conversation
                 if (previousMode !== this.usingWllama) {
                     await this.clearChat();
                     this.showToast('Switched to SmolLM2 (CPU) - Conversation restarted');
                 }
-                
+
                 console.log('Switched to SmolLM2 (CPU) mode');
             }
         }
     }
-    
+
     populateModelDropdown() {
         // Clear existing options
         this.modelSelect.innerHTML = '';
-        
+
         // Add Phi-3 (GPU) option
         const phiOption = document.createElement('option');
         phiOption.value = 'phi3-gpu';
@@ -1324,7 +1414,7 @@ class ChatPlayground {
             phiOption.selected = true;
         }
         this.modelSelect.appendChild(phiOption);
-        
+
         // Add SmolLM2 (CPU) option
         const cpuOption = document.createElement('option');
         cpuOption.value = 'phi3-cpu';
@@ -1343,7 +1433,7 @@ class ChatPlayground {
             'max-tokens-slider',
             'repetition-penalty-slider'
         ];
-        
+
         parameterSliders.forEach(sliderId => {
             const slider = document.getElementById(sliderId);
             if (slider) {
@@ -1356,7 +1446,7 @@ class ChatPlayground {
     }
 
 
-    
+
     // Extract keywords from text (excluding common stopwords)
     extractKeywords(text) {
         const stopwords = new Set([
@@ -1367,26 +1457,26 @@ class ChatPlayground {
             'this', 'these', 'those', 'i', 'you', 'we', 'they', 'my', 'your',
             'am', 'been', 'being', 'have', 'had', 'were', 'there', 'their'
         ]);
-        
+
         // Extract words, convert to lowercase, filter stopwords and short words
         const words = text.toLowerCase()
             .replace(/[^a-z0-9\s]/g, ' ')
             .split(/\s+/)
             .filter(word => word.length > 2 && !stopwords.has(word));
-        
+
         // Return unique keywords
         return [...new Set(words)];
     }
-    
+
     // Extract relevant lines from file content based on keywords
     extractRelevantLines(fileContent, keywords) {
         if (!fileContent || !keywords || keywords.length === 0) {
             return '';
         }
-        
+
         const lines = fileContent.split('\n');
         const matchingLines = [];
-        
+
         for (const line of lines) {
             const lineLower = line.toLowerCase();
             // Check if line contains any keyword
@@ -1394,7 +1484,7 @@ class ChatPlayground {
                 matchingLines.push(line.trim());
             }
         }
-        
+
         return matchingLines.length > 0 ? matchingLines.join('\n') : '';
     }
 
@@ -1404,90 +1494,83 @@ class ChatPlayground {
             await this.stopGeneration();
             return;
         }
-        
+
         if (!this.isModelLoaded) return;
-        
+
         let userMessage = this.userInput.value.trim();
         if (!userMessage && !this.pendingImage) return;
         if (!userMessage) userMessage = ""; // Allow empty message if there's an image
-        
-        // Check for prohibited content
-        if (userMessage && this.containsProhibitedContent(userMessage)) {
-            // Add user message to chat
-            this.addMessage('user', userMessage);
-            
-            // Clear input
-            this.userInput.value = '';
-            this.userInput.style.height = 'auto';
-            
-            // Add canned response
-            const cannedResponse = "I'm sorry. I can't help with that.";
-            const assistantMessageEl = this.addMessage('assistant', '');
-            const contentEl = assistantMessageEl.querySelector('.message-content');
-            await this.typeResponse(contentEl, cannedResponse);
-            
+
+        const currentSystemPrompt = (this.systemMessage?.value ?? this.currentSystemMessage).trim();
+        this.currentSystemMessage = currentSystemPrompt;
+
+        const hasProhibitedSystemPrompt = currentSystemPrompt && this.containsProhibitedContent(currentSystemPrompt);
+        const hasProhibitedUserPrompt = userMessage && this.containsProhibitedContent(userMessage);
+
+        if (hasProhibitedSystemPrompt || hasProhibitedUserPrompt) {
+            await this.handleModerationFailure(hasProhibitedUserPrompt ? userMessage : '');
             return;
         }
-        
+
         // Log the current system prompt to console
         console.log('Current system prompt:', this.currentSystemMessage);
-        
+
         // Process pending image if exists
         let imageAnalysis = '';
         let imageElement = null;
-        
+
         if (this.pendingImage) {
             try {
                 // Get image analysis (requires MobileNet to be pre-loaded)
                 const predictions = await this.classifyImage(this.pendingImage.img);
                 imageAnalysis = predictions[0].className.replace(/_/g, ' ')
-                
+
                 // Create image element for message bubble
                 imageElement = document.createElement('img');
                 imageElement.src = this.pendingImage.img.src;
                 imageElement.className = 'message-image';
                 imageElement.alt = this.pendingImage.fileName;
-                
+
             } catch (error) {
                 console.error('Error analyzing image:', error);
                 this.showToast('Error analyzing image. Sending message without analysis.');
             }
         }
-        
+
         // Reset stop state and typing state
         this.stopRequested = false;
         if (this.typingState) {
             this.typingState.isTyping = false;
             this.typingState = null;
         }
-        
+
         // Add user message to chat (with image if available)
         this.addMessage('user', userMessage, imageElement);
-        
+
         // Clean up input and pending image
         this.userInput.value = '';
         this.userInput.style.height = 'auto';
-        
+
         // Clean up pending image
         if (this.pendingImage) {
             this.removePendingImage();
         }
-        
+
         this.isGenerating = true;
         this.updateUIForGeneration(true);
-        
+
         // Show typing indicator
         const typingIndicator = this.addTypingIndicator();
-        
+
         try {
             // Update conversation history to reflect current system message
             this.updateConversationHistoryWithCurrentSystemMessage();
-            
+
             // Prepare conversation history
             const messages = [
                 { role: "system", content: this.getEffectiveSystemMessage() }
             ];
-            
+
             // Add last 10 conversation pairs
             // Remove any previous image classifications from history to avoid confusion
             const recentHistory = this.conversationHistory.slice(-20).map(msg => {
@@ -1500,22 +1583,22 @@ class ChatPlayground {
                 return msg;
             });
             messages.push(...recentHistory);
-            
+
             // Add user message with image analysis and file context if available
             let finalUserMessage = userMessage;
             if (imageAnalysis) {
                 finalUserMessage += '\n\n[Current image shows: ' + imageAnalysis + ']';
             }
-            
+
             // If file is uploaded, prepend file content to user message
             if (this.config.fileUpload.content) {
                 // For Phi-3 (WebLLM/GPU mode), use entire file content for best accuracy
                 console.log('Using entire file content for Phi-3 (WebLLM mode) - ' + this.config.fileUpload.content.split('\n').length + ' lines');
                 finalUserMessage = 'Use the following information to answer the question:\n\n' + this.config.fileUpload.content + '\n\nQuestion: ' + userMessage;
             }
-            
+
             messages.push({ role: "user", content: finalUserMessage });
-            
+
             // Log the complete prompt being sent to the model
             console.log('=== COMPLETE PROMPT BEING SENT TO MODEL ===');
             console.log('Current System Message (from UI):', this.currentSystemMessage);
@@ -1528,20 +1611,20 @@ class ChatPlayground {
                 console.log(`Content: ${msg.content}`);
             });
             console.log('\n=== END PROMPT ===\n');
-            
+
             // Remove typing indicator
             typingIndicator.remove();
-            
+
             // Add thinking indicator with animated dots
             const thinkingIndicator = this.addThinkingIndicator();
-            
+
             // Route to the appropriate engine
             if (this.usingWllama) {
                 await this.handleWllamaMode(messages, thinkingIndicator, userMessage, imageAnalysis);
             } else {
                 await this.handleStreamingMode(messages, thinkingIndicator, userMessage);
             }
-            
+
         } catch (error) {
             console.error('Error generating response:', error);
             if (typingIndicator.parentNode) {
@@ -1552,11 +1635,11 @@ class ChatPlayground {
             if (thinkingIndicator) {
                 thinkingIndicator.remove();
             }
-            
+
             const errorMessage = 'Sorry, I encountered an error while generating a response. Please try again.';
             const assistantMessageEl = this.addMessage('assistant', '');
             const contentEl = assistantMessageEl.querySelector('.message-content');
-            
+
             // Type out the error message
             await this.typeResponse(contentEl, errorMessage);
         } finally {
@@ -1572,7 +1655,7 @@ class ChatPlayground {
         const bufferSize = 30; // Start typing after 30 characters
         let assistantMessageEl = null;
         let contentEl = null;
-        
+
         const completion = await this.engine.chat.completions.create({
             messages: messages,
             temperature: this.modelParameters.temperature,
@@ -1581,23 +1664,23 @@ class ChatPlayground {
             repetition_penalty: this.modelParameters.repetition_penalty,
             stream: true
         });
-        
+
         for await (const chunk of completion) {
             if (!this.isGenerating) break;
-            
+
             const content = chunk.choices[0]?.delta?.content || '';
             if (content) {
                 fullResponse += content;
-                
+
                 // Start output once we have enough content buffered
                 if (!hasStartedOutput && fullResponse.length >= bufferSize) {
                     // Remove thinking indicator
                     thinkingIndicator.remove();
-                    
+
                     // Create message container
                     assistantMessageEl = this.addMessage('assistant', '');
                     contentEl = assistantMessageEl.querySelector('.message-content');
-                    
+
                     // Start typing animation
                     this.startTypingAnimation(contentEl, fullResponse);
                     hasStartedOutput = true;
@@ -1607,7 +1690,7 @@ class ChatPlayground {
                 }
             }
         }
-        
+
         // Append file attribution if a file is uploaded (for display only, after streaming completes)
         let displayResponse = fullResponse;
         if (hasStartedOutput && this.config.fileUpload.fileName && fullResponse.trim()) {
@@ -1616,23 +1699,23 @@ class ChatPlayground {
             // Update the typing content to include attribution
             this.updateTypingContent(displayResponse);
         }
-        
+
         // Handle case where response is shorter than buffer size
         if (!hasStartedOutput) {
             // Remove thinking indicator
             thinkingIndicator.remove();
-            
+
             if (fullResponse.trim()) {
                 // Append file attribution if a file is uploaded (for display only)
                 displayResponse = fullResponse;
                 if (this.config.fileUpload.fileName) {
                     displayResponse += `\n(Ref: ${this.config.fileUpload.fileName})`;
                 }
-                
+
                 // Create message container
                 assistantMessageEl = this.addMessage('assistant', '');
                 contentEl = assistantMessageEl.querySelector('.message-content');
-                
+
                 // Type out the short response
                 await this.typeResponse(contentEl, displayResponse);
             } else {
@@ -1642,62 +1725,96 @@ class ChatPlayground {
                 await this.typeResponse(contentEl, fallbackMessage);
             }
         }
-        
+
         // Add to conversation history (without file attribution, to prevent cumulative citations)
         this.conversationHistory.push({ role: "user", content: userMessage });
         this.conversationHistory.push({ role: "assistant", content: fullResponse });
     }
-    
+
     // Helper function to check for prohibited content
     containsProhibitedContent(text) {
         if (!text || typeof text !== 'string') return false;
-        
+
         // Convert to lowercase for case-insensitive matching
-        const lowerText = ' ' + text.toLowerCase() + ' ';
-        
-        // List of prohibited terms (with spaces to ensure whole-word matching)
-        const prohibitedTerms = [
-            ' kill ', ' hurt ', ' harm ', ' steal ', ' crime ', 
-            ' theft ', ' heist ', ' sex ', ' sexual ', ' rape ', 
-            ' murder ', ' shoot ', ' stab ', ' maim ', ' suicide '
-        ];
-        
-        // Check if any prohibited term exists in the text
-        return prohibitedTerms.some(term => lowerText.includes(term));
+        const lowerText = text.toLowerCase();
+
+        for (const term of this.prohibitedTerms) {
+            const regex = new RegExp(`\\b${this.escapeRegex(term)}\\b`, 'i');
+            if (regex.test(lowerText)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    async handleModerationFailure(userMessage = '') {
+        if (userMessage) {
+            this.addMessage('user', userMessage);
+            this.userInput.value = '';
+            this.userInput.style.height = 'auto';
+        }
+
+        const assistantMessageEl = this.addMessage('assistant', '');
+        const contentEl = assistantMessageEl.querySelector('.message-content');
+        await this.typeResponse(contentEl, ChatPlayground.MESSAGES.MODERATION.BLOCKED);
+        this.userInput.focus();
     }
 
     // Helper function to extract first sentence from text
     getFirstSentence(text) {
         if (!text) return '';
-        
+
         // Find first sentence-ending punctuation: . ! : ?
         const match = text.match(/^[^.!:?]+[.!:?]/);
         if (match) {
             return match[0];
         }
-        
+
         // No sentence-ending punctuation found, take first 60 characters
         return text.substring(0, 60);
+    }
+
+    // Helper function to remove a trailing incomplete sentence
+    trimIncompleteFinalSentence(text) {
+        if (!text) return '';
+
+        const trimmedText = text.trimEnd();
+        if (!trimmedText) return '';
+
+        // If the response already ends with sentence-final punctuation, keep it as-is
+        if (/[.!?]["')\]]*$/.test(trimmedText)) {
+            return trimmedText;
+        }
+
+        // Find the last complete sentence boundary and remove trailing partial sentence
+        const match = trimmedText.match(/([.!?]["')\]]*)(?![\s\S]*[.!?]["')\]]*)/);
+        if (!match) {
+            return '';
+        }
+
+        const sentenceEndIndex = match.index + match[0].length;
+        return trimmedText.slice(0, sentenceEndIndex).trimEnd();
     }
 
     // Helper function to build simple ChatML prompt for voice mode with SmolLM2
     buildPrompt(userMessage, systemMessage) {
         let prompt = '';
-        
+
         // Get the last turn of conversation history (if exists)
         let previousUserMessage = '';
         let previousAssistantResponse = '';
-        
+
         if (this.conversationHistory.length >= 2) {
             // Get the last pair (user message and assistant response)
             previousAssistantResponse = this.conversationHistory[this.conversationHistory.length - 1].content;
             previousUserMessage = this.conversationHistory[this.conversationHistory.length - 2].content;
-            
+
             // Truncate to first sentence only for SmolLM2 context management
             previousUserMessage = this.getFirstSentence(previousUserMessage);
             previousAssistantResponse = this.getFirstSentence(previousAssistantResponse);
         }
-        
+
         // Build prompt for voice-based interaction
         prompt = '<|im_start|>system\n';
         prompt += 'You are a rules‑driven assistant. Your highest priority is to follow the instructions exactly as written.\n\n';
@@ -1705,40 +1822,40 @@ class ChatPlayground {
         prompt += systemMessage + '\n\n';
         prompt += 'Acknowledge these rules by answering the user\'s question correctly.\n';
         prompt += '<|im_end|>\n\n';
-        
+
         // Add previous turn if exists
         if (previousUserMessage) {
             prompt += '<|im_start|>user\n' + previousUserMessage + '\n<|im_end|>\n\n';
             prompt += '<|im_start|>assistant\n' + previousAssistantResponse + '\n<|im_end|>\n\n';
         }
-        
+
         // Add current user message
         prompt += '<|im_start|>user\n' + userMessage + '\n<|im_end|>\n\n';
         prompt += '<|im_start|>assistant\n';
-        
+
         return prompt;
     }
 
     // Helper function to build ChatML formatted prompt for SmolLM2
     buildChatMLPrompt(userMessage, imageAnalysis = '', fileContent = '') {
         let prompt = '';
-        
+
         // Get the last turn of conversation history (if exists)
         let previousUserMessage = '';
         let previousAssistantResponse = '';
-        
+
         if (this.conversationHistory.length >= 2) {
             // Get the last pair (user message and assistant response)
             previousAssistantResponse = this.conversationHistory[this.conversationHistory.length - 1].content;
             previousUserMessage = this.conversationHistory[this.conversationHistory.length - 2].content;
             // Clean any image classification from previous user message
             previousUserMessage = previousUserMessage.replace(/\n\n\[Current image shows:.*?\]$/s, '');
-            
+
             // Truncate to first sentence only for SmolLM2 context management
             previousUserMessage = this.getFirstSentence(previousUserMessage);
             previousAssistantResponse = this.getFirstSentence(previousAssistantResponse);
         }
-        
+
         // Determine which format to use
         if (imageAnalysis) {
             // Format for image analysis
@@ -1750,16 +1867,16 @@ class ChatPlayground {
             prompt += 'The user has uploaded an image containing a ' + imageAnalysis + '. Their question relates to this image.\n\n';
             prompt += 'Acknowledge these rules by answering the user\'s question correctly based on the information above.\n';
             prompt += '<|im_end|>\n\n';
-            
+
             // Add previous user message only (not response) if exists
             if (previousUserMessage) {
                 prompt += '<|im_start|>user\n' + previousUserMessage + '\n<|im_end|>\n\n';
             }
-            
+
             // Add current user message
             prompt += '<|im_start|>user\n' + userMessage + '\n<|im_end|>\n\n';
             prompt += '<|im_start|>assistant\n';
-            
+
         } else if (fileContent) {
             // Format for file grounding
             prompt = '<|im_start|>system\n';
@@ -1771,11 +1888,11 @@ class ChatPlayground {
             prompt += fileContent + '\n\n';
             prompt += 'Base your answer on the information above ONLY. Do NOT include any details that are not present in the information above.\n\n';
             prompt += '<|im_end|>\n\n';
-            
+
             // Add current user message
             prompt += '<|im_start|>user\n' + userMessage + '\n<|im_end|>\n\n';
             prompt += '<|im_start|>assistant\n';
-            
+
         } else {
             // Default format (no file grounding, no image)
             prompt = '<|im_start|>system\n';
@@ -1784,50 +1901,50 @@ class ChatPlayground {
             prompt += this.currentSystemMessage + '\n\n';
             prompt += 'Acknowledge these rules by answering the user\'s question correctly.\n';
             prompt += '<|im_end|>\n\n';
-            
+
             // Add previous turn if exists
             if (previousUserMessage) {
                 prompt += '<|im_start|>user\n' + previousUserMessage + '\n<|im_end|>\n\n';
                 prompt += '<|im_start|>assistant\n' + previousAssistantResponse + '\n<|im_end|>\n\n';
             }
-            
+
             // Add current user message
             prompt += '<|im_start|>user\n' + userMessage + '\n<|im_end|>\n\n';
             prompt += '<|im_start|>assistant\n';
         }
-        
+
         return prompt;
     }
-    
+
     async handleWllamaMode(messages, thinkingIndicator, userMessage, imageAnalysis = '') {
         // Ensure wllama is loaded
         if (!this.wllama) {
             throw new Error('Wllama is not initialized. Please wait for CPU mode to finish loading.');
         }
-        
+
         // Keep original userMessage for conversation history (without image classification)
         const originalUserMessage = userMessage;
-        
+
         // Remove thinking indicator before starting to stream
         thinkingIndicator.remove();
-        
+
         // Create message container
         const assistantMessageEl = this.addMessage('assistant', '');
         const contentEl = assistantMessageEl.querySelector('.message-content');
-        
+
         // Show thinking indicator with CPU mode notice
         contentEl.innerHTML = '<span class="typing-indicator">●●●</span><p style="font-size: 0.85em; color: #666; margin-top: 8px; font-style: italic;">(Responses may be slow in CPU mode. Thanks for your patience!)</p>';
-        
+
         // Build ChatML formatted prompt
         let fileContentForPrompt = '';
-        
+
         // If file is uploaded, extract relevant lines
         if (this.config.fileUpload.content) {
             const keywords = this.extractKeywords(userMessage);
             console.log('Extracted keywords from user prompt (wllama):', keywords);
-            
+
             const relevantLines = this.extractRelevantLines(this.config.fileUpload.content, keywords);
-            
+
             if (relevantLines) {
                 console.log('Found relevant lines from file (' + relevantLines.split('\n').length + ' lines)');
                 fileContentForPrompt = relevantLines;
@@ -1836,10 +1953,10 @@ class ChatPlayground {
                 fileContentForPrompt = this.config.fileUpload.content;
             }
         }
-        
+
         // Build the ChatML prompt
         const chatMLPrompt = this.buildChatMLPrompt(userMessage, imageAnalysis, fileContentForPrompt);
-        
+
         console.log('=== CHATML PROMPT FOR SMOLLM2 ===');
         console.log('Conversation history length:', this.conversationHistory.length);
         console.log('File content included:', !!fileContentForPrompt);
@@ -1847,19 +1964,19 @@ class ChatPlayground {
         console.log('ChatML prompt:');
         console.log(chatMLPrompt);
         console.log('=== END CHATML PROMPT ===');
-        
+
         // Use wllama for generation with streaming
         let fullResponse = '';
-        
+
         // Log current model parameters from config
         console.log('Current model parameters from config:', this.config.modelParameters);
-        
+
         // Use parameters from config (set when model is selected)
         // Clamp temperature for wllama (supports range 0-2, but works best between 0.1-1.5)
         const wllamaTemp = Math.max(0.1, Math.min(1.5, this.config.modelParameters.temperature));
         const wllamaTopP = Math.max(0.1, Math.min(1.0, this.config.modelParameters.top_p));
         const wllamaPenalty = Math.max(1.0, Math.min(2.0, this.config.modelParameters.repetition_penalty));
-        
+
         // Log sampling parameters for debugging
         console.log('SmolLM2 sampling parameters:', {
             temp: wllamaTemp,
@@ -1867,11 +1984,11 @@ class ChatPlayground {
             top_p: wllamaTopP,
             penalty_repeat: wllamaPenalty
         });
-        
+
         // Create AbortController for this generation
         const controller = new AbortController();
         this.currentAbortController = controller;
-        
+
         // Clear KV cache before generation to ensure clean state
         try {
             await this.wllama.kvClear();
@@ -1879,7 +1996,7 @@ class ChatPlayground {
         } catch (error) {
             console.log('KV cache clear failed:', error.message);
         }
-        
+
         try {
             const completion = await this.wllama.createCompletion(chatMLPrompt, {
                 nPredict: 300,  // SmolLM2 has 2048 context window
@@ -1895,9 +2012,9 @@ class ChatPlayground {
                 abortSignal: controller.signal,
                 stream: true
             });
-            
+
             this.currentStream = completion;
-            
+
             for await (const chunk of completion) {
                 if (chunk.currentText) {
                     fullResponse = chunk.currentText;
@@ -1905,35 +2022,42 @@ class ChatPlayground {
                     this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
                 }
             }
-            
+
             // Clear abort controller on successful completion
             this.currentAbortController = null;
-            
+
             // Clear KV cache after successful generation
             console.log('Clearing KV cache after generation');
             await this.wllama.kvClear();
             console.log('KV cache cleared successfully');
-            
+
             // Always add to conversation history to maintain context
             // BUT: Do NOT add stopped responses to history (they're incomplete/corrupted)
             if (fullResponse.trim() && !this.stopRequested) {
-                // Append file attribution if a file is uploaded
-                let displayResponse = fullResponse;
-                if (this.config.fileUpload.fileName) {
-                    displayResponse = fullResponse + `\n(Ref: ${this.config.fileUpload.fileName})`;
+                const cleanedResponse = this.trimIncompleteFinalSentence(fullResponse);
+
+                if (!cleanedResponse) {
+                    contentEl.textContent = 'Sorry, I encountered an error while generating a response. Please try again.';
+                    return;
                 }
-                
+
+                // Append file attribution if a file is uploaded
+                let displayResponse = cleanedResponse;
+                if (this.config.fileUpload.fileName) {
+                    displayResponse = cleanedResponse + `\n(Ref: ${this.config.fileUpload.fileName})`;
+                }
+
                 // Add indicator if stopped
                 if (this.stopRequested) {
                     displayResponse += '\n\n[Response stopped by user]';
                 }
-                
+
                 contentEl.textContent = displayResponse;
-                
+
                 // Add to conversation history (without file attribution or stop indicator)
                 // Use original message without image classification to avoid persisting it
                 this.conversationHistory.push({ role: "user", content: originalUserMessage });
-                this.conversationHistory.push({ role: "assistant", content: fullResponse });
+                this.conversationHistory.push({ role: "assistant", content: cleanedResponse });
             } else if (this.stopRequested && fullResponse.trim()) {
                 // Response was stopped - display it but don't add to history
                 let displayResponse = fullResponse;
@@ -1942,12 +2066,12 @@ class ChatPlayground {
                 }
                 displayResponse += '\n\n[Response stopped by user - not saved to history]';
                 contentEl.textContent = displayResponse;
-                
+
                 console.log('Stopped response not added to conversation history to prevent corruption');
             } else {
                 contentEl.textContent = 'Sorry, I encountered an error while generating a response. Please try again.';
             }
-            
+
         } catch (error) {
             // Check if this was an abort (expected when user clicks stop)
             if (error.name === 'AbortError' || error.message?.includes('abort')) {
@@ -1955,7 +2079,7 @@ class ChatPlayground {
                 // Clear the partial/corrupted state
                 await this.wllama.kvClear();
                 console.log('KV cache cleared after abort');
-                
+
                 // Display stopped response but don't add to history
                 if (fullResponse.trim()) {
                     let displayResponse = fullResponse;
@@ -1991,31 +2115,31 @@ class ChatPlayground {
             </div>
         `;
         this.chatMessages.appendChild(thinkingDiv);
-        
+
         // Auto-scroll to bottom
         this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-        
+
         return thinkingDiv;
     }
 
     async typeResponse(contentEl, text) {
         let currentIndex = 0;
         const typingSpeed = 5; // milliseconds between characters
-        
+
         // Continue typing as long as we haven't been stopped and there's more text
         while (currentIndex < text.length && !this.stopRequested) {
             contentEl.textContent = text.substring(0, currentIndex + 1);
-            
+
             // Auto-scroll to bottom
             this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-            
+
             currentIndex++;
             await new Promise(resolve => setTimeout(resolve, typingSpeed));
         }
-        
+
         // Ensure full text is displayed
         contentEl.textContent = text;
-        
+
         // Mark typing as complete
         this.isGenerating = false;
         this.updateUIForGeneration(false);
@@ -2027,9 +2151,9 @@ class ChatPlayground {
             fullText: initialText,
             currentIndex: 0,
             isTyping: true,
-            typingSpeed:5
+            typingSpeed: 5
         };
-        
+
         this.continueTyping();
     }
 
@@ -2041,13 +2165,13 @@ class ChatPlayground {
 
     async continueTyping() {
         if (!this.typingState || !this.typingState.isTyping) return;
-        
+
         const { contentEl, typingSpeed } = this.typingState;
-        
+
         while (this.typingState.isTyping && !this.stopRequested) {
             // Use current fullText (which gets updated by streaming)
             const currentFullText = this.typingState.fullText;
-            
+
             // Check if we've typed everything we currently have
             if (this.typingState.currentIndex >= currentFullText.length) {
                 // Wait a bit for more content to arrive, but continue if we're not generating anymore
@@ -2057,27 +2181,27 @@ class ChatPlayground {
                 await new Promise(resolve => setTimeout(resolve, 50)); // Wait for more content
                 continue;
             }
-            
+
             // Type the next character
             contentEl.textContent = currentFullText.substring(0, this.typingState.currentIndex + 1);
-            
+
             // Auto-scroll to bottom
             this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-            
+
             this.typingState.currentIndex++;
             await new Promise(resolve => setTimeout(resolve, typingSpeed));
         }
-        
+
         // Ensure full text is displayed
         if (this.typingState && this.typingState.contentEl) {
             this.typingState.contentEl.textContent = this.typingState.fullText;
         }
-        
+
         // Mark typing as complete but don't update UI if still speaking
         if (this.typingState) {
             this.typingState.isTyping = false;
         }
-        
+
         // Update UI
         this.updateUIForGeneration(false);
     }
@@ -2087,33 +2211,33 @@ class ChatPlayground {
             await new Promise(resolve => setTimeout(resolve, 50));
         }
     }
-    
+
     addMessage(role, content, imageElement = null) {
         // Hide welcome message only if NOT in voice mode
         const welcomeMessage = this.chatMessages.querySelector('.welcome-message');
         if (welcomeMessage && !this.voiceMode) {
             welcomeMessage.style.display = 'none';
         }
-        
+
         const messageEl = document.createElement('div');
         messageEl.className = `message ${role}-message`;
-        
+
         messageEl.innerHTML = `
             <div class="message-content">${escapeHtml(content)}</div>
         `;
-        
+
         // Add image if provided
         if (imageElement && role === 'user') {
             const messageContent = messageEl.querySelector('.message-content');
             messageContent.insertBefore(imageElement, messageContent.firstChild);
         }
-        
+
         this.chatMessages.appendChild(messageEl);
         this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-        
+
         return messageEl;
     }
-    
+
     addTypingIndicator() {
         const typingEl = document.createElement('div');
         typingEl.className = 'message assistant-message';
@@ -2126,16 +2250,16 @@ class ChatPlayground {
                 </div>
             </div>
         `;
-        
+
         this.chatMessages.appendChild(typingEl);
         this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-        
+
         return typingEl;
     }
-    
+
     updateUIForGeneration(isGenerating) {
         this.userInput.disabled = isGenerating;
-        
+
         if (isGenerating) {
             this.sendBtn.textContent = '■'; // Purple/black square
             this.sendBtn.style.color = '#6c3fa5'; // Purple color
@@ -2150,7 +2274,7 @@ class ChatPlayground {
             this.userInput.focus();
         }
     }
-    
+
     announceToScreenReader(message) {
         const announcer = document.getElementById('aria-announcer');
         if (announcer) {
@@ -2161,33 +2285,33 @@ class ChatPlayground {
             }, 1000);
         }
     }
-    
+
     async stopGeneration() {
         this.isGenerating = false;
         this.stopRequested = true;
-        
+
         // Stop typing animation
         if (this.typingState) {
             this.typingState.isTyping = false;
         }
-        
+
         // Abort wllama generation properly using AbortController
         if (this.currentAbortController) {
             console.log('Aborting wllama generation via AbortController');
             this.currentAbortController.abort();
             this.currentAbortController = null;
         }
-        
+
         // Clear current stream reference
         this.currentStream = null;
-        
+
         this.updateUIForGeneration(false);
     }
 
     async restartConversation(reason = 'user-action') {
         // Clear the conversation history and reset the chat UI
         await this.clearChat();
-        
+
         // Show a message to the user about the restart
         const restartMessage = 'Conversation restarted.';
         const systemMessageEl = this.addMessage('system', restartMessage);
@@ -2196,7 +2320,7 @@ class ChatPlayground {
 
     async clearChat() {
         this.conversationHistory = [];
-        
+
         // Show appropriate welcome message based on mode
         if (this.voiceMode) {
             this.chatMessages.innerHTML = `
@@ -2205,7 +2329,7 @@ class ChatPlayground {
                         <img class="avatar-image" id="voice-avatar-image" style="display: none;" alt="Avatar">
                     </div>
                     <h3>Let's talk</h3>
-                    <p>Click Start to begin speaking with the AI assistant.</p>
+                    <p>Talk like you would to a person. The agent listens and responds.</p>
                 </div>
             `;
             // Update avatar display after creating the HTML
@@ -2218,7 +2342,7 @@ class ChatPlayground {
                 </div>
             `;
         }
-        
+
         // Clear wllama KV cache when resetting chat to start fresh
         if (this.usingWllama && this.wllama) {
             try {
@@ -2230,11 +2354,244 @@ class ChatPlayground {
             }
         }
     }
-    
+
     // Removed updateTokenCount function - disclaimer is now static
-    
+
     // ========== Speech and Voice Functions ==========
-    
+
+    loadVoiceHealthCache() {
+        try {
+            const rawCache = localStorage.getItem(this.voiceHealthCacheKey);
+            this.voiceHealthCache = rawCache ? JSON.parse(rawCache) : {};
+        } catch (error) {
+            console.warn('Failed to load voice health cache:', error);
+            this.voiceHealthCache = {};
+        }
+    }
+
+    saveVoiceHealthCache() {
+        try {
+            localStorage.setItem(this.voiceHealthCacheKey, JSON.stringify(this.voiceHealthCache));
+        } catch (error) {
+            console.warn('Failed to save voice health cache:', error);
+        }
+    }
+
+    getVoiceHealthKey(voice) {
+        return `${voice.name}::${voice.lang}`;
+    }
+
+    isVoiceHealthEntryFresh(entry) {
+        if (!entry || !entry.checkedAt) return false;
+        return (Date.now() - entry.checkedAt) <= this.voiceHealthCacheTtlMs;
+    }
+
+    updateVoiceHealthStatus(voice, ok) {
+        if (!voice || !voice.name) return;
+        const key = this.getVoiceHealthKey(voice);
+        this.voiceHealthCache[key] = {
+            ok: !!ok,
+            checkedAt: Date.now()
+        };
+        this.saveVoiceHealthCache();
+    }
+
+    shouldMarkVoiceAsFailed(errorCode = '') {
+        const code = String(errorCode || '').toLowerCase();
+        return !['interrupted', 'canceled', 'cancelled'].includes(code);
+    }
+
+    getDisplayableVoices(voices) {
+        return voices.filter((voice) => {
+            const cacheEntry = this.voiceHealthCache[this.getVoiceHealthKey(voice)];
+            if (!cacheEntry || !this.isVoiceHealthEntryFresh(cacheEntry)) {
+                return true;
+            }
+            return cacheEntry.ok;
+        });
+    }
+
+    async probeVoiceAvailability(voice, timeoutMs = 4000, maxAttempts = 2) {
+        if (!voice || !('speechSynthesis' in window)) {
+            return 'inconclusive';
+        }
+
+        let sawInconclusiveError = false;
+
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            const result = await new Promise((resolve) => {
+                let settled = false;
+                let timedOut = false;
+                const utterance = new SpeechSynthesisUtterance('Voice check test');
+                utterance.voice = voice;
+                utterance.volume = 0;
+                utterance.rate = 1;
+                utterance.pitch = 1;
+
+                const finish = (ok, errorCode = '') => {
+                    if (settled) return;
+                    settled = true;
+                    clearTimeout(timeoutHandle);
+                    utterance.onend = null;
+                    utterance.onerror = null;
+                    resolve({ ok, errorCode, timedOut });
+                };
+
+                utterance.onend = () => finish(true, '');
+                utterance.onerror = (event) => {
+                    const code = event && event.error ? event.error : 'unknown';
+                    finish(false, code);
+                };
+
+                const timeoutHandle = setTimeout(() => {
+                    timedOut = true;
+                    try {
+                        speechSynthesis.cancel();
+                    } catch (error) {
+                        console.warn('Voice probe cancel failed:', error);
+                    }
+                    finish(false, 'timeout');
+                }, timeoutMs);
+
+                try {
+                    speechSynthesis.cancel();
+                    speechSynthesis.speak(utterance);
+                } catch (error) {
+                    console.warn('Voice probe failed to start:', error);
+                    finish(false, 'start-failed');
+                }
+            });
+
+            if (result.ok) {
+                return 'ok';
+            }
+
+            if (!this.shouldMarkVoiceAsFailed(result.errorCode) && !result.timedOut) {
+                sawInconclusiveError = true;
+                continue;
+            }
+
+            if (attempt < maxAttempts) {
+                continue;
+            }
+
+            return 'failed';
+        }
+
+        return sawInconclusiveError ? 'inconclusive' : 'failed';
+    }
+
+    runVoiceHealthChecks(allEnglishVoices) {
+        if (!Array.isArray(allEnglishVoices) || allEnglishVoices.length === 0) {
+            return;
+        }
+
+        if (this.voiceHealthCheckPromise) {
+            return;
+        }
+
+        if (this.isListening || this.isSpeaking || this.isGenerating) {
+            return;
+        }
+
+        const voicesToProbe = allEnglishVoices.filter((voice) => {
+            const cacheEntry = this.voiceHealthCache[this.getVoiceHealthKey(voice)];
+            return !cacheEntry || !this.isVoiceHealthEntryFresh(cacheEntry);
+        });
+
+        if (voicesToProbe.length === 0) {
+            return;
+        }
+
+        this.voiceHealthCheckPromise = (async () => {
+            for (const voice of voicesToProbe) {
+                const isHealthy = await this.probeVoiceAvailability(voice);
+                this.updateVoiceHealthStatus(voice, isHealthy);
+            }
+        })().finally(() => {
+            this.voiceHealthCheckPromise = null;
+            this.populateVoices();
+        });
+    }
+
+    async handleVoiceSelectionChange(selectedVoiceName) {
+        this.speechSettings.voice = selectedVoiceName;
+        console.log('Voice selected:', selectedVoiceName);
+
+        if (!selectedVoiceName || selectedVoiceName === 'none') {
+            return;
+        }
+
+        const voices = speechSynthesis.getVoices();
+        const selectedVoice = voices.find((voice) => voice.name === selectedVoiceName);
+        if (!selectedVoice) {
+            this.showToast('Selected voice is no longer available.');
+            this.populateVoices();
+            return;
+        }
+
+        const currentNonce = ++this.voiceSelectionProbeNonce;
+        const probePromise = this.probeVoiceAvailability(selectedVoice);
+        this.voiceSelectionProbePromise = probePromise;
+        const probeResult = await probePromise;
+        if (this.voiceSelectionProbePromise === probePromise) {
+            this.voiceSelectionProbePromise = null;
+        }
+
+        if (currentNonce !== this.voiceSelectionProbeNonce) {
+            return;
+        }
+
+        if (probeResult === 'ok') {
+            this.updateVoiceHealthStatus(selectedVoice, true);
+            this.populateVoices();
+            return;
+        }
+
+        if (probeResult === 'failed') {
+            this.updateVoiceHealthStatus(selectedVoice, false);
+            this.populateVoices();
+            this.showToast('That voice is not available right now. Switched to a working voice.');
+            return;
+        }
+
+        this.showToast('Voice check was inconclusive. Keeping selected voice.');
+        this.populateVoices();
+    }
+
+    async waitForSpeechIdle(timeoutMs = 2000) {
+        const start = Date.now();
+        while (Date.now() - start < timeoutMs) {
+            if (!speechSynthesis.speaking && !speechSynthesis.pending) {
+                return true;
+            }
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        return !speechSynthesis.speaking && !speechSynthesis.pending;
+    }
+
+    async playPreviewAttempt(selectedVoice) {
+        return await new Promise((resolve) => {
+            const utterance = new SpeechSynthesisUtterance('This is my voice.');
+            utterance.voice = selectedVoice;
+            utterance.rate = 1;
+
+            utterance.onerror = (event) => {
+                resolve({ ok: false, errorCode: event?.error || 'unknown' });
+            };
+
+            utterance.onend = () => {
+                resolve({ ok: true, errorCode: '' });
+            };
+
+            try {
+                speechSynthesis.speak(utterance);
+            } catch (error) {
+                resolve({ ok: false, errorCode: 'start-failed' });
+            }
+        });
+    }
+
     populateVoices() {
         const voiceSelect = document.getElementById('config-voice-select');
         if (!voiceSelect) return;
@@ -2243,15 +2600,16 @@ class ChatPlayground {
             const voices = speechSynthesis.getVoices();
             // Get all English voices
             const englishVoices = voices.filter(voice => voice && voice.lang && voice.lang.startsWith('en'));
+            const displayVoices = this.getDisplayableVoices(englishVoices);
 
             // Preserve currently selected voice
             const currentlySelectedVoice = this.speechSettings.voice || voiceSelect.value;
 
             voiceSelect.innerHTML = '';
 
-            if (englishVoices.length > 0) {
+            if (displayVoices.length > 0) {
                 this.voicesAvailable = true;
-                englishVoices.forEach((voice) => {
+                displayVoices.forEach((voice) => {
                     if (!voice || !voice.name) return;
                     const option = document.createElement('option');
                     option.value = voice.name;
@@ -2259,16 +2617,16 @@ class ChatPlayground {
                     option.textContent = `${voice.name} (${voice.lang})${localLabel}`;
                     voiceSelect.appendChild(option);
                 });
-                
+
                 // Restore previously selected voice or select the first one
-                if (currentlySelectedVoice && englishVoices.find(v => v.name === currentlySelectedVoice)) {
+                if (currentlySelectedVoice && displayVoices.find(v => v.name === currentlySelectedVoice)) {
                     voiceSelect.value = currentlySelectedVoice;
                     this.speechSettings.voice = currentlySelectedVoice;
-                } else if (englishVoices.length > 0) {
-                    voiceSelect.value = englishVoices[0].name;
-                    this.speechSettings.voice = englishVoices[0].name;
+                } else if (displayVoices.length > 0) {
+                    voiceSelect.value = displayVoices[0].name;
+                    this.speechSettings.voice = displayVoices[0].name;
                 }
-                
+
                 // Enable voice select when voice mode is on
                 if (this.voiceMode) {
                     voiceSelect.disabled = false;
@@ -2277,13 +2635,15 @@ class ChatPlayground {
                 this.voicesAvailable = false;
                 const option = document.createElement('option');
                 option.value = 'none';
-                option.textContent = 'No voices available';
+                option.textContent = 'No working voices available';
                 voiceSelect.appendChild(option);
                 voiceSelect.disabled = true;
                 this.speechSettings.voice = null;
             }
-            
+
             this.voicesLoaded = true;
+            // Do not run passive background probing here: some engines require direct
+            // user interaction and can falsely fail cloud voices when tested passively.
         };
 
         if (speechSynthesis.getVoices().length > 0) {
@@ -2328,9 +2688,63 @@ class ChatPlayground {
         this.recognition.onerror = (event) => {
             this.isListening = false;
             console.error('Speech recognition error:', event.error);
-            this.showToast(ChatPlayground.MESSAGES.ERRORS.SPEECH_ERROR);
             this.resetVoiceUI();
+
+            if (this.voiceMode && event.error !== 'aborted') {
+                this.openVoiceInputErrorModal(event.error);
+                return;
+            }
+
+            this.showToast(ChatPlayground.MESSAGES.ERRORS.SPEECH_ERROR);
         };
+    }
+
+    openVoiceInputErrorModal(errorCode = '') {
+        const modal = document.getElementById('voice-input-error-modal');
+        const input = document.getElementById('voice-fallback-input');
+        const submitBtn = document.getElementById('voice-input-error-submit');
+        const description = modal ? modal.querySelector('.voice-fallback-description') : null;
+
+        if (!modal || !input) {
+            this.showToast(ChatPlayground.MESSAGES.ERRORS.SPEECH_ERROR);
+            return;
+        }
+
+        if (description) {
+            const details = errorCode ? ` (${errorCode})` : '';
+            description.textContent = `A speech recognition error${details} prevented voice input for this turn. You can type your message below and continue the conversation.`;
+        }
+
+        input.value = '';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+        }
+
+        modal.style.display = 'flex';
+
+        setTimeout(() => {
+            input.focus();
+        }, 50);
+    }
+
+    closeVoiceInputErrorModal() {
+        const modal = document.getElementById('voice-input-error-modal');
+        if (!modal) return;
+
+        modal.style.display = 'none';
+    }
+
+    submitTypedVoiceFallback() {
+        const input = document.getElementById('voice-fallback-input');
+        if (!input) return;
+
+        const typedPrompt = input.value.trim();
+        if (!typedPrompt) {
+            return;
+        }
+
+        this.closeVoiceInputErrorModal();
+        this.handleSpokenInput(typedPrompt);
     }
 
     startVoiceInput() {
@@ -2353,7 +2767,7 @@ class ChatPlayground {
         const cancelBtn = document.getElementById('voice-cancel-btn');
         const ccBtn = document.getElementById('voice-cc-btn');
         const chatIcon = document.querySelector('.voice-chat-icon');
-        
+
         if (startBtn) {
             startBtn.style.display = 'none';
         }
@@ -2366,12 +2780,12 @@ class ChatPlayground {
         if (chatIcon) {
             chatIcon.style.animation = 'pulse 1s infinite'; // Pulse while listening
         }
-        
+
         // Reset captions to hidden at start of new conversation
         this.showCaptions = false;
         this.updateCCButton();
         this.updateMessageVisibility();
-        
+
         // Update welcome message
         const voiceWelcome = document.getElementById('voice-welcome');
         if (voiceWelcome) {
@@ -2404,18 +2818,18 @@ class ChatPlayground {
             this.resetVoiceUI();
             return;
         }
-        
+
         let sanitizedTranscript = transcript.trim();
         if (sanitizedTranscript.length > 1000) {
             sanitizedTranscript = sanitizedTranscript.substring(0, 1000);
         }
-        
+
         if (sanitizedTranscript.length === 0) {
             console.error('Transcript empty after sanitization');
             this.resetVoiceUI();
             return;
         }
-        
+
         // Check for prohibited content
         if (this.containsProhibitedContent(sanitizedTranscript)) {
             // Add user message to chat (respecting current CC visibility)
@@ -2423,20 +2837,19 @@ class ChatPlayground {
             if (userMessage && !this.showCaptions) {
                 userMessage.classList.add('hidden');
             }
-            
+
             // Add canned response
-            const cannedResponse = "I'm sorry. I can't help with that.";
-            const assistantMessage = this.addMessage('assistant', cannedResponse);
+            const assistantMessage = this.addMessage('assistant', ChatPlayground.MESSAGES.MODERATION.BLOCKED);
             if (assistantMessage && !this.showCaptions) {
                 assistantMessage.classList.add('hidden');
             }
-            
+
             // Update UI for speaking
             const voiceWelcome = document.getElementById('voice-welcome');
             const chatIcon = document.querySelector('.voice-chat-icon');
             const cancelBtn = document.getElementById('voice-cancel-btn');
             const ccBtn = document.getElementById('voice-cc-btn');
-            
+
             if (cancelBtn) {
                 cancelBtn.style.display = 'inline-block';
             }
@@ -2450,19 +2863,19 @@ class ChatPlayground {
             if (chatIcon) {
                 chatIcon.style.animation = 'pulse 1s infinite';
             }
-            
+
             // Speak the canned response
-            this.speakResponse(cannedResponse);
-            
+            this.speakResponse(ChatPlayground.MESSAGES.MODERATION.BLOCKED);
+
             return;
         }
-        
+
         // Update UI - show processing state
         const startBtn = document.getElementById('voice-start-btn');
         const cancelBtn = document.getElementById('voice-cancel-btn');
         const ccBtn = document.getElementById('voice-cc-btn');
         const voiceWelcome = document.getElementById('voice-welcome');
-        
+
         if (startBtn) {
             startBtn.style.display = 'none';
         }
@@ -2501,7 +2914,7 @@ class ChatPlayground {
                     ...this.conversationHistory,
                     { role: 'user', content: userMessage }
                 ];
-                
+
                 const completion = await this.engine.chat.completions.create({
                     messages: messages,
                     temperature: this.config.modelParameters.temperature,
@@ -2510,10 +2923,10 @@ class ChatPlayground {
                     repetition_penalty: this.config.modelParameters.repetition_penalty,
                     stream: true
                 });
-                
+
                 for await (const chunk of completion) {
                     if (!this.isGenerating) break;
-                    
+
                     const content = chunk.choices[0]?.delta?.content || '';
                     if (content) {
                         responseText += content;
@@ -2522,9 +2935,9 @@ class ChatPlayground {
             } else if (this.usingWllama && this.wllama) {
                 // Use wllama fallback
                 const prompt = this.buildPrompt(userMessage, this.currentSystemMessage + ' IMPORTANT: Make your responses brief and to the point.');
-                
+
                 this.currentAbortController = new AbortController();
-                
+
                 const result = await this.wllama.createCompletion(prompt, {
                     nPredict: Math.min(this.config.modelParameters.max_tokens, 500),
                     sampling: {
@@ -2549,12 +2962,12 @@ class ChatPlayground {
             // Update UI to "Speaking" state
             const voiceWelcome = document.getElementById('voice-welcome');
             const chatIcon = document.querySelector('.voice-chat-icon');
-            
+
             if (voiceWelcome) {
                 voiceWelcome.querySelector('h3').textContent = 'Speaking';
                 voiceWelcome.querySelector('p').textContent = 'Adjust volume as necessary.';
             }
-            
+
             // Start pulsing animation while speaking
             if (chatIcon) {
                 chatIcon.style.animation = 'pulse 1s infinite';
@@ -2591,10 +3004,11 @@ class ChatPlayground {
         speechSynthesis.cancel();
 
         const utterance = new SpeechSynthesisUtterance(text);
+        let selectedVoice = null;
 
         if (this.speechSettings.voice && this.speechSettings.voice !== 'default') {
             const voices = speechSynthesis.getVoices();
-            const selectedVoice = voices.find(voice => voice.name === this.speechSettings.voice);
+            selectedVoice = voices.find(voice => voice.name === this.speechSettings.voice);
             if (selectedVoice) {
                 utterance.voice = selectedVoice;
             }
@@ -2611,7 +3025,11 @@ class ChatPlayground {
             this.onSpeechComplete();
         };
 
-        utterance.onerror = () => {
+        utterance.onerror = (event) => {
+            if (selectedVoice && this.shouldMarkVoiceAsFailed(event?.error)) {
+                this.updateVoiceHealthStatus(selectedVoice, false);
+                this.populateVoices();
+            }
             this.isSpeaking = false;
             this.onSpeechComplete();
         };
@@ -2643,7 +3061,7 @@ class ChatPlayground {
         if (ccBtn) {
             ccBtn.style.display = 'none';
         }
-        
+
         // Always show all messages when conversation ends
         const chatMessages = document.getElementById('chat-messages');
         if (chatMessages) {
@@ -2652,11 +3070,11 @@ class ChatPlayground {
                 msg.classList.remove('hidden');
             });
         }
-        
+
         // Reset captions state to off for next conversation
         this.showCaptions = false;
         this.updateCCButton();
-        
+
         if (voiceWelcome) {
             voiceWelcome.querySelector('h3').textContent = "Let's talk";
             voiceWelcome.querySelector('p').textContent = 'Talk like you would to a person. The agent listens and responds.';
@@ -2672,7 +3090,7 @@ class ChatPlayground {
     updateCCButton() {
         const ccBtn = document.getElementById('voice-cc-btn');
         if (!ccBtn) return;
-        
+
         if (this.showCaptions) {
             ccBtn.innerHTML = '[<s>cc</s>]';
         } else {
@@ -2683,7 +3101,7 @@ class ChatPlayground {
     updateMessageVisibility() {
         const chatMessages = document.getElementById('chat-messages');
         if (!chatMessages) return;
-        
+
         const messages = chatMessages.querySelectorAll('.message');
         messages.forEach(msg => {
             if (this.showCaptions) {
@@ -2703,12 +3121,12 @@ class ChatPlayground {
                 console.error('Error stopping recognition:', error);
             }
         }
-        
+
         // Stop speech synthesis
         if (speechSynthesis) {
             speechSynthesis.cancel();
         }
-        
+
         // Stop generation if in progress
         if (this.isGenerating) {
             this.stopRequested = true;
@@ -2716,7 +3134,7 @@ class ChatPlayground {
                 this.currentAbortController.abort();
             }
         }
-        
+
         // Reset UI
         this.isListening = false;
         this.isSpeaking = false;
@@ -2724,7 +3142,7 @@ class ChatPlayground {
         this.resetVoiceUI();
     }
 
-    previewVoice() {
+    async previewVoice() {
         const voices = speechSynthesis.getVoices();
         const voiceSelect = document.getElementById('config-voice-select');
         const previewBtn = document.getElementById('preview-voice-btn');
@@ -2750,10 +3168,6 @@ class ChatPlayground {
             previewBtn.textContent = '...';
         }
 
-        const utterance = new SpeechSynthesisUtterance('This is my voice.');
-        utterance.voice = selectedVoice;
-        utterance.rate = 1;
-
         const resetButton = () => {
             if (previewBtn) {
                 previewBtn.disabled = false;
@@ -2761,55 +3175,74 @@ class ChatPlayground {
             }
         };
 
-        utterance.onerror = (event) => {
-            console.error('Voice preview error:', event.error);
-            this.showToast('Voice preview failed. Please try another voice.');
-            resetButton();
-        };
-
-        utterance.onend = () => {
-            resetButton();
-        };
-
         try {
-            speechSynthesis.speak(utterance);
+            // If a selection-triggered probe is in-flight, let it settle first
+            if (this.voiceSelectionProbePromise) {
+                await Promise.race([
+                    this.voiceSelectionProbePromise,
+                    new Promise(resolve => setTimeout(resolve, 2200))
+                ]);
+            }
+
+            await this.waitForSpeechIdle(1200);
+            speechSynthesis.cancel();
+
+            let result = await this.playPreviewAttempt(selectedVoice);
+
+            // Retry once on transient startup issues
+            if (!result.ok && !this.shouldMarkVoiceAsFailed(result.errorCode)) {
+                await new Promise(resolve => setTimeout(resolve, 250));
+                await this.waitForSpeechIdle(1200);
+                speechSynthesis.cancel();
+                result = await this.playPreviewAttempt(selectedVoice);
+            }
+
+            if (!result.ok) {
+                console.error('Voice preview error:', result.errorCode);
+                if (this.shouldMarkVoiceAsFailed(result.errorCode)) {
+                    this.updateVoiceHealthStatus(selectedVoice, false);
+                    this.populateVoices();
+                }
+                this.showToast('Voice preview failed. Please try another voice.');
+            }
         } catch (error) {
             console.error('Error speaking:', error);
             this.showToast('Error playing voice preview');
+        } finally {
             resetButton();
         }
     }
-    
+
     // ========== End Speech and Voice Functions ==========
-    
+
     // ========== Avatar Functions ==========
-    
+
     initializeAvatars() {
         const avatarGrid = document.getElementById('avatar-grid');
         if (!avatarGrid) return;
-        
+
         // Clear existing avatars
         avatarGrid.innerHTML = '';
-        
+
         // Load saved preferences
         const savedAvatarEnabled = localStorage.getItem('avatarEnabled') === 'true';
         const savedAvatar = localStorage.getItem('selectedAvatar') || this.availableAvatars[0];
-        
+
         this.avatarEnabled = savedAvatarEnabled;
         this.selectedAvatar = savedAvatar;
-        
+
         // Set toggle state
         const avatarToggle = document.getElementById('avatar-toggle');
         if (avatarToggle) {
             avatarToggle.checked = savedAvatarEnabled;
         }
-        
+
         // Show/hide avatar selection
         const avatarSelection = document.getElementById('avatar-selection');
         if (avatarSelection) {
             avatarSelection.style.display = savedAvatarEnabled ? 'block' : 'none';
         }
-        
+
         // Create avatar items
         this.availableAvatars.forEach((avatar) => {
             const avatarItem = document.createElement('div');
@@ -2817,37 +3250,37 @@ class ChatPlayground {
             if (avatar === this.selectedAvatar) {
                 avatarItem.classList.add('selected');
             }
-            
+
             const img = document.createElement('img');
             img.src = `avatars/${avatar}`;
             img.alt = avatar.replace('.svg', '');
-            
+
             const name = document.createElement('div');
             name.className = 'avatar-name';
             name.textContent = avatar.replace('.svg', '');
-            
+
             avatarItem.appendChild(img);
             avatarItem.appendChild(name);
-            
+
             avatarItem.addEventListener('click', () => {
                 this.selectAvatar(avatar);
             });
-            
+
             avatarGrid.appendChild(avatarItem);
         });
-        
+
         // Update display if avatar is enabled
         if (this.avatarEnabled) {
             setTimeout(() => this.updateAvatarDisplay(), 0);
         }
     }
-    
+
     toggleAvatar(enabled) {
         this.avatarEnabled = enabled;
         localStorage.setItem('avatarEnabled', enabled);
-        
+
         const avatarSelection = document.getElementById('avatar-selection');
-        
+
         if (enabled) {
             if (avatarSelection) {
                 avatarSelection.style.display = 'block';
@@ -2864,11 +3297,11 @@ class ChatPlayground {
             }
         }
     }
-    
+
     selectAvatar(avatarName) {
         this.selectedAvatar = avatarName;
         localStorage.setItem('selectedAvatar', avatarName);
-        
+
         // Update selection UI
         const avatarItems = document.querySelectorAll('.avatar-item');
         avatarItems.forEach(item => {
@@ -2879,17 +3312,17 @@ class ChatPlayground {
                 item.classList.remove('selected');
             }
         });
-        
+
         // Update avatar display if enabled
         if (this.avatarEnabled) {
             this.updateAvatarDisplay();
         }
     }
-    
+
     updateAvatarDisplay() {
         const avatarImage = document.getElementById('voice-avatar-image');
         if (!avatarImage || !this.selectedAvatar) return;
-        
+
         if (this.avatarEnabled) {
             avatarImage.src = `avatars/${this.selectedAvatar}`;
             avatarImage.style.display = 'block';
@@ -2897,13 +3330,13 @@ class ChatPlayground {
             avatarImage.style.display = 'none';
         }
     }
-    
+
     // ========== End Avatar Functions ==========
-    
+
     showToast(message) {
         // Announce to screen readers
         this.announceToScreenReader(message);
-        
+
         // Simple toast notification
         const toast = document.createElement('div');
         toast.style.cssText = `
@@ -2919,9 +3352,9 @@ class ChatPlayground {
             animation: slideInRight 0.3s ease-out;
         `;
         toast.textContent = message;
-        
+
         document.body.appendChild(toast);
-        
+
         setTimeout(() => {
             toast.style.animation = 'slideOutRight 0.3s ease-in';
             setTimeout(() => toast.remove(), 300);
@@ -2930,12 +3363,12 @@ class ChatPlayground {
 }
 
 // Global functions for UI interactions
-window.toggleSection = function(sectionId) {
+window.toggleSection = function (sectionId) {
     const content = document.getElementById(sectionId);
     const button = content.previousElementSibling;
-    
+
     const isExpanded = content.style.display === 'block';
-    
+
     if (isExpanded) {
         content.style.display = 'none';
         button.textContent = button.textContent.replace('▼', '▶');
@@ -2947,15 +3380,15 @@ window.toggleSection = function(sectionId) {
     }
 };
 
-window.resetParameters = function() {
+window.resetParameters = function () {
     // Get the app instance (we'll need to store it globally)
     if (window.chatPlaygroundApp) {
         // Get model-specific defaults
         const defaults = window.chatPlaygroundApp.getModelDefaults();
-        
+
         // Update app parameters
         window.chatPlaygroundApp.modelParameters = { ...defaults };
-        
+
         // Update sliders and displays
         const updates = [
             { slider: 'temperature-slider', value: 'temperature-value', param: 'temperature' },
@@ -2963,7 +3396,7 @@ window.resetParameters = function() {
             { slider: 'max-tokens-slider', value: 'max-tokens-value', param: 'max_tokens' },
             { slider: 'repetition-penalty-slider', value: 'repetition-penalty-value', param: 'repetition_penalty' }
         ];
-        
+
         updates.forEach(({ slider, value, param }) => {
             const sliderEl = document.getElementById(slider);
             const valueEl = document.getElementById(value);
@@ -2974,33 +3407,33 @@ window.resetParameters = function() {
                 sliderEl.setAttribute('aria-valuetext', defaults[param].toString());
             }
         });
-        
+
         window.chatPlaygroundApp.showToast('Parameters reset to defaults');
     }
 };
 
-window.triggerFileUpload = function() {
+window.triggerFileUpload = function () {
     const fileInput = document.getElementById('file-input');
     if (fileInput) {
         fileInput.click();
     }
 };
 
-window.removeFile = function() {
+window.removeFile = function () {
     if (window.chatPlaygroundApp) {
         window.chatPlaygroundApp.removeFile();
     }
 };
 
-window.openAboutModal = function() {
+window.openAboutModal = function () {
     const modal = document.getElementById('about-modal');
     if (modal) {
         // Store the currently focused element to restore later
         window.lastFocusedElement = document.activeElement;
-        
+
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden'; // Prevent background scrolling
-        
+
         // Focus the modal for screen readers
         setTimeout(() => {
             const modalTitle = document.getElementById('about-modal-title');
@@ -3008,24 +3441,24 @@ window.openAboutModal = function() {
                 modalTitle.focus();
             }
         }, 100);
-        
+
         // Add keyboard trap for accessibility
         window.trapFocus(modal);
     }
 };
 
-window.closeAboutModal = function() {
+window.closeAboutModal = function () {
     const modal = document.getElementById('about-modal');
     if (modal) {
         modal.style.display = 'none';
         document.body.style.overflow = 'auto'; // Restore scrolling
-        
+
         // Restore focus to the element that opened the modal
         if (window.lastFocusedElement) {
             window.lastFocusedElement.focus();
             window.lastFocusedElement = null;
         }
-        
+
         // Remove keyboard trap
         window.removeFocusTrap();
     }
@@ -3059,7 +3492,7 @@ style.textContent = `
 document.head.appendChild(style);
 
 // Parameters Modal Functions
-window.openParametersModal = function() {
+window.openParametersModal = function () {
     const modal = document.getElementById('parameters-modal');
     if (modal) {
         modal.style.display = 'flex';
@@ -3070,7 +3503,7 @@ window.openParametersModal = function() {
     }
 };
 
-window.closeParametersModal = function() {
+window.closeParametersModal = function () {
     const modal = document.getElementById('parameters-modal');
     if (modal) {
         modal.style.display = 'none';
@@ -3089,10 +3522,10 @@ function updateModalSliderFromSource(sourceId, sourceValueId, value) {
     // Map source IDs to modal IDs
     const modalId = sourceId.replace('-slider', '') === sourceId.replace('-slider', '') ? 'modal-' + sourceId : 'modal-' + sourceId;
     const modalValueId = 'modal-' + sourceValueId;
-    
+
     const modalSlider = document.getElementById(modalId);
     const modalValue = document.getElementById(modalValueId);
-    
+
     if (modalSlider && modalValue) {
         modalSlider.value = value;
         modalValue.textContent = value;
@@ -3108,12 +3541,12 @@ function syncParametersToModal() {
         { source: 'max-tokens-slider', target: 'modal-max-tokens-slider', value: 'modal-max-tokens-value' },
         { source: 'repetition-penalty-slider', target: 'modal-repetition-penalty-slider', value: 'modal-repetition-penalty-value' }
     ];
-    
+
     sourceIds.forEach(({ source, target, value }) => {
         const sourceEl = document.getElementById(source);
         const targetEl = document.getElementById(target);
         const valueEl = document.getElementById(value);
-        
+
         if (sourceEl && targetEl && valueEl) {
             const currentValue = sourceEl.value;
             targetEl.value = currentValue;
@@ -3121,7 +3554,7 @@ function syncParametersToModal() {
             targetEl.setAttribute('aria-valuetext', currentValue);
         }
     });
-    
+
     // Add event listeners to modal sliders
     ['modal-temperature-slider', 'modal-top-p-slider', 'modal-max-tokens-slider', 'modal-repetition-penalty-slider'].forEach(sliderId => {
         const slider = document.getElementById(sliderId);
@@ -3136,12 +3569,12 @@ function handleModalParameterChange(e) {
     const value = e.target.value;
     const valueId = slideId.replace('-slider', '-value');
     const valueEl = document.getElementById(valueId);
-    
+
     if (valueEl) {
         valueEl.textContent = value;
         e.target.setAttribute('aria-valuetext', value);
     }
-    
+
     // Also update the left pane slider
     const sourceId = slideId.replace('modal-', '');
     const sourceEl = document.getElementById(sourceId);
@@ -3154,18 +3587,18 @@ function handleModalParameterChange(e) {
             sourceEl.setAttribute('aria-valuetext', value);
         }
     }
-    
+
     // Update app config
     if (window.chatPlaygroundApp) {
         const paramName = slideId.replace('modal-', '').replace('-slider', '');
-        const paramKey = paramName === 'top-p' ? 'top_p' : 
-                        paramName === 'max-tokens' ? 'max_tokens' : 
-                        paramName === 'repetition-penalty' ? 'repetition_penalty' : paramName;
+        const paramKey = paramName === 'top-p' ? 'top_p' :
+            paramName === 'max-tokens' ? 'max_tokens' :
+                paramName === 'repetition-penalty' ? 'repetition_penalty' : paramName;
         window.chatPlaygroundApp.config.modelParameters[paramKey] = parseFloat(value);
     }
 }
 
-window.resetParametersFromModal = function() {
+window.resetParametersFromModal = function () {
     // Get model-specific defaults
     const defaults = window.chatPlaygroundApp ? window.chatPlaygroundApp.getModelDefaults() : {
         temperature: 0.7,
@@ -3173,7 +3606,7 @@ window.resetParametersFromModal = function() {
         max_tokens: 1000,
         repetition_penalty: 1.1
     };
-    
+
     // Update modal sliders
     const updates = [
         { slider: 'modal-temperature-slider', value: 'modal-temperature-value', param: 'temperature' },
@@ -3181,50 +3614,50 @@ window.resetParametersFromModal = function() {
         { slider: 'modal-max-tokens-slider', value: 'modal-max-tokens-value', param: 'max_tokens' },
         { slider: 'modal-repetition-penalty-slider', value: 'modal-repetition-penalty-value', param: 'repetition_penalty' }
     ];
-    
+
     updates.forEach(({ slider, value, param }) => {
         const sliderEl = document.getElementById(slider);
         const valueEl = document.getElementById(value);
         const defaultVal = defaults[param];
-        
+
         if (sliderEl && valueEl) {
             sliderEl.value = defaultVal;
             valueEl.textContent = defaultVal;
             sliderEl.setAttribute('aria-valuetext', defaultVal.toString());
         }
-        
+
         // Also update left pane
         const sourceId = slider.replace('modal-', '');
         const sourceEl = document.getElementById(sourceId);
         const sourceValueId = sourceId.replace('-slider', '-value');
         const sourceValueEl = document.getElementById(sourceValueId);
-        
+
         if (sourceEl && sourceValueEl) {
             sourceEl.value = defaultVal;
             sourceValueEl.textContent = defaultVal;
             sourceEl.setAttribute('aria-valuetext', defaultVal.toString());
         }
     });
-    
+
     // Update app config
     if (window.chatPlaygroundApp) {
         window.chatPlaygroundApp.config.modelParameters = { ...defaults };
     }
-    
+
     if (window.chatPlaygroundApp && window.chatPlaygroundApp.showToast) {
         window.chatPlaygroundApp.showToast('Parameters reset to defaults');
     }
 };
 
 // Focus trap functionality for modal accessibility
-window.trapFocus = function(modal) {
+window.trapFocus = function (modal) {
     const focusableElements = modal.querySelectorAll(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     );
     const firstFocusable = focusableElements[0];
     const lastFocusable = focusableElements[focusableElements.length - 1];
-    
-    window.modalKeydownHandler = function(e) {
+
+    window.modalKeydownHandler = function (e) {
         if (e.key === 'Tab') {
             if (e.shiftKey) {
                 if (document.activeElement === firstFocusable) {
@@ -3241,11 +3674,11 @@ window.trapFocus = function(modal) {
             window.closeChatCapabilitiesModal(); // Modal removed
         }
     };
-    
+
     document.addEventListener('keydown', window.modalKeydownHandler);
 };
 
-window.removeFocusTrap = function() {
+window.removeFocusTrap = function () {
     if (window.modalKeydownHandler) {
         document.removeEventListener('keydown', window.modalKeydownHandler);
         window.modalKeydownHandler = null;
@@ -3255,7 +3688,7 @@ window.removeFocusTrap = function() {
 // Initialize the app when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.chatPlaygroundApp = new ChatPlayground();
-    
+
     // Dark mode toggle handler
     const themeToggle = document.getElementById('theme-toggle');
     if (themeToggle) {
@@ -3265,7 +3698,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.classList.add('dark-mode');
             themeToggle.checked = true;
         }
-        
+
         // Toggle dark mode
         themeToggle.addEventListener('change', (e) => {
             if (e.target.checked) {
@@ -3277,7 +3710,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    
+
     // Add parameters modal click-outside-to-close functionality
     const parametersModal = document.getElementById('parameters-modal');
     if (parametersModal) {
@@ -3287,10 +3720,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    
+
     // Close modals with Escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
+            const voiceInputErrorModal = document.getElementById('voice-input-error-modal');
+            if (voiceInputErrorModal && voiceInputErrorModal.style.display !== 'none') {
+                window.chatPlaygroundApp?.closeVoiceInputErrorModal();
+                return;
+            }
+
             const parametersModal = document.getElementById('parameters-modal');
             if (parametersModal && parametersModal.style.display !== 'none') {
                 window.closeParametersModal();

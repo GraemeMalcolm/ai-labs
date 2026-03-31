@@ -38,39 +38,25 @@ const CLASS_INFO = {
         'Developed by: Micro Instrumentation and Telemetry Systems (MITS)',
         'Released: 1974',
         'Processor: Intel 8080',
-        'Facts:',
-        '- It was the first commercially successful personal computer',
-        '- It had no built-in screen or video output, you used its front panel switches and lights to program it',
-        '- Its first programming language was BASIC, written by Paul Allen and Bill Gates before founding Microsoft'
+        'Fact: It was the first commercially successful personal computer.'
     ].join('\n'),
     1: [
         'Developed by: Commodore Business Machines',
         'Released: 1982',
         'Processor: MOS 6510',
-        'Facts:',
-        '- It was also known as the C64, and was an 8-bit home computer',
-        '- It consisted of a keyboard and CPU, and had to be connected to a TV for color video output',
-        '- It used an external cassette tape recorder, and later an external floppy disk drive for data storage',
-        '- It is one of the best-selling desktop computers of all time'
+        'Fact: It was one of the best-selling desktop computers of all time, with over 12 million units sold.'
     ].join('\n'),
     2: [
         'Developed by: Sinclair Research',
         'Released: 1982',
-        'Processor: Z80A',
-        'Facts:',
-        '- It was an 8-bit home computer with color graphics',
-        '- Early models had a rubber keyboard, and it had to be connected to a TV for color video output',
-        '- It used an external cassette tape recorder, and later an external floppy disk drive for data storage',
-        '- It played a pivotal role in the history of personal computers and video games, especially in the United Kingdom'
+        'Processor: Zilog Z-80A',
+        'Fact: It played a pivotal role in the development of the computer games industry, especially in the United Kingdom.'
     ].join('\n'),
     3: [
         'Developed by: Apple Computer, Inc',
         'Released: 1977',
         'Processor: MOS 6502',
-        'Facts:',
-        '- It was designed by Steve Wozniac',
-        '- It could be connected to a TV or monitor for color video output',
-        '- It could be connected to external peripherals like tape recorders and floppy disk drives for data storage'
+        'Fact: It was one of the first personal computers to feature color graphics.'
     ].join('\n')
 };
 
@@ -82,7 +68,7 @@ function buildClassInfoPrompt(classIndex) {
         return null;
     }
 
-    return `Tell me about the ${className} computer based on the following information:\n---\n${classInfo}`;
+    return `Tell me about the ${className} computer using ONLY the following information:\nINFORMATION:\n---\n${classInfo}\n---\nProvide a concise summary in 2-3 sentences. Do not add any details that are not in the provided information`;
 }
 
 /**
@@ -117,6 +103,13 @@ function reverseWord(text) {
     return text.split('').reverse().join('');
 }
 
+function shiftWord(text, amount) {
+    return text
+        .split('')
+        .map(char => String.fromCharCode(char.charCodeAt(0) + amount))
+        .join('');
+}
+
 function escapeRegex(text) {
     return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -126,12 +119,12 @@ async function loadInappropriateWords() {
         const response = await fetch('./moderation/mod.txt');
         if (!response.ok) throw new Error('Failed to load inappropriate words');
 
-        const reversedWordsText = await response.text();
-        inappropriateWords = reversedWordsText
+        const encodedWordsText = await response.text();
+        inappropriateWords = encodedWordsText
             .split(/\r?\n/)
             .map(word => word.trim())
             .filter(word => word.length > 0)
-            .map(word => reverseWord(word.toLowerCase()));
+            .map(word => shiftWord(reverseWord(word.toLowerCase()), 1));
 
         console.log('Loaded inappropriate words:', inappropriateWords.length);
     } catch (error) {
@@ -311,7 +304,20 @@ function hideLoadingOverlay() {
  * @param {string} sender - Either 'user' or 'bot'
  * @param {string|null} imageUrl - Optional image URL to display
  */
-function addMessage(text, sender, imageUrl = null) {
+function setBubbleContent(bubble, text) {
+    if (typeof DOMPurify !== 'undefined') {
+        bubble.innerHTML = DOMPurify.sanitize(text, {
+            ALLOWED_TAGS: ['b', 'i', 'br', 'small', 'a'],
+            ALLOWED_ATTR: ['href', 'target', 'style'],
+            ALLOW_DATA_ATTR: false
+        });
+    } else {
+        bubble.textContent = text;
+    }
+}
+
+function addMessage(text, sender, imageUrl = null, options = {}) {
+    const { deferCompletion = false } = options;
     const div = document.createElement('div');
     div.className = `message ${sender}`;
     div.setAttribute('role', 'article');
@@ -320,17 +326,7 @@ function addMessage(text, sender, imageUrl = null) {
     const bubble = document.createElement('div');
     bubble.className = 'bubble';
 
-    // Sanitize text to prevent XSS attacks
-    if (typeof DOMPurify !== 'undefined') {
-        bubble.innerHTML = DOMPurify.sanitize(text, {
-            ALLOWED_TAGS: ['b', 'i', 'br', 'small', 'a'],
-            ALLOWED_ATTR: ['href', 'target', 'style'],
-            ALLOW_DATA_ATTR: false
-        });
-    } else {
-        // Fallback to textContent if DOMPurify not available to prevent XSS
-        bubble.textContent = text;
-    }
+    setBubbleContent(bubble, text);
 
     if (imageUrl) {
         const br = document.createElement('br');
@@ -354,13 +350,33 @@ function addMessage(text, sender, imageUrl = null) {
     scrollToBottom();
 
     // Text-to-Speech for bot responses when input was spoken
-    if (sender === 'bot' && isVoiceInput) {
+    if (sender === 'bot' && isVoiceInput && !deferCompletion) {
         speakText(bubble);
         isVoiceInput = false; // Reset after speaking
-    } else if (sender === 'bot') {
+    } else if (sender === 'bot' && !deferCompletion) {
         // If no speech, we can end the response state
         endResponse();
     }
+
+    return { message: div, bubble };
+}
+
+function getBoardIdentificationMessage(text) {
+    const lowerText = String(text || '').toLowerCase();
+
+    if (lowerText.includes('assy 250')) {
+        return 'The assembly number indicates that the board may have come from a Commodore 64.';
+    }
+
+    if (lowerText.includes('820-')) {
+        return 'Serial numbers beginning 820- are commonly found in Apple computers.';
+    }
+
+    if (lowerText.includes('z-80')) {
+        return 'The Zilog Z-80 processor is common in Sinclair computers, such as the ZX-80, ZX-81, and ZX Spectrum.';
+    }
+
+    return "I can't determine what kind of computer this came from.";
 }
 
 /**
@@ -472,7 +488,7 @@ async function handleSend() {
         });
 
         if (containsInappropriate) {
-            addMessage("I'm sorry, I can't help with that. I can only help with information about the history of computing.", "bot");
+            addMessage("I'm sorry, I can't help with that because it triggered a content-safety filtering policy.\nI can only help with information about the history of computing.", "bot");
             return;
         }
 
@@ -565,8 +581,14 @@ async function handleSend() {
 
     // 3. Text Only Response (Language model, eBay, or Bing search)
     const lowerText = text.toLowerCase();
-    const isEbay = lowerText.includes('ebay') || lowerText.includes('for sale') || lowerText.includes('buy');
-    const isBing = lowerText.includes('bing') || lowerText.includes('search') || lowerText.includes('find');
+    const ebayTriggers = ['ebay', 'for sale', 'buy', 'purchase', 'shop'];
+    const bingTriggers = ['bing', 'search', 'find'];
+    const isEbay = hasBoundaryKeyword(lowerText, ebayTriggers);
+    const isBing = hasBoundaryKeyword(lowerText, bingTriggers);
+    const searchTriggerWordSet = new Set([
+        ...ebayTriggers.join(' ').split(/\s+/),
+        ...bingTriggers.join(' ').split(/\s+/)
+    ]);
 
     const keywords = extractKeywords(text);
     if (!keywords) {
@@ -575,24 +597,36 @@ async function handleSend() {
     }
 
     if (isEbay) {
-        addMessage(`Searching eBay for <b>"${keywords}"</b>...`, "bot");
-        const url = `https://www.ebay.com/sch/i.html?_nkw=${keywords.replace(/ /g, '+')}`;
+        const searchKeywords = extractKeywords(text, searchTriggerWordSet);
+        if (!searchKeywords) {
+            addMessage("Please enter a more specific shopping query.", "bot");
+            return;
+        }
+
+        addMessage(`Searching Bing Shopping for <b>"${searchKeywords}"</b>...`, "bot");
+        const url = `https://www.bing.com/shop/topics?q=${searchKeywords.replace(/ /g, '+')}`;
         // Brief delay for effect
         setTimeout(() => {
             if (!checkStopResponse()) {
-                addMessage(`Found it! <a href="${url}" target="_blank" style="color: #4ade80; text-decoration: underline;">Click here to see results for ${keywords}</a>`, "bot");
+                addMessage(`Here's what I found: <a href="${url}" target="_blank" style="color: #64185e; text-decoration: underline;">Click here to see results for ${searchKeywords}</a>`, "bot");
             }
         }, 600);
         return;
     }
 
     if (isBing) {
-        addMessage(`Searching Bing for <b>"${keywords}"</b>...`, "bot");
-        const url = `https://www.bing.com/search?q=${keywords.replace(/ /g, '+')}`;
+        const searchKeywords = extractKeywords(text, searchTriggerWordSet);
+        if (!searchKeywords) {
+            addMessage("Please enter a more specific search query.", "bot");
+            return;
+        }
+
+        addMessage(`Searching Bing for <b>"${searchKeywords}"</b>...`, "bot");
+        const url = `https://www.bing.com/search?q=${searchKeywords.replace(/ /g, '+')}`;
         // Brief delay for effect
         setTimeout(() => {
             if (!checkStopResponse()) {
-                addMessage(`Found it! <a href="${url}" target="_blank" style="color: #4ade80; text-decoration: underline;">Click here to see results for ${keywords}</a>`, "bot");
+                addMessage(`Here's what I found: <a href="${url}" target="_blank" style="color: #64185e; text-decoration: underline;">Click here to see results for ${searchKeywords}</a>`, "bot");
             }
         }, 600);
         return;
@@ -618,7 +652,7 @@ async function handleSend() {
                 conversationHistory.shift();
             }
         } else {
-            addMessage(`I'm sorry. I don't know about that topic. Try uploading an image!`, "bot");
+            addMessage(`I'm sorry. I don't know about that topic.`, "bot");
         }
     } catch (e) {
         removeTyping();
@@ -632,12 +666,27 @@ async function handleSend() {
  * @param {string} text - The text to extract keywords from
  * @returns {string} Space-separated keywords
  */
-function extractKeywords(text) {
+function extractKeywords(text, excludedWords = null) {
     // Remove punctuation and split
     const words = text.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/);
 
     // Filter using global STOPWORDS
-    return words.filter(w => !STOPWORDS.has(w) && w.length > 0).join(' ');
+    return words.filter(w => !STOPWORDS.has(w) && w.length > 0 && !(excludedWords && excludedWords.has(w))).join(' ');
+}
+
+function hasBoundaryKeyword(text, keywords) {
+    return keywords.some(keyword => {
+        const pattern = keyword
+            .split(/\s+/)
+            .map(escapeRegex)
+            .join('\\s+');
+
+        const regex = new RegExp(
+            `(^\\s*${pattern}(?=$|\\s|[.?!:]))|([.?!:]\\s*${pattern}(?=$|\\s|[.?!:]))|( ${pattern}(?= ))|(\\b${pattern}(?=[.?!:]))`
+        );
+
+        return regex.test(text);
+    });
 }
 
 /**
@@ -767,14 +816,12 @@ async function performClassification(imgEl, userText = "") {
         // Class 5: Printed Circuit Board - Show prediction + OCR
         if (classIndex === 5) {
             const confidence = (topMatch.probability * 100).toFixed(1);
-            let reply = `I am <b>${confidence}%</b> sure this is a <b>${topMatch.className}</b>.`;
+            const reply = `I am <b>${confidence}%</b> sure this is a <b>${topMatch.className}</b>.<br><small>Scanning for text...</small>`;
 
             // Perform OCR using the same approach as info-extractor
-            showTyping();
+            startResponse();
+            const { bubble } = addMessage(reply, "bot", null, { deferCompletion: true });
             try {
-                addMessage(reply, "bot");
-                addMessage("Scanning for text...", "bot");
-
                 console.log('Starting OCR for image');
 
                 // Initialize Tesseract with progress tracking (same as info-extractor)
@@ -801,9 +848,11 @@ async function performClassification(imgEl, userText = "") {
 
                 // Use the extracted text
                 const rawText = data.text || '';
+                let finalReply = `I am <b>${confidence}%</b> sure this is a <b>${topMatch.className}</b>.`;
 
                 if (!rawText || rawText.trim().length === 0) {
-                    addMessage("I couldn't extract any text from the board.", "bot");
+                    finalReply += `<br><br>I couldn't extract any text from the board.`;
+                    finalReply += `<br><br>${getBoardIdentificationMessage('')}`;
                 } else {
                     // Clean the text - preserve hyphens, underscores, dots for part numbers
                     const cleanText = rawText
@@ -818,15 +867,38 @@ async function performClassification(imgEl, userText = "") {
 
                     // Validate: require at least 3 total alphanumeric characters
                     if (cleanText && cleanText.replace(/[^a-zA-Z0-9]/g, '').length >= 3) {
-                        addMessage(`The following details are printed on the board:<br><br><i>${cleanText}</i>`, "bot");
+                        finalReply += `<br><br>There are details printed on the board.`;
+                        finalReply += `<br><br>${getBoardIdentificationMessage(cleanText)}`;
                     } else {
-                        addMessage("I couldn't extract any text from the board.", "bot");
+                        finalReply += `<br><br>I couldn't extract any text from the board.`;
+                        finalReply += `<br><br>${getBoardIdentificationMessage('')}`;
                     }
+                }
+
+                setBubbleContent(bubble, finalReply);
+                scrollToBottom();
+
+                if (isVoiceInput) {
+                    speakText(bubble);
+                    isVoiceInput = false;
+                } else {
+                    endResponse();
                 }
             } catch (e) {
                 console.error("OCR Failed", e);
                 removeTyping();
-                addMessage("I couldn't extract any text from the board.", "bot");
+                if (!checkStopResponse()) {
+                    const fallbackReply = `I am <b>${confidence}%</b> sure this is a <b>${topMatch.className}</b>.<br><br>I couldn't extract any text from the board.<br><br>${getBoardIdentificationMessage('')}`;
+                    setBubbleContent(bubble, fallbackReply);
+                    scrollToBottom();
+
+                    if (isVoiceInput) {
+                        speakText(bubble);
+                        isVoiceInput = false;
+                    } else {
+                        endResponse();
+                    }
+                }
             }
             return;
         }

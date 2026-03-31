@@ -74,11 +74,6 @@
                     <div class="example-questions">
                         <p class="example-label" id="example-label">Try asking:</p>
                         <div class="example-buttons" role="region" aria-labelledby="example-label">
-                            <button class="example-btn"
-                                data-question="What's the relationship between machine learning and artificial intelligence?"
-                                aria-label="Ask about the relationship between machine learning and artificial intelligence">
-                                What's the relationship between machine learning and artificial intelligence?
-                            </button>
                             <button class="example-btn" data-question="What is generative AI?"
                                 aria-label="Ask about generative AI">
                                 What is generative AI?
@@ -99,6 +94,15 @@
                                 aria-label="Ask about AI speech">
                                 Tell me about AI speech
                             </button>
+                            <button class="example-btn" data-question="What is Microsoft Foundry?"
+                                aria-label="Ask about Microsoft Foundry">
+                                What is Microsoft Foundry?
+                            </button>
+                            <button class="example-btn"
+                                data-question="Find me the steps to create a new project in Foundry."
+                                aria-label="Ask about creating a new project in Foundry">
+                                Find me the steps to create a new project in Foundry.
+                            </button>
                         </div>
                     </div>
                     <div class="input-info">
@@ -106,7 +110,7 @@
                             aria-atomic="true"></span>
                     </div>
                     <div class="disclaimer">
-                        <p>AI-generated content can contain mistakes</p>
+                        <p>AI-generated content may be incorrect</p>
                     </div>
                 </div>
             </div>
@@ -170,23 +174,23 @@
                     title="Close" type="button">×</button>
             </div>
             <div class="modal-body" id="config-modal-description">
-                <p>Configure your Microsoft Foundry connection to enable AI-powered responses.</p>
-
+                <p>Start by creating a project and deploying a model in the (new) <a href="https://ai.azure.com"
+                        target="_blank" rel="noopener noreferrer">Foundry portal</a>. Then configure your Microsoft
+                    Foundry connection here to enable AI-powered responses:</p>
                 <div class="config-form">
                     <div class="form-group">
                         <label for="foundry-endpoint">Endpoint URL:</label>
                         <input type="url" id="foundry-endpoint"
                             placeholder="https://your-resource.services.ai.azure.com" autocomplete="off"
                             aria-describedby="endpoint-help">
-                        <small id="endpoint-help" class="form-help">Your Foundry endpoint. The app derives the Speech
-                            endpoint from this host automatically.</small>
+                        <small id="endpoint-help" class="form-help">Your Foundry project endpoint</small>
                     </div>
 
                     <div class="form-group">
                         <label for="foundry-key">API Key:</label>
                         <input type="password" id="foundry-key" placeholder="Enter your API key" autocomplete="off"
                             aria-describedby="key-help">
-                        <small id="key-help" class="form-help">Your Foundry API key</small>
+                        <small id="key-help" class="form-help">Your Foundry project API key</small>
                     </div>
 
                     <div class="form-group">
