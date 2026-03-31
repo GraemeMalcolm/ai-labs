@@ -284,10 +284,20 @@ h1 {
 }
 
 .message-image {
+    width: 225px;
     max-width: 100%;
+    height: auto;
     border-radius: 12px;
     margin-top: 0.5rem;
     border: 1px solid #dee2e6;
+}
+
+.bubble.image-bubble {
+    display: inline-flex;
+    flex-direction: column;
+    width: fit-content;
+    max-width: 260px;
+    padding: 8px;
 }
 
 .timestamp {

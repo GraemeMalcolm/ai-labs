@@ -201,9 +201,14 @@ async function initWllama() {
             console.log(`Loading wllama: ${progress}%`);
         };
 
-        // Try multithreaded (4 threads) first, fall back to single-threaded
+        // Try multithreaded first when cross-origin isolation is enabled, then fall back to single-threaded.
+        const detectedHardwareConcurrency = Number.isFinite(navigator.hardwareConcurrency)
+            ? navigator.hardwareConcurrency
+            : null;
         const useMultiThread = window.crossOriginIsolated === true;
-        const preferredThreads = useMultiThread ? 4 : 1;
+        const preferredThreads = useMultiThread
+            ? (detectedHardwareConcurrency ? Math.max(2, Math.floor(detectedHardwareConcurrency / 2)) : 2)
+            : 1;
         console.log(`Cross-origin isolated: ${window.crossOriginIsolated}, attempting ${preferredThreads} thread(s)`);
 
         try {
@@ -211,15 +216,15 @@ async function initWllama() {
             updateLoadingStatus('smollm', 'loading', '20%');
 
             await wllama.loadModelFromHF(
-                'ngxson/SmolLM2-360M-Instruct-Q8_0-GGUF',
-                'smollm2-360m-instruct-q8_0.gguf',
+                'TheBloke/phi-2-GGUF',
+                'phi-2.Q3_K_M.gguf',
                 {
-                    n_ctx: 768,
+                    n_ctx: 512,
                     n_threads: preferredThreads,
                     progressCallback
                 }
             );
-            console.log(`Wllama initialized successfully with ${preferredThreads} thread(s)`);
+            console.log(`Wllama initialized successfully with Phi-2 Q3_K_M (${preferredThreads} thread(s))`);
         } catch (multiErr) {
             if (preferredThreads > 1) {
                 console.warn(`Multi-threaded init failed (${multiErr.message}), falling back to single thread`);
@@ -227,19 +232,22 @@ async function initWllama() {
 
                 wllama = new Wllama(CONFIG_PATHS);
                 await wllama.loadModelFromHF(
-                    'ngxson/SmolLM2-360M-Instruct-Q8_0-GGUF',
-                    'smollm2-360m-instruct-q8_0.gguf',
+                    'TheBloke/phi-2-GGUF',
+                    'phi-2.Q3_K_M.gguf',
                     {
-                        n_ctx: 768,
+                        n_ctx: 512,
                         n_threads: 1,
                         progressCallback
                     }
                 );
-                console.log("Wllama initialized successfully with 1 thread (fallback)");
+                console.log('Wllama initialized successfully with Phi-2 Q3_K_M (1 thread fallback)');
             } else {
                 throw multiErr;
             }
         }
+
+        const availableCores = detectedHardwareConcurrency ?? 'unknown';
+        console.log(`[wllama] configured threads=${preferredThreads}, hardwareConcurrency=${availableCores}`);
 
         wllamaReady = true;
         updateLoadingStatus('smollm', 'ready', '100%');
@@ -329,13 +337,12 @@ function addMessage(text, sender, imageUrl = null, options = {}) {
     setBubbleContent(bubble, text);
 
     if (imageUrl) {
-        const br = document.createElement('br');
+        bubble.classList.add('image-bubble');
         const img = document.createElement('img');
         img.src = imageUrl;
         img.className = 'message-image';
         img.alt = 'Uploaded image';
         img.onload = scrollToBottom;
-        bubble.appendChild(br);
         bubble.appendChild(img);
     }
 
@@ -393,13 +400,7 @@ function showTyping() {
     const div = document.createElement('div');
     div.id = 'typing-indicator';
     div.className = 'message bot';
-    div.innerHTML = `
-        <div class="typing">
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-        </div>
-    `;
+    div.innerHTML = getTypingIndicatorMarkup('Assistant is thinking');
     chatContainer.appendChild(div);
     scrollToBottom();
 
@@ -413,6 +414,132 @@ function showTyping() {
 function removeTyping() {
     const el = document.getElementById('typing-indicator');
     if (el) el.remove();
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function getTypingIndicatorMarkup(ariaLabel = 'Assistant is thinking') {
+    return `
+        <div class="typing" aria-label="${escapeHtml(ariaLabel)}">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+        <p style="font-size: 0.85em; color: #666; margin-top: 8px; font-style: italic;">Responses can be slow in local browser mode. Thanks for your patience!</p>
+    `;
+}
+
+async function waitWithStop(ms) {
+    const intervalMs = 100;
+    let elapsed = 0;
+
+    while (elapsed < ms) {
+        if (checkStopResponse()) {
+            return false;
+        }
+
+        const waitMs = Math.min(intervalMs, ms - elapsed);
+        await new Promise(resolve => setTimeout(resolve, waitMs));
+        elapsed += waitMs;
+    }
+
+    return true;
+}
+
+async function runSearchFlow(searchKeywords, url) {
+    showTyping();
+
+    const completedThinking = await waitWithStop(5000);
+    if (!completedThinking) {
+        removeTyping();
+        return;
+    }
+
+    removeTyping();
+
+    if (checkStopResponse()) {
+        return;
+    }
+
+    addMessage(`I'm searching Bing for ${searchKeywords}...`, 'bot', null, { deferCompletion: true });
+
+    const completedDelay = await waitWithStop(3000);
+    if (!completedDelay || checkStopResponse()) {
+        return;
+    }
+
+    addMessage(`Here's what I found: <a href="${url}" target="_blank" style="color: #64185e; text-decoration: underline;">Click here to see results for ${searchKeywords}</a>`, 'bot');
+}
+
+function getRandomHoldingSentence() {
+    const holdingSentences = [
+        'That is a great question, let me think about it carefully.',
+        'I am reviewing the relevant details so I can give you a precise answer.',
+        'Let me quickly check the most relevant information before I respond.',
+        'I am checking the context now to make sure the answer is accurate.',
+        'I am organizing my thoughts so my explanation is clear and concise.',
+        'Let me validate the facts first, then I will provide a focused response.'
+    ];
+
+    const randomIndex = Math.floor(Math.random() * holdingSentences.length);
+    return holdingSentences[randomIndex];
+}
+
+async function animateHoldingSentence(element, sentence, speed = 55) {
+    let partial = '';
+
+    for (const char of sentence) {
+        if (checkStopResponse()) {
+            return false;
+        }
+
+        partial += char;
+        element.innerHTML = `<p>${escapeHtml(partial)}</p>`;
+        scrollToBottom();
+        await new Promise(resolve => setTimeout(resolve, speed));
+    }
+
+    return true;
+}
+
+async function playPreResponseSequence() {
+    const typingElement = document.getElementById('typing-indicator');
+    if (!typingElement) {
+        return true;
+    }
+
+    typingElement.innerHTML = getTypingIndicatorMarkup('Assistant is thinking');
+    scrollToBottom();
+
+    const completedThinking = await waitWithStop(15000);
+    if (!completedThinking) {
+        return false;
+    }
+
+    const holdingSentence = getRandomHoldingSentence();
+    const completedTyping = await animateHoldingSentence(typingElement, holdingSentence, 55);
+    if (!completedTyping) {
+        return false;
+    }
+
+    const completedPause = await waitWithStop(650);
+    if (!completedPause) {
+        return false;
+    }
+
+    typingElement.innerHTML = `
+        <div style="display: inline-flex; flex-direction: column; align-items: flex-start; gap: 8px; max-width: 100%;">
+            <div>${escapeHtml(holdingSentence)}</div>
+            <div>${getTypingIndicatorMarkup('Assistant is thinking')}</div>
+        </div>
+    `;
+    scrollToBottom();
+
+    return true;
 }
 
 /**
@@ -458,6 +585,13 @@ const STOPWORDS = new Set([
     'why', 'how', 'can', 'could', 'will', 'would', 'should',
     'may', 'might', 'must', 'find', 'search', 'show', 'tell', 'look',
     'ebay', 'sale', 'buy', 'price', 'cost', 'need', 'one'
+]);
+
+const SEARCH_EBAY_TRIGGERS = ['ebay', 'for sale', 'buy', 'purchase', 'shop'];
+const SEARCH_BING_TRIGGERS = ['bing', 'search', 'find'];
+const SEARCH_TRIGGER_WORD_SET = new Set([
+    ...SEARCH_EBAY_TRIGGERS.join(' ').split(/\s+/),
+    ...SEARCH_BING_TRIGGERS.join(' ').split(/\s+/)
 ]);
 
 // Initialize
@@ -581,14 +715,8 @@ async function handleSend() {
 
     // 3. Text Only Response (Language model, eBay, or Bing search)
     const lowerText = text.toLowerCase();
-    const ebayTriggers = ['ebay', 'for sale', 'buy', 'purchase', 'shop'];
-    const bingTriggers = ['bing', 'search', 'find'];
-    const isEbay = hasBoundaryKeyword(lowerText, ebayTriggers);
-    const isBing = hasBoundaryKeyword(lowerText, bingTriggers);
-    const searchTriggerWordSet = new Set([
-        ...ebayTriggers.join(' ').split(/\s+/),
-        ...bingTriggers.join(' ').split(/\s+/)
-    ]);
+    const isEbay = hasBoundaryKeyword(lowerText, SEARCH_EBAY_TRIGGERS);
+    const isBing = hasBoundaryKeyword(lowerText, SEARCH_BING_TRIGGERS);
 
     const keywords = extractKeywords(text);
     if (!keywords) {
@@ -597,38 +725,26 @@ async function handleSend() {
     }
 
     if (isEbay) {
-        const searchKeywords = extractKeywords(text, searchTriggerWordSet);
+        const searchKeywords = extractKeywords(text, SEARCH_TRIGGER_WORD_SET);
         if (!searchKeywords) {
             addMessage("Please enter a more specific shopping query.", "bot");
             return;
         }
 
-        addMessage(`Searching Bing Shopping for <b>"${searchKeywords}"</b>...`, "bot");
         const url = `https://www.bing.com/shop/topics?q=${searchKeywords.replace(/ /g, '+')}`;
-        // Brief delay for effect
-        setTimeout(() => {
-            if (!checkStopResponse()) {
-                addMessage(`Here's what I found: <a href="${url}" target="_blank" style="color: #64185e; text-decoration: underline;">Click here to see results for ${searchKeywords}</a>`, "bot");
-            }
-        }, 600);
+        await runSearchFlow(searchKeywords, url);
         return;
     }
 
     if (isBing) {
-        const searchKeywords = extractKeywords(text, searchTriggerWordSet);
+        const searchKeywords = extractKeywords(text, SEARCH_TRIGGER_WORD_SET);
         if (!searchKeywords) {
             addMessage("Please enter a more specific search query.", "bot");
             return;
         }
 
-        addMessage(`Searching Bing for <b>"${searchKeywords}"</b>...`, "bot");
         const url = `https://www.bing.com/search?q=${searchKeywords.replace(/ /g, '+')}`;
-        // Brief delay for effect
-        setTimeout(() => {
-            if (!checkStopResponse()) {
-                addMessage(`Here's what I found: <a href="${url}" target="_blank" style="color: #64185e; text-decoration: underline;">Click here to see results for ${searchKeywords}</a>`, "bot");
-            }
-        }, 600);
+        await runSearchFlow(searchKeywords, url);
         return;
     }
 
@@ -799,28 +915,59 @@ function removeImage() {
 async function performClassification(imgEl, userText = "") {
     try {
         const result = await classify(imgEl);
-        removeTyping();
-
-        if (checkStopResponse()) return;
-
         const topMatch = result[0];
         const classIndex = CLASSES.indexOf(topMatch.className);
         const lowerText = userText.toLowerCase();
+        const confidence = (topMatch.probability * 100).toFixed(1);
+        const classDescription = `I'm ${confidence}% certain this is a ${topMatch.className}.`;
+
+        if (checkStopResponse()) {
+            removeTyping();
+            return;
+        }
+
+        // Keep waiting dots visible for 10 seconds before class identification.
+        const completedInitialWait = await waitWithStop(10000);
+        if (!completedInitialWait) {
+            removeTyping();
+            return;
+        }
 
         // Class 6: Unknown - Simple "don't know" message
         if (classIndex === 6) {
+            removeTyping();
             addMessage("I'm sorry. I don't know what this is. I can only recognize computers and circuit boards.", "bot");
             return;
         }
 
+        const typingElement = document.getElementById('typing-indicator');
+        if (typingElement) {
+            const typedClassLine = await animateHoldingSentence(typingElement, classDescription, 45);
+            if (!typedClassLine) {
+                removeTyping();
+                return;
+            }
+        }
+
+        removeTyping();
+
+        if (checkStopResponse()) return;
+
         // Class 5: Printed Circuit Board - Show prediction + OCR
         if (classIndex === 5) {
-            const confidence = (topMatch.probability * 100).toFixed(1);
-            const reply = `I am <b>${confidence}%</b> sure this is a <b>${topMatch.className}</b>.<br><small>Scanning for text...</small>`;
+            addMessage(classDescription, 'bot', null, { deferCompletion: true });
+
+            const readingTextMessage = 'Reading text from the board...';
+            const { bubble } = addMessage(readingTextMessage, 'bot', null, { deferCompletion: true });
+            startResponse();
+
+            const completedPause = await waitWithStop(5000);
+            if (!completedPause) {
+                endResponse();
+                return;
+            }
 
             // Perform OCR using the same approach as info-extractor
-            startResponse();
-            const { bubble } = addMessage(reply, "bot", null, { deferCompletion: true });
             try {
                 console.log('Starting OCR for image');
 
@@ -842,13 +989,11 @@ async function performClassification(imgEl, userText = "") {
                 // Clean up worker (same as info-extractor)
                 await worker.terminate();
 
-                removeTyping();
-
                 if (checkStopResponse()) return;
 
                 // Use the extracted text
                 const rawText = data.text || '';
-                let finalReply = `I am <b>${confidence}%</b> sure this is a <b>${topMatch.className}</b>.`;
+                let finalReply = `${readingTextMessage}`;
 
                 if (!rawText || rawText.trim().length === 0) {
                     finalReply += `<br><br>I couldn't extract any text from the board.`;
@@ -886,9 +1031,8 @@ async function performClassification(imgEl, userText = "") {
                 }
             } catch (e) {
                 console.error("OCR Failed", e);
-                removeTyping();
                 if (!checkStopResponse()) {
-                    const fallbackReply = `I am <b>${confidence}%</b> sure this is a <b>${topMatch.className}</b>.<br><br>I couldn't extract any text from the board.<br><br>${getBoardIdentificationMessage('')}`;
+                    const fallbackReply = `${readingTextMessage}<br><br>I couldn't extract any text from the board.<br><br>${getBoardIdentificationMessage('')}`;
                     setBubbleContent(bubble, fallbackReply);
                     scrollToBottom();
 
@@ -903,45 +1047,95 @@ async function performClassification(imgEl, userText = "") {
             return;
         }
 
-        // Standard prediction message for all other classes
-        const confidence = (topMatch.probability * 100).toFixed(1);
-        let reply = `I am <b>${confidence}%</b> sure this is a <b>${topMatch.className}</b>.`;
+        // Class 4: Computer - show delayed uncertainty message after a waiting indicator
+        if (classIndex === 4) {
+            let classPredictionMessage = `${classDescription}`;
+
+            if (result[1] && result[1].probability > 0.1) {
+                classPredictionMessage += `<br><small>Second guess: ${result[1].className} (${(result[1].probability * 100).toFixed(1)}%)</small>`;
+            }
+
+            addMessage(classPredictionMessage, 'bot', null, { deferCompletion: true });
+
+            const { bubble } = addMessage('', 'bot', null, { deferCompletion: true });
+            bubble.innerHTML = getTypingIndicatorMarkup('Assistant is thinking');
+            scrollToBottom();
+            startResponse();
+
+            const completedUnknownDelay = await waitWithStop(5000);
+            if (!completedUnknownDelay) {
+                endResponse();
+                return;
+            }
+
+            const unknownComputerMessage = "Unfortunately, I'm not sure what kind of computer this is.";
+            setBubbleContent(bubble, unknownComputerMessage);
+            scrollToBottom();
+
+            if (isVoiceInput) {
+                speakText(bubble);
+                isVoiceInput = false;
+            } else {
+                endResponse();
+            }
+
+            return;
+        }
+
+        // Standard prediction message for remaining classes
+        let reply = `${classDescription}`;
 
         // Add secondary guess if close
         if (result[1] && result[1].probability > 0.1) {
             reply += `<br><small>Second guess: ${result[1].className} (${(result[1].probability * 100).toFixed(1)}%)</small>`;
         }
 
-        // Check if user wants eBay search
-        const isEbay = lowerText.includes('ebay') || lowerText.includes('for sale') || lowerText.includes('buy');
+        // Use the same search triggers as text-only searches.
+        const isEbay = hasBoundaryKeyword(lowerText, SEARCH_EBAY_TRIGGERS);
+        const isBing = hasBoundaryKeyword(lowerText, SEARCH_BING_TRIGGERS);
 
         // Classes 0, 1, 2, 3, 4: eBay search or information
         if ([0, 1, 2, 3, 4].includes(classIndex)) {
             if (isEbay) {
-                // eBay search
+                // Search flow uses the same staged function as text-only searches.
                 addMessage(reply, "bot");
-                addMessage(`Searching eBay for <b>"${topMatch.className}"</b>...`, "bot");
-                const url = `https://www.ebay.com/sch/i.html?_nkw=${topMatch.className.replace(/ /g, '+')}`;
-                setTimeout(() => {
-                    if (!checkStopResponse()) {
-                        addMessage(`Found it! <a href="${url}" target="_blank" style="color: #4ade80; text-decoration: underline;">Click here to search eBay for ${topMatch.className}</a>`, "bot");
-                    }
-                }, 600);
+                const url = `https://www.bing.com/shop/topics?q=${topMatch.className.replace(/ /g, '+')}`;
+                await runSearchFlow(topMatch.className, url);
+                return;
+            }
+
+            if (isBing) {
+                addMessage(reply, "bot");
+                const url = `https://www.bing.com/search?q=${topMatch.className.replace(/ /g, '+')}`;
+                await runSearchFlow(topMatch.className, url);
                 return;
             } else {
                 // AI-generated info for classes 0, 1, 2, 3
                 if ([0, 1, 2, 3].includes(classIndex)) {
-                    showTyping();
+                    addMessage(classDescription, 'bot', null, { deferCompletion: true });
+
+                    const completedInfoDelay = await waitWithStop(5000);
+                    if (!completedInfoDelay) {
+                        endResponse();
+                        return;
+                    }
+
+                    const findingInfoMessage = `I'm finding some information about the ${topMatch.className}...`;
+                    const { bubble } = addMessage(findingInfoMessage, 'bot', null, { deferCompletion: true });
+                    bubble.innerHTML = `<p>${escapeHtml(findingInfoMessage)}</p><div style="margin-top: 8px;">${getTypingIndicatorMarkup('Assistant is thinking')}</div>`;
+                    scrollToBottom();
+                    startResponse();
+
                     try {
                         const historyUserPrompt = `Tell me about the ${topMatch.className} computer`;
-                        const infoPrompt = buildClassInfoPrompt(classIndex);
-                        const summary = await generateComputingInfo(infoPrompt || topMatch.className);
+                        const classContext = CLASS_INFO[classIndex] || null;
+                        const summary = await generateComputingInfo(historyUserPrompt, classContext);
                         if (checkStopResponse()) {
-                            removeTyping();
                             return;
                         }
                         if (summary) {
-                            reply += `<br>${summary}`;
+                            setBubbleContent(bubble, `${findingInfoMessage}<br><br>${summary}`);
+                            scrollToBottom();
                             conversationHistory.push({
                                 user: historyUserPrompt,
                                 assistant: truncateToFirstSentence(summary)
@@ -949,18 +1143,27 @@ async function performClassification(imgEl, userText = "") {
                             if (conversationHistory.length > 2) {
                                 conversationHistory.shift();
                             }
+                        } else {
+                            setBubbleContent(bubble, `${findingInfoMessage}<br><br>I'm sorry. I don't know about that topic.`);
+                            scrollToBottom();
                         }
                     } catch (e) {
                         console.warn("Info generation failed", e);
-                    } finally {
-                        removeTyping();
+                        setBubbleContent(bubble, `${findingInfoMessage}<br><br>Sorry, I had trouble searching via text.`);
+                        scrollToBottom();
                     }
+
+                    if (isVoiceInput) {
+                        speakText(bubble);
+                        isVoiceInput = false;
+                    } else {
+                        endResponse();
+                    }
+
+                    return;
                 }
 
-                // Class 4: Computer - Add uncertainty message
-                if (classIndex === 4) {
-                    reply += `<br><br>Unfortunately, I'm not sure what kind of computer this is.`;
-                }
+                // Class 4 handled above with delayed uncertainty flow.
             }
         }
 
@@ -978,7 +1181,7 @@ async function performClassification(imgEl, userText = "") {
  * @param {string} query - The query to generate information about
  * @returns {Promise<string|null>} Generated text or null if unavailable
  */
-async function generateComputingInfo(query) {
+async function generateComputingInfo(query, context = null) {
     // If wllama is not ready, return a fallback message
     if (!wllamaReady || !wllama) {
         console.warn("Wllama not ready, skipping generation");
@@ -986,39 +1189,53 @@ async function generateComputingInfo(query) {
     }
 
     try {
-        // Build ChatML formatted prompt
-        let chatMLPrompt = '<|im_start|>system\n';
-        chatMLPrompt += 'You are a knowledgeable assistant about computing history. You follow the rules at all times.\n\n';
-        chatMLPrompt += 'Rules:\n';
-        chatMLPrompt += '- You may discuss computing and technology topics only\n';
-        chatMLPrompt += '- Respond with one or two clear sentences, using simple language\n';
-        chatMLPrompt += '- Focus on key facts and historical context\n';
-        chatMLPrompt += '- You must not provide assistance with activities that are illegal or may cause harm\n';
-        chatMLPrompt += '<|im_end|>\n\n';
+        const introCompleted = await playPreResponseSequence();
+        if (!introCompleted) {
+            return null;
+        }
+
+        // Build a plain instruct-style prompt for Phi-2 (non-ChatML)
+        const promptSections = [];
+        promptSections.push('System: You are a knowledgeable assistant about computing history. Respond in one concise factual paragraph. If you don\'t know, say you don\'t know.');
 
         // Include conversation history for context (last 2 exchanges)
         if (conversationHistory.length > 0) {
             conversationHistory.forEach(exchange => {
-                chatMLPrompt += '<|im_start|>user\n';
-                chatMLPrompt += exchange.user + '\n';
-                chatMLPrompt += '<|im_end|>\n\n';
-                chatMLPrompt += '<|im_start|>assistant\n';
-                chatMLPrompt += exchange.assistant + '\n';
-                chatMLPrompt += '<|im_end|>\n\n';
+                const previousUser = truncateToFirstSentence(exchange.user || '');
+                const previousAssistant = truncateToFirstSentence(exchange.assistant || '');
+
+                if (previousUser) {
+                    promptSections.push(`Previous user (first sentence): ${previousUser}`);
+                }
+                if (previousAssistant) {
+                    promptSections.push(`Previous assistant (first sentence): ${previousAssistant}`);
+                }
             });
         }
 
-        // Add current user query (full text, not keywords)
-        chatMLPrompt += '<|im_start|>user\n';
-        chatMLPrompt += query + '\n' + "Provide a concise and factually accurate response.\n";
-        chatMLPrompt += '<|im_end|>\n\n';
-        chatMLPrompt += '<|im_start|>assistant\n';
+        // Add current user query (full text)
+        promptSections.push(`Current user prompt: ${query}`);
+
+        // Add optional context block
+        if (context) {
+            const maxContextLength = 512;
+            const truncatedContext = context.length > maxContextLength
+                ? context.substring(0, maxContextLength) + '...'
+                : context;
+            promptSections.push(
+                'Respond by summarizing the following information in a single, short, paragraph:\n---\n' +
+                truncatedContext +
+                '\n---'
+            );
+        }
+
+        const promptText = `Instruct: ${promptSections.join('\n\n')}\nOutput:`;
 
         console.log('Generating info for:', query);
 
         // Generate response
         let responseText = '';
-        const completion = await wllama.createCompletion(chatMLPrompt, {
+        const completion = await wllama.createCompletion(promptText, {
             nPredict: 250,  // Allow for more complete responses
             sampling: {
                 temp: 0.3,  // Lower temperature for more factual, less creative responses
@@ -1026,7 +1243,7 @@ async function generateComputingInfo(query) {
                 top_p: 0.9,
                 penalty_repeat: 1.1
             },
-            stopTokens: ['<|im_end|>', '<|im_start|>'],
+            stopTokens: ['\nInstruct:', '\nSystem:', '\nCurrent user prompt:'],
             stream: true
         });
 
