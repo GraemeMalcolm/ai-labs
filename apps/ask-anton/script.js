@@ -1107,7 +1107,7 @@ IMPORTANT: Follow these guidelines when responding:
         }
 
         // Small pause to make the transition into streamed output feel natural.
-        return this.waitWithStop(10);
+        return this.waitWithStop(650);
     }
 
     async generateWithWebLLM(userMessage, context, messageTextDiv, usedVoiceInput = false) {
