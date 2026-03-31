@@ -208,37 +208,50 @@ IMPORTANT: Follow these guidelines when responding:
             // Initialize wllama with CDN-hosted WASM files
             this.wllama = new Wllama(CONFIG_PATHS);
 
-            // Load model from HuggingFace with optimized settings
-            await this.wllama.loadModelFromHF(
-                'ngxson/SmolLM2-360M-Instruct-Q8_0-GGUF',
-                'smollm2-360m-instruct-q8_0.gguf',
-                {
-                    n_ctx: 512,      // Smaller context for faster processing
-                    n_threads: 1,     // Single thread can be more stable
-                    progressCallback: ({ loaded, total }) => {
-                        const percentage = Math.max(15, Math.round((loaded / total) * 85) + 15);
-                        const progress = loaded / total;
+            const detectedHardwareConcurrency =
+                typeof navigator !== 'undefined' && Number.isFinite(navigator.hardwareConcurrency)
+                    ? navigator.hardwareConcurrency
+                    : null;
+            const computedThreads = detectedHardwareConcurrency
+                ? Math.max(2, Math.floor(detectedHardwareConcurrency / 2))
+                : 2;
 
-                        if (!isLazyLoad) {
-                            this.updateProgress(
-                                percentage,
-                                `Loading model: ${Math.round((loaded / total) * 100)}%`
-                            );
-                        } else {
-                            console.log(`Loading wllama: ${Math.round((loaded / total) * 100)}%`);
-                            // Call the progress callback for lazy loading
-                            if (progressCallback) {
-                                progressCallback(progress);
-                            }
+            const wllamaOptions = {
+                n_ctx: 512,      // Smaller context for faster processing
+                n_threads: computedThreads,
+                progressCallback: ({ loaded, total }) => {
+                    const percentage = Math.max(15, Math.round((loaded / total) * 85) + 15);
+                    const progress = loaded / total;
+
+                    if (!isLazyLoad) {
+                        this.updateProgress(
+                            percentage,
+                            `Loading model: ${Math.round((loaded / total) * 100)}%`
+                        );
+                    } else {
+                        console.log(`Loading wllama: ${Math.round((loaded / total) * 100)}%`);
+                        // Call the progress callback for lazy loading
+                        if (progressCallback) {
+                            progressCallback(progress);
                         }
                     }
                 }
+            };
+
+            // Load model from HuggingFace with optimized settings
+            await this.wllama.loadModelFromHF(
+                'TheBloke/phi-2-GGUF',
+                'phi-2.Q3_K_M.gguf',
+                wllamaOptions
             );
+
+            const availableCores = detectedHardwareConcurrency ?? 'unknown';
+            console.log(`[wllama] configured threads=${wllamaOptions.n_threads}, hardwareConcurrency=${availableCores}`);
 
             if (!isLazyLoad) {
                 this.updateProgress(100, 'Ready to chat! (CPU mode)');
             }
-            console.log('Wllama initialized successfully with SmolLM2-360M-Instruct');
+            console.log('Wllama initialized successfully with Phi-2 Q3_K_M');
 
             if (!isLazyLoad) {
                 this.webGPUAvailable = false;
@@ -864,7 +877,7 @@ IMPORTANT: Follow these guidelines when responding:
                     <p class="message-author" aria-label="From Anton">Anton</p>
                     <div class="message-text" ${isTyping ? 'aria-live="polite" aria-busy="true"' : ''}>
                         ${isTyping
-                    ? '<span class="typing-indicator" aria-label="Anton is typing">●●●</span>'
+                    ? this.getTypingIndicatorMarkup('Anton is typing')
                     : this.escapeHtml(content)}
                     </div>
                 </div>
@@ -883,6 +896,10 @@ IMPORTANT: Follow these guidelines when responding:
         this.scrollToBottom();
 
         return messageDiv;
+    }
+
+    getTypingIndicatorMarkup(ariaLabel = 'Anton is typing') {
+        return `<span class="typing-indicator" aria-label="${this.escapeHtml(ariaLabel)}">●●●</span><p style="font-size: 0.85em; color: #666; margin-top: 8px; font-style: italic;">Responses can be slow in CPU mode. Thanks for your patience!</p>`;
     }
 
     renderAssistantMessage(messageTextDiv, assistantMessage, categories = [], links = [], placeholders = {}) {
@@ -925,11 +942,7 @@ IMPORTANT: Follow these guidelines when responding:
         const messageTextDiv = responseMessage.querySelector('.message-text');
         const searchLinkHtml = `<a href="${bingUrl}" target="_blank" rel="noopener noreferrer">Here's what I found.</a>`;
 
-        if (this.usingWllama) {
-            messageTextDiv.innerHTML = '<span class="typing-indicator" aria-label="Anton is typing">●●●</span><p style="font-size: 0.85em; color: #666; margin-top: 8px; font-style: italic;">(Responses may be slow in CPU mode. Thanks for your patience!)</p>';
-        } else {
-            messageTextDiv.innerHTML = '<span class="typing-indicator">●●●</span>';
-        }
+        messageTextDiv.innerHTML = this.getTypingIndicatorMarkup('Anton is typing');
 
         try {
             await new Promise(resolve => setTimeout(resolve, 250));
@@ -987,14 +1000,15 @@ IMPORTANT: Follow these guidelines when responding:
         const responseMessage = this.addMessage('assistant', '', false);
         const messageTextDiv = responseMessage.querySelector('.message-text');
 
-        // Show thinking indicator with CPU mode notice if applicable
-        if (this.usingWllama) {
-            messageTextDiv.innerHTML = '<span class="typing-indicator" aria-label="Anton is typing">●●●</span><p style="font-size: 0.85em; color: #666; margin-top: 8px; font-style: italic;">(Responses may be slow in CPU mode. Thanks for your patience!)</p>';
-        } else {
-            messageTextDiv.innerHTML = '<span class="typing-indicator">●●●</span>';
-        }
-
         try {
+            const introAnimationCompleted = await this.playPreResponseAnimation(messageTextDiv);
+            if (!introAnimationCompleted) {
+                return;
+            }
+
+            messageTextDiv.innerHTML += `<div style="margin-top: 8px;">${this.getTypingIndicatorMarkup('Anton is thinking')}</div>`;
+            this.scrollToBottom();
+
             // Route to the appropriate engine
             let assistantMessage = '';
 
@@ -1038,6 +1052,62 @@ IMPORTANT: Follow these guidelines when responding:
                 this.elements.searchStatus.textContent = '';
             }, 2000);
         }
+    }
+
+    getRandomHoldingSentence() {
+        const holdingSentences = [
+            'That is an interesting topic, let me think about it carefully.',
+            'I am reviewing some details so I can give you a precise answer.',
+            'Let me quickly review the most relevant information before I respond.',
+            'I am checking the context now to make sure my answer is accurate.',
+            'I am organizing my thoughts so my explanation is clear and concise.',
+            'Let me validate the facts first, then I will provide a focused response.'
+        ];
+
+        const randomIndex = Math.floor(Math.random() * holdingSentences.length);
+        return holdingSentences[randomIndex];
+    }
+
+    async waitWithStop(ms) {
+        const intervalMs = 100;
+        let elapsed = 0;
+
+        while (elapsed < ms) {
+            if (this.stopRequested) {
+                return false;
+            }
+
+            const waitMs = Math.min(intervalMs, ms - elapsed);
+            await new Promise(resolve => setTimeout(resolve, waitMs));
+            elapsed += waitMs;
+        }
+
+        return true;
+    }
+
+    async playPreResponseAnimation(messageTextDiv) {
+        messageTextDiv.innerHTML = this.getTypingIndicatorMarkup('Anton is thinking');
+        this.scrollToBottom();
+
+        const completedThinking = await this.waitWithStop(15000);
+        if (!completedThinking) {
+            return false;
+        }
+
+        const holdingSentence = this.getRandomHoldingSentence();
+        const completedTyping = await this.animateTyping(
+            messageTextDiv,
+            holdingSentence,
+            (partialMessage) => this.formatResponse(partialMessage),
+            55
+        );
+
+        if (!completedTyping) {
+            return false;
+        }
+
+        // Small pause to make the transition into streamed output feel natural.
+        return this.waitWithStop(10);
     }
 
     async generateWithWebLLM(userMessage, context, messageTextDiv, usedVoiceInput = false) {
@@ -1111,14 +1181,9 @@ IMPORTANT: Follow these guidelines when responding:
             throw new Error('Wllama is not initialized. Please wait for CPU mode to finish loading.');
         }
 
-        // Build ChatML formatted prompt
-        let chatMLPrompt = '<|im_start|>system\n';
-        chatMLPrompt += 'You are Anton, a teacher of AI and computing concepts. You always follow these rules.\n\n';
-        chatMLPrompt += 'Rules:\n';
-        chatMLPrompt += '- Discuss AI and computing topics only\n';
-        chatMLPrompt += '- Do not provide specific steps or instructions\n\n';
-        chatMLPrompt += '- Provide factual and accurate information\n\n';
-        chatMLPrompt += '<|im_end|>\n\n';
+        // Build a plain instruct-style prompt for Phi-2 (non-ChatML)
+        const promptSections = [];
+        promptSections.push('System: You are Anton, an AI and computing tutor. Respond in ONE concise factual paragraph.');
 
         // Add truncated previous prompt and response if available
         if (this.conversationHistory.length >= 2) {
@@ -1130,30 +1195,34 @@ IMPORTANT: Follow these guidelines when responding:
                 const prevUserSentence = this.extractFirstSentence(prevUser.content);
                 const prevAssistantSentence = this.extractFirstSentence(prevAssistant.content);
 
-                chatMLPrompt += '<|im_start|>user\n';
-                chatMLPrompt += prevUserSentence + '\n';
-                chatMLPrompt += '<|im_end|>\n\n';
-                chatMLPrompt += '<|im_start|>assistant\n';
-                chatMLPrompt += prevAssistantSentence + '\n';
-                chatMLPrompt += '<|im_end|>\n\n';
+                if (prevUserSentence) {
+                    promptSections.push(`Previous user (first sentence): ${prevUserSentence}`);
+                }
+                if (prevAssistantSentence) {
+                    promptSections.push(`Previous assistant (first sentence): ${prevAssistantSentence}`);
+                }
             }
         }
 
         // Add current user message
-        chatMLPrompt += '<|im_start|>user\n';
+        promptSections.push(`Current user prompt: ${userMessage}`);
+
         // Add context from index.json if available (truncate to prevent context overflow)
         if (context) {
-            const maxContextLength = 400;
+            const maxContextLength = 512;
             const truncatedContext = context.length > maxContextLength
                 ? context.substring(0, maxContextLength) + '...'
                 : context;
-            chatMLPrompt += 'Give a concise and factually accurate response based ONLY on the following information:\n---\n' + truncatedContext + '\n';
+            promptSections.push(
+                'IMPORTANT: Respond with a SINGLE SHORT PARAGRAPH based on the following information:\n---\n' +
+                truncatedContext +
+                '\n---'
+            );
         }
-        chatMLPrompt += userMessage + '\n';
-        chatMLPrompt += '<|im_end|>\n\n';
-        chatMLPrompt += '<|im_start|>assistant\n';
 
-        console.log('Sending prompt to wllama (length:', chatMLPrompt.length, 'chars)');
+        const promptText = `Instruct: ${promptSections.join('\n\n')}\nOutput:`;
+
+        console.log('Sending prompt to wllama (length:', promptText.length, 'chars)');
 
         let assistantMessage = '';
         let audioPlayed = false;
@@ -1172,15 +1241,15 @@ IMPORTANT: Follow these guidelines when responding:
 
         // Use streaming with proper abort support
         try {
-            const completion = await this.wllama.createCompletion(chatMLPrompt, {
-                nPredict: 150,
+            const completion = await this.wllama.createCompletion(promptText, {
+                nPredict: 90,
                 sampling: {
-                    temp: 0.7,
-                    top_k: 40,
-                    top_p: 0.9,
+                    temp: 0.55,
+                    top_k: 20,
+                    top_p: 0.85,
                     penalty_repeat: 1.1
                 },
-                stopTokens: ['<|im_end|>', '<|im_start|>'],
+                stopTokens: ['\nInstruct:', '\nSystem:', '\nCurrent user prompt:'],
                 abortSignal: controller.signal,
                 stream: true
             });
