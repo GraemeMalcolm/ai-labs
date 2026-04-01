@@ -248,12 +248,16 @@ IMPORTANT: Follow these guidelines when responding:
             const availableCores = detectedHardwareConcurrency ?? 'unknown';
             console.log(`[wllama] configured threads=${wllamaOptions.n_threads}, hardwareConcurrency=${availableCores}`);
 
-            if (!isLazyLoad) {
-                this.updateProgress(100, 'Ready to chat! (CPU mode)');
-            }
             console.log('Wllama initialized successfully with Phi-2 Q3_K_M');
 
+            // Warm the KV cache with system prompt for faster first response
             if (!isLazyLoad) {
+                this.updateProgress(95, 'Warming cache...');
+            }
+            await this.warmWllamaCache();
+
+            if (!isLazyLoad) {
+                this.updateProgress(100, 'Ready to chat! (CPU mode)');
                 this.webGPUAvailable = false;
                 this.usingWllama = true;
 
@@ -268,6 +272,26 @@ IMPORTANT: Follow these guidelines when responding:
                 this.showError('Failed to load AI model. Please refresh the page.');
             }
             throw error;
+        }
+    }
+
+    async warmWllamaCache() {
+        if (!this.wllama) return;
+
+        try {
+            console.log('Warming KV cache with system prompt...');
+            const warmupPrompt = 'System: You are Anton, an AI and computing tutor. Respond in ONE concise factual paragraph.\nInstruct: Hello\nOutput:';
+
+            // Process the prompt without generating output to populate cache
+            await this.wllama.createCompletion(warmupPrompt, {
+                nPredict: 1,  // Generate minimal tokens
+                sampling: { temp: 0.1 },
+                stream: false
+            });
+
+            console.log('KV cache warmed successfully');
+        } catch (error) {
+            console.log('Cache warming failed (non-critical):', error.message);
         }
     }
 
@@ -1231,14 +1255,6 @@ IMPORTANT: Follow these guidelines when responding:
         const controller = new AbortController();
         this.currentAbortController = controller;
 
-        // Clear KV cache before generation to ensure clean state
-        try {
-            await this.wllama.kvClear();
-            console.log('KV cache cleared before generation');
-        } catch (error) {
-            console.log('KV cache clear failed:', error.message);
-        }
-
         // Use streaming with proper abort support
         try {
             const completion = await this.wllama.createCompletion(promptText, {
@@ -1273,26 +1289,12 @@ IMPORTANT: Follow these guidelines when responding:
             // Clear abort controller on successful completion
             this.currentAbortController = null;
 
-            // Clear KV cache after successful generation
-            console.log('Clearing KV cache after generation');
-            await this.wllama.kvClear();
-            console.log('KV cache cleared successfully');
-
         } catch (error) {
             // Check if this was an abort (expected when user clicks stop)
             if (error.name === 'AbortError' || error.message?.includes('abort')) {
                 console.log('Generation aborted by user');
-                // Clear the partial/corrupted state
-                await this.wllama.kvClear();
-                console.log('KV cache cleared after abort');
             } else {
                 console.log('Wllama generation error:', error.message || 'unknown error');
-                // Clear cache on error too
-                try {
-                    await this.wllama.kvClear();
-                } catch (e) {
-                    console.log('Failed to clear cache after error:', e.message);
-                }
             }
             this.currentAbortController = null;
         }
@@ -1466,6 +1468,13 @@ IMPORTANT: Follow these guidelines when responding:
 
             // Clear search status
             this.elements.searchStatus.textContent = '';
+
+            // Clear KV cache for wllama when restarting conversation
+            if (this.wllama) {
+                this.wllama.kvClear().catch(err => {
+                    console.log('Failed to clear KV cache on restart:', err.message);
+                });
+            }
 
             console.log('Conversation restarted');
         }

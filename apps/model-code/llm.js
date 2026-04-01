@@ -2,8 +2,7 @@ import { Wllama } from "https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.7/esm/in
 
 const WASM_PATHS = {
     "single-thread/wllama.wasm": "https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.7/esm/single-thread/wllama.wasm",
-    // Force single-thread wasm for stability on static/browser-hosted scenarios.
-    "multi-thread/wllama.wasm": "https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.7/esm/single-thread/wllama.wasm"
+    "multi-thread/wllama.wasm": "https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.7/esm/multi-thread/wllama.wasm"
 };
 
 const MODEL_REPO = "TKDKid1000/phi-1_5-GGUF";
@@ -274,7 +273,7 @@ class ModelCoderLLM {
         }
 
         if (this.wllama) {
-            await this.wllama.kvClear().catch(() => {});
+            await this.wllama.kvClear().catch(() => { });
         }
     }
 
@@ -290,7 +289,7 @@ class ModelCoderLLM {
             for (const methodName of ["dispose", "destroy", "unload", "unloadModel", "terminate", "exit"]) {
                 const method = current?.[methodName];
                 if (typeof method === "function") {
-                    await Promise.resolve(method.call(current)).catch(() => {});
+                    await Promise.resolve(method.call(current)).catch(() => { });
                 }
             }
         }
@@ -321,7 +320,7 @@ class ModelCoderLLM {
                 this._status("loading", `Loading local model (attempt ${attempt}/${maxRetries})...`);
                 await this._loadModel();
                 this.isReady = true;
-                this._status("ready", "Model ready: Phi-1.5 phi-1.5");
+                // Status is now set by _loadModel() with thread count info
                 this.isLoading = false;
                 return;
             } catch (error) {
@@ -338,10 +337,28 @@ class ModelCoderLLM {
     }
 
     async _loadModel() {
+        const availableThreads = navigator.hardwareConcurrency || 4;
+        const threadCount = Math.max(1, Math.min(availableThreads, 8));
+
+        // Check if SharedArrayBuffer is available (required for multi-threading)
+        const hasSharedArrayBuffer = typeof SharedArrayBuffer !== 'undefined';
+        const isCrossOriginIsolated = self.crossOriginIsolated || false;
+
+        console.log(`[Model-Code] Browser capabilities:`);
+        console.log(`  - CPU cores: ${availableThreads}`);
+        console.log(`  - Requested threads: ${threadCount}`);
+        console.log(`  - SharedArrayBuffer available: ${hasSharedArrayBuffer}`);
+        console.log(`  - Cross-Origin Isolated: ${isCrossOriginIsolated}`);
+
+        if (!hasSharedArrayBuffer) {
+            console.warn(`[Model-Code] WARNING: SharedArrayBuffer not available - multi-threading disabled!`);
+            console.warn(`[Model-Code] This usually means cross-origin isolation is not enabled.`);
+        }
+
         this.wllama = new Wllama(WASM_PATHS);
-        await this.wllama.loadModelFromHF(MODEL_REPO, MODEL_FILE, {
+        const modelConfig = {
             n_ctx: 2048,
-            n_threads: 1,
+            n_threads: threadCount,
             progressCallback: ({ loaded, total }) => {
                 if (!total) {
                     this._status("loading", "Loading local model...");
@@ -350,7 +367,11 @@ class ModelCoderLLM {
                 const pct = Math.round((loaded / total) * 100);
                 this._status("loading", `Downloading model: ${pct}%`);
             }
-        });
+        };
+        await this.wllama.loadModelFromHF(MODEL_REPO, MODEL_FILE, modelConfig);
+        const threadMessage = `Model loaded with ${modelConfig.n_threads} thread(s) (${availableThreads} CPU cores, SAB: ${hasSharedArrayBuffer})`;
+        console.log(`[Model-Code] ${threadMessage}`);
+        this._status("ready", threadMessage);
     }
 
     _ensureClient(model) {
@@ -465,7 +486,7 @@ class ModelCoderLLM {
     }
 
     async _complete(prompt, onDelta, expectedSessionVersion = this.sessionVersion) {
-        await this.wllama.kvClear().catch(() => {});
+        await this.wllama.kvClear().catch(() => { });
 
         let previousCleanText = "";
         let fullText = "";
@@ -517,7 +538,7 @@ class ModelCoderLLM {
             previousCleanText = cleanText;
         }
 
-        await this.wllama.kvClear().catch(() => {});
+        await this.wllama.kvClear().catch(() => { });
         return this._sanitizeModelText(fullText);
     }
 
