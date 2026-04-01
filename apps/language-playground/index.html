@@ -36,20 +36,26 @@
 
                 <div class="editor-box">
                     <div class="editor-toolbar">
-                        <span class="toolbar-label">Source text</span>
+                        <div class="toolbar-left">
+                            <span class="toolbar-label">Input text</span>
+                            <select id="sample-select" class="sample-select" title="Select a sample"
+                                aria-label="Select sample text">
+                                <option value="">Select a sample</option>
+                            </select>
+                        </div>
                         <div class="toolbar-actions">
                             <button id="attach-btn" class="icon-btn" title="Attach .txt file (max 10 KB)"
                                 aria-label="Attach text file">📎</button>
-                            <button id="detect-btn" class="primary-btn" title="Analyze text"
-                                aria-label="Analyze text">Detect</button>
+                            <button id="detect-btn" class="primary-btn" title="Analyze text" aria-label="Analyze text"
+                                disabled>Detect</button>
                         </div>
                     </div>
 
                     <textarea id="source-text" rows="18" placeholder="Type or attach a text file for analysis"
                         aria-label="Text to analyze"></textarea>
                     <input id="file-input" type="file" accept=".txt,text/plain" hidden aria-hidden="true" tabindex="-1">
-                    <p id="file-status" class="hint" aria-live="polite"></p>
                 </div>
+                <p id="file-status" class="hint" aria-live="polite"></p>
             </section>
 
             <section class="right-pane" aria-label="Analysis results panel">
