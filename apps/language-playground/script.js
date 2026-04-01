@@ -28,13 +28,14 @@
 
     const SAMPLE_TEXTS = {
         language: [
+            { label: "English paragraph", text: "Hello, my name is John and I live in Seattle. I work for a software company and enjoy reading books in the evening." },
             { label: "French paragraph", text: "Bonjour, je m'appelle Sophie et j'habite a Lyon. Je travaille dans une petite entreprise de technologie et j'aime lire des livres le soir." },
             { label: "Japanese paragraph", text: "私は東京に住んでいます。毎朝電車で会社に行き、昼休みに友達と一緒にご飯を食べます。週末は公園で散歩します。" },
             { label: "Arabic paragraph", text: "انا اسكن في دبي واعمل في شركة برمجيات. في عطلة نهاية الاسبوع ازور عائلتي واقرا كتابا جديدا." }
         ],
         pii: [
             { label: "Contact note", text: "John Smith can be reached at john.smith@contoso.com or +1 555 123 4567. Mailing address: 123 Anystreet, Anytown, WA, USA, 01234." },
-            { label: "Customer record", text: "Maria Garcia called from 020 7946 0958 and asked to send documents to 42 Market Road, London, UK, SW1A 1AA." }
+            { label: "Customer form", text: "Customer Feedback Form\nDate: 4/1/2026\nCustomer: Mario Gizzi\nEmail: mario@adventure-works.com\nPhone: 555 123 0987\nRating: 5\nComment: Thanks for the great service. I received my delivery at 1482 Westward Way, Seattle on Saturday morning - everything looks great!" }
         ]
     };
 
@@ -594,7 +595,7 @@
     }
 
     function collectCapitalizedPeople(text, entities) {
-        const properCaseSequenceRegex = /\b([A-Z][A-Za-z'-]+(?:\s+[A-Z][A-Za-z'-]+){1,2})\b/g;
+        const properCaseSequenceRegex = /\b([A-Z][A-Za-z'-]+(?:[^\S\r\n]+[A-Z][A-Za-z'-]+){1,2})\b/g;
         let match;
 
         while ((match = properCaseSequenceRegex.exec(text)) !== null) {
@@ -632,13 +633,13 @@
 
     function collectRegexPeople(text, entities) {
         const patterns = [
-            /(?:^|[\r\n]+|[.!?]\s+)([A-Z][A-Za-z'-]+(?:\s+[A-Z][A-Za-z'-]+){1,2})(?=(?:\s+(?:can|called|emailed|asked|is|was|works|lives|from|at|reached|contacted|sent|wrote|phoned|said))|[,:]|\s*$)/gm,
-            /\b(?:i am|i'm|im|my name is|this is|name is|name:)\s+([A-Z][A-Za-z'-]+(?:\s+[A-Z][A-Za-z'-]+){0,2})(?=(?:\s+(?:from|at|in|on|with|and|can|called|emailed|asked|is|was|works|lives|reached|contacted|sent|wrote|phoned))|[,.!:;)]|\s*$)/gim,
-            /\b(?:hello|hi|hey)\s*,?\s*(?:i am|i'm|im|this is)?\s*([A-Z][A-Za-z'-]+(?:\s+[A-Z][A-Za-z'-]+){0,2})(?=(?:\s+(?:from|at|in|on|with|and|can|called|emailed|asked|is|was|works|lives|reached|contacted|sent|wrote|phoned))|[,.!:;)]|\s*$)/gim,
-            /\b(?:mr|mrs|ms|miss|dr|prof)\.?\s+([A-Z][A-Za-z'-]+(?:\s+[A-Z][A-Za-z'-]+){0,2})(?=(?:\s+(?:can|called|emailed|asked|is|was|works|lives|from|at|reached|contacted|sent|wrote|phoned))|[,.!:;)]|\s*$)/gm,
-            /\b(?:contact|reach|reached|called by|emailed by|spoken with|met with)\s+([A-Z][A-Za-z'-]+(?:\s+[A-Z][A-Za-z'-]+){0,2})(?=[,.!:;)]|\s|$)/gim,
-            /(?:^|[^A-Za-z])([A-Z][A-Za-z'-]+(?:\s+[A-Z][A-Za-z'-]+){1,2})(?=\s+(?:sailed|said|wrote|discovered|invented|led|found|founded|met|visited|traveled|travelled|built|created|won|lost|became|died|ruled|painted|composed|studied|explored|crossed)\b)/gm,
-            /(?:^|[^A-Za-z])([A-Z][A-Za-z'-]+(?:\s+[A-Z][A-Za-z'-]+){1,2})(?=\s+(?:from|of)\s+[A-Z][A-Za-z'-]+)/gm
+            /(?:^|[\r\n]+|[.!?]\s+)([A-Z][A-Za-z'-]+(?:[^\S\r\n]+[A-Z][A-Za-z'-]+){1,2})(?=(?:\s+(?:can|called|emailed|asked|is|was|works|lives|from|at|reached|contacted|sent|wrote|phoned|said))|[,:]|\s*$)/gm,
+            /\b(?:i am|i'm|im|my name is|this is|name is|name:)[^\S\r\n]+([A-Z][A-Za-z'-]+(?:[^\S\r\n]+[A-Z][A-Za-z'-]+){0,2})(?=(?:\s+(?:from|at|in|on|with|and|can|called|emailed|asked|is|was|works|lives|reached|contacted|sent|wrote|phoned))|[,.!:;)]|\s*$)/gim,
+            /\b(?:hello|hi|hey)[^\S\r\n]*,?[^\S\r\n]*(?:i am|i'm|im|this is)?[^\S\r\n]*([A-Z][A-Za-z'-]+(?:[^\S\r\n]+[A-Z][A-Za-z'-]+){0,2})(?=(?:\s+(?:from|at|in|on|with|and|can|called|emailed|asked|is|was|works|lives|reached|contacted|sent|wrote|phoned))|[,.!:;)]|\s*$)/gim,
+            /\b(?:mr|mrs|ms|miss|dr|prof)\.?[^\S\r\n]+([A-Z][A-Za-z'-]+(?:[^\S\r\n]+[A-Z][A-Za-z'-]+){0,2})(?=(?:\s+(?:can|called|emailed|asked|is|was|works|lives|from|at|reached|contacted|sent|wrote|phoned))|[,.!:;)]|\s*$)/gm,
+            /\b(?:contact|reach|reached|called by|emailed by|spoken with|met with)[^\S\r\n]+([A-Z][A-Za-z'-]+(?:[^\S\r\n]+[A-Z][A-Za-z'-]+){0,2})(?=[,.!:;)]|\s|$)/gim,
+            /(?:^|[^A-Za-z])([A-Z][A-Za-z'-]+(?:[^\S\r\n]+[A-Z][A-Za-z'-]+){1,2})(?=\s+(?:sailed|said|wrote|discovered|invented|led|found|founded|met|visited|traveled|travelled|built|created|won|lost|became|died|ruled|painted|composed|studied|explored|crossed)\b)/gm,
+            /(?:^|[^A-Za-z])([A-Z][A-Za-z'-]+(?:[^\S\r\n]+[A-Z][A-Za-z'-]+){1,2})(?=\s+(?:from|of)\s+[A-Z][A-Za-z'-]+)/gm
         ];
 
         patterns.forEach(function (pattern) {
@@ -900,7 +901,7 @@
         reader.readAsText(file);
     }
 
-    async function analyze() {
+    function analyze() {
         const text = elements.sourceText.value.trim();
         if (!text) {
             showStatus("Add text before running detection.", true);
@@ -914,7 +915,7 @@
                 renderLanguage(detectLanguage(text));
                 announce("Detected language");
             } else {
-                const result = await detectPii(text);
+                const result = detectPii(text);
                 elements.sourceText.value = result.redactedText;
                 renderPii(result);
                 announce("PII extraction complete");
@@ -972,11 +973,11 @@
             elements.fileInput.value = "";
         });
 
-        elements.detectBtn.addEventListener("click", async function () {
+        elements.detectBtn.addEventListener("click", function () {
             if (state.locked) {
                 unlockEditor();
             } else {
-                await analyze();
+                analyze();
             }
         });
 
