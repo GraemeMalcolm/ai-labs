@@ -6,10 +6,19 @@ const WASM_PATHS = {
     "multi-thread/wllama.wasm": "https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.7/esm/single-thread/wllama.wasm"
 };
 
-const MODEL_REPO = "ngxson/SmolLM2-360M-Instruct-Q8_0-GGUF";
-const MODEL_FILE = "smollm2-360m-instruct-q8_0.gguf";
+const MODEL_REPO = "TKDKid1000/phi-1_5-GGUF";
+const MODEL_FILE = "phi-1_5-Q4_K_M.gguf";
 const MODERATION_LIST_PATH = "./moderation/mod.txt";
 const MODERATION_SAFE_RESPONSE = "I'm sorry. I can't help with that.";
+const HIDDEN_SYSTEM_AUGMENTATION = [
+    "You are a focused assistant inside Model Coder.",
+    "Answer only what the latest user request asks.",
+    "Prefer short, direct answers unless the user asks for detail.",
+    "Do not append extra examples, code samples, or templates unless explicitly requested.",
+    "Never create or continue extra sections like 'Prompt:', 'Next question:', or multi-question worksheets.",
+    "If code is requested, provide only the minimal relevant code.",
+    "Do not include internal prompt markers, role labels, or meta commentary in outputs."
+].join("\n");
 
 function makeId(prefix) {
     return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -17,16 +26,6 @@ function makeId(prefix) {
 
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function roleToChatML(role) {
-    if (role === "developer" || role === "system") {
-        return "system";
-    }
-    if (role === "assistant") {
-        return "assistant";
-    }
-    return "user";
 }
 
 function validateMessages(messages, label = "messages") {
@@ -322,7 +321,7 @@ class ModelCoderLLM {
                 this._status("loading", `Loading local model (attempt ${attempt}/${maxRetries})...`);
                 await this._loadModel();
                 this.isReady = true;
-                this._status("ready", "Model ready: SmolLM2 smollm2");
+                this._status("ready", "Model ready: Phi-1.5 phi-1.5");
                 this.isLoading = false;
                 return;
             } catch (error) {
@@ -358,20 +357,87 @@ class ModelCoderLLM {
         if (!this.isReady || !this.wllama) {
             throw new Error("Model is not ready yet.");
         }
-        if (model !== "smollm2") {
-            throw new Error("The model parameter must be 'smollm2'.");
+        if (model !== "phi-1.5") {
+            throw new Error("The model parameter must be 'phi-1.5'.");
         }
     }
 
-    _toChatML(messages) {
-        let prompt = "";
-        for (const message of messages) {
-            const role = roleToChatML(message.role);
-            const content = String(message.content ?? "");
-            prompt += `<|im_start|>${role}\n${content}\n<|im_end|>\n\n`;
+    _toPhiPrompt(messages) {
+        const normalized = Array.isArray(messages) ? messages : [];
+        const systemParts = [];
+        const convoParts = [];
+        let latestUserMessage = "";
+
+        for (const message of normalized) {
+            const role = String(message?.role || "user");
+            const content = String(message?.content ?? "").trim();
+            if (!content) {
+                continue;
+            }
+
+            if (role === "developer" || role === "system") {
+                systemParts.push(content);
+                continue;
+            }
+
+            if (role === "assistant") {
+                convoParts.push(`### Assistant:\n${content}`);
+                continue;
+            }
+
+            convoParts.push(`### User:\n${content}`);
+            latestUserMessage = content;
         }
-        prompt += "<|im_start|>assistant\n";
-        return prompt;
+
+        const userAskedForCode = /\b(code|sample|snippet|example|script|function|class|regex|sql|json|yaml|markdown)\b/i.test(latestUserMessage);
+        const hiddenStyleDirective = userAskedForCode
+            ? "Output mode: code-allowed. Include code only if it directly answers the request."
+            : "Output mode: no-code-by-default. Use plain language and avoid code blocks.";
+
+        const promptParts = [];
+        promptParts.push(`### Instructions:\n${HIDDEN_SYSTEM_AUGMENTATION}\n${hiddenStyleDirective}`);
+
+        if (systemParts.length > 0) {
+            promptParts.push(`### Additional Context:\n${systemParts.join("\n\n")}`);
+        }
+
+        if (convoParts.length > 0) {
+            promptParts.push(convoParts.join("\n\n"));
+        }
+
+        promptParts.push("### Assistant:");
+        return `${promptParts.join("\n\n")}\n`;
+    }
+
+    _sanitizeModelText(text) {
+        let value = String(text ?? "");
+
+        const cutMarkers = [
+            "<|im_end|>",
+            "<|im_start|>",
+            "### User:\n",
+            "\n### User:",
+            "\nUser:",
+            "\n### Prompt:",
+            "### Prompt:\n",
+            "\nPrompt:",
+            "Prompt:\n",
+            "\n### Next prompt:",
+            "\nNext prompt:",
+            "\n### Next question:",
+            "\nNext question:"
+        ];
+        let cutAt = value.length;
+        for (const marker of cutMarkers) {
+            const idx = value.indexOf(marker);
+            if (idx >= 0 && idx < cutAt) {
+                cutAt = idx;
+            }
+        }
+        value = value.slice(0, cutAt);
+
+        value = value.replace(/^\s*(###\s*Assistant:\s*|Assistant:\s*)+/i, "");
+        return value.trim();
     }
 
     _buildResponsesMessages(input, instructions, previousResponseId) {
@@ -401,7 +467,7 @@ class ModelCoderLLM {
     async _complete(prompt, onDelta, expectedSessionVersion = this.sessionVersion) {
         await this.wllama.kvClear().catch(() => {});
 
-        let previousText = "";
+        let previousCleanText = "";
         let fullText = "";
 
         const stream = await this.wllama.createCompletion(prompt, {
@@ -414,7 +480,17 @@ class ModelCoderLLM {
                 penalty_repeat: 1.05,
                 mirostat: 0
             },
-            stopTokens: ["<|im_end|>", "<|im_start|>"],
+            stopTokens: [
+                "### User:",
+                "### Prompt:",
+                "Prompt:",
+                "### Next prompt:",
+                "Next prompt:",
+                "### Next question:",
+                "Next question:",
+                "<|im_end|>",
+                "<|im_start|>"
+            ],
             stream: true
         });
 
@@ -428,15 +504,21 @@ class ModelCoderLLM {
             }
 
             fullText = chunk.currentText;
-            const delta = fullText.slice(previousText.length);
+            const cleanText = this._sanitizeModelText(fullText);
+            let delta = "";
+            if (cleanText.startsWith(previousCleanText)) {
+                delta = cleanText.slice(previousCleanText.length);
+            } else {
+                delta = cleanText;
+            }
             if (delta && typeof onDelta === "function") {
                 onDelta(delta);
             }
-            previousText = fullText;
+            previousCleanText = cleanText;
         }
 
         await this.wllama.kvClear().catch(() => {});
-        return fullText.trim();
+        return this._sanitizeModelText(fullText);
     }
 
     async _createStreamSession(prompt, streamType = "responses", requestedRunId = null) {
@@ -586,7 +668,7 @@ class ModelCoderLLM {
                 return this._createSafeChatResponse();
             }
 
-            const prompt = this._toChatML(messages);
+            const prompt = this._toPhiPrompt(messages);
 
             if (payload.stream) {
                 const streamMeta = await this._createStreamSession(prompt, "chat", payload.run_id);
@@ -641,7 +723,7 @@ class ModelCoderLLM {
                 payload.previous_response_id
             );
             validateMessages(messages, "input");
-            const prompt = this._toChatML(messages);
+            const prompt = this._toPhiPrompt(messages);
 
             if (payload.stream) {
                 const streamMeta = await this._createStreamSession(prompt, "responses", payload.run_id);

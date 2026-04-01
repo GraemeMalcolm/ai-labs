@@ -24,7 +24,7 @@ except Exception:
 
 _BRIDGE_DEBUG = False
 _EXPECTED_API_KEY = "key123"
-_EXPECTED_MODEL_NAME = "smollm2"
+_EXPECTED_MODEL_NAME = "phi-1.5"
 
 
 def _to_ns(value: Any) -> Any:

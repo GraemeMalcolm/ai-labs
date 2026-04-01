@@ -42,7 +42,7 @@ def main():
         # Configuration settings 
         endpoint = "http://localwllama"
         key = "key123"
-        model_name = "smollm2"
+        model_name = "phi-1.5"
 
         # Initialize the OpenAI client
         openai_client = OpenAI(
@@ -93,7 +93,7 @@ def main():
         # Configuration settings 
         endpoint = "http://localwllama"
         key = "key123"
-        model_name = "smollm2"
+        model_name = "phi-1.5"
 
         # Initialize the OpenAI client
         openai_client = OpenAI(
@@ -136,7 +136,7 @@ def main():
         # Configuration settings 
         endpoint = "http://localwllama"
         key = "key123"
-        model_name = "smollm2"
+        model_name = "phi-1.5"
 
         # Initialize the OpenAI client
         openai_client = OpenAI(
@@ -192,7 +192,7 @@ def main():
         # Configuration settings 
         endpoint = "http://localwllama"
         key = "key123"
-        model_name = "smollm2"
+        model_name = "phi-1.5"
 
         # Initialize the OpenAI client
         openai_client = OpenAI(
@@ -242,7 +242,7 @@ def main():
         # Configuration settings 
         endpoint = "http://localwllama"
         key = "key123"
-        model_name = "smollm2"
+        model_name = "phi-1.5"
 
         # Initialize the OpenAI client
         openai_client = OpenAI(
@@ -295,7 +295,7 @@ async def main():
         # Configuration settings 
         endpoint = "http://localwllama"
         key = "key123"
-        model_name = "smollm2"
+        model_name = "phi-1.5"
 
         # Initialize an async OpenAI client
         async_client = AsyncOpenAI(
@@ -346,7 +346,7 @@ async def main():
         # Configuration settings 
         endpoint = "http://localwllama"
         key = "key123"
-        model_name = "smollm2"
+        model_name = "phi-1.5"
 
         # Initialize the OpenAI client
         async_client = AsyncOpenAI(
@@ -1341,7 +1341,7 @@ async function initializeModel() {
     try {
         await window.modelCoderInit(3);
         state.modelReady = true;
-        setPill(statusModel, "Model ready: smollm2", "ready");
+        setPill(statusModel, "Model ready: phi-1.5", "ready");
     } catch (error) {
         setPill(statusModel, `Model failed: ${error.message}`, "error");
         retryBtn.hidden = false;
