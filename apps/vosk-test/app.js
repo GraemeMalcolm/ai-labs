@@ -13,7 +13,7 @@ let audioContext;
 let processorNode;
 let sourceNode;
 let isRecording = false;
-const MODEL_URL = './speech-model/speech-model.tar.gz';
+const MODEL_URL = 'ai-labs/speech-model/speech-model.tar.gz';
 
 async function loadModel() {
     setStatus('loading', `Loading model from ${MODEL_URL}...`);
