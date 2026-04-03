@@ -71,6 +71,13 @@ let voskProcessorNode = null;
 let voskSourceNode = null;
 let voskIsRecording = false;
 let voskTranscriptBuffer = '';
+let voskPartialBuffer = '';
+let voskDetectedSpeech = false;
+let voskSilenceTimer = null;
+let voskNoSpeechTimer = null;
+const VOSK_SPEECH_RMS_THRESHOLD = 0.01;
+const VOSK_END_OF_SPEECH_MS = 1200;
+const VOSK_NO_SPEECH_MS = 7000;
 
 function buildClassInfoPrompt(classIndex) {
     const className = CLASSES[classIndex];
@@ -139,7 +146,13 @@ async function ensureVoskInitialized() {
         const result = message.result;
         if (result && result.text) {
             voskTranscriptBuffer += (voskTranscriptBuffer ? ' ' : '') + result.text;
+            voskPartialBuffer = '';
         }
+    });
+
+    voskRecognizer.on('partialresult', (message) => {
+        const result = message.result;
+        voskPartialBuffer = (result && result.partial) ? result.partial : '';
     });
 
     return true;
@@ -1529,6 +1542,9 @@ async function startVoskRecording() {
 
     try {
         voskTranscriptBuffer = '';
+        voskPartialBuffer = '';
+        voskDetectedSpeech = false;
+        clearVoskTimers();
         voskMediaStream = await navigator.mediaDevices.getUserMedia({
             audio: {
                 echoCancellation: true,
@@ -1549,6 +1565,26 @@ async function startVoskRecording() {
                 } catch (error) {
                     console.error('Vosk audio processing error:', error);
                 }
+
+                const speaking = isSpeechFrame(event.inputBuffer);
+                if (speaking) {
+                    voskDetectedSpeech = true;
+                    if (voskNoSpeechTimer) {
+                        clearTimeout(voskNoSpeechTimer);
+                        voskNoSpeechTimer = null;
+                    }
+                    if (voskSilenceTimer) {
+                        clearTimeout(voskSilenceTimer);
+                        voskSilenceTimer = null;
+                    }
+                } else if (voskDetectedSpeech && !voskSilenceTimer) {
+                    voskSilenceTimer = setTimeout(() => {
+                        voskSilenceTimer = null;
+                        if (voskIsRecording) {
+                            stopVoskRecording({ autoStopped: true });
+                        }
+                    }, VOSK_END_OF_SPEECH_MS);
+                }
             }
         };
 
@@ -1557,6 +1593,12 @@ async function startVoskRecording() {
 
         voskIsRecording = true;
         micBtn.classList.add('listening');
+        voskNoSpeechTimer = setTimeout(() => {
+            voskNoSpeechTimer = null;
+            if (voskIsRecording && !voskDetectedSpeech) {
+                stopVoskRecording({ noSpeech: true });
+            }
+        }, VOSK_NO_SPEECH_MS);
     } catch (error) {
         console.error('Microphone access denied for Vosk:', error);
         addMessage('Microphone access is required for speech input.', 'bot');
@@ -1564,19 +1606,51 @@ async function startVoskRecording() {
     }
 }
 
-function stopVoskRecording() {
+function stopVoskRecording(options = {}) {
     voskIsRecording = false;
     micBtn.classList.remove('listening');
+    clearVoskTimers();
     cleanupVoskAudioNodes();
 
-    const transcript = voskTranscriptBuffer.trim();
+    const transcript = `${voskTranscriptBuffer} ${voskPartialBuffer}`.replace(/\s+/g, ' ').trim();
     if (!transcript) {
+        if (options.noSpeech) {
+            addMessage('I did not hear any speech. Please try again.', 'bot');
+        }
         return;
     }
 
     textInput.value = transcript;
     isVoiceInput = true;
     handleSend();
+}
+
+function isSpeechFrame(audioBuffer) {
+    const channelData = audioBuffer.getChannelData(0);
+    if (!channelData || channelData.length === 0) {
+        return false;
+    }
+
+    let sumSquares = 0;
+    for (let i = 0; i < channelData.length; i++) {
+        const sample = channelData[i];
+        sumSquares += sample * sample;
+    }
+
+    const rms = Math.sqrt(sumSquares / channelData.length);
+    return rms > VOSK_SPEECH_RMS_THRESHOLD;
+}
+
+function clearVoskTimers() {
+    if (voskSilenceTimer) {
+        clearTimeout(voskSilenceTimer);
+        voskSilenceTimer = null;
+    }
+
+    if (voskNoSpeechTimer) {
+        clearTimeout(voskNoSpeechTimer);
+        voskNoSpeechTimer = null;
+    }
 }
 
 function cleanupVoskAudioNodes() {
