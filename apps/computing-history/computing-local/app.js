@@ -120,35 +120,53 @@ async function initSpeechToText() {
         return;
     }
 
+    await switchToVoskFallback('Web Speech API is unavailable. Using offline speech recognition instead.');
+}
+
+async function ensureVoskInitialized() {
+    if (voskRecognizer) {
+        return true;
+    }
+
+    if (!window.Vosk || typeof window.Vosk.createModel !== 'function') {
+        throw new Error('Vosk library not loaded');
+    }
+
+    voskModel = await window.Vosk.createModel(VOSK_MODEL_URL);
+    voskRecognizer = new voskModel.KaldiRecognizer(16000);
+
+    voskRecognizer.on('result', (message) => {
+        const result = message.result;
+        if (result && result.text) {
+            voskTranscriptBuffer += (voskTranscriptBuffer ? ' ' : '') + result.text;
+        }
+    });
+
+    return true;
+}
+
+async function switchToVoskFallback(announcement = null) {
     sttBackend = 'vosk-loading';
     micBtn.disabled = true;
     micBtn.title = 'Loading offline speech model...';
 
     try {
-        if (!window.Vosk || typeof window.Vosk.createModel !== 'function') {
-            throw new Error('Vosk library not loaded');
-        }
-
-        voskModel = await window.Vosk.createModel(VOSK_MODEL_URL);
-        voskRecognizer = new voskModel.KaldiRecognizer(16000);
-
-        voskRecognizer.on('result', (message) => {
-            const result = message.result;
-            if (result && result.text) {
-                voskTranscriptBuffer += (voskTranscriptBuffer ? ' ' : '') + result.text;
-            }
-        });
-
+        await ensureVoskInitialized();
         sttBackend = 'vosk';
         micBtn.disabled = false;
         micBtn.title = 'Voice input (offline)';
-        addMessage('Web Speech API is unavailable. Using offline speech recognition instead.', 'bot');
+        if (announcement) {
+            addMessage(announcement, 'bot');
+        }
     } catch (error) {
         console.error('Failed to initialize Vosk fallback:', error);
         sttBackend = 'unavailable';
         micBtn.disabled = true;
         addMessage('Speech input is not available in this browser.', 'bot');
+        return false;
     }
+
+    return true;
 }
 
 function reverseWord(text) {
@@ -1483,10 +1501,19 @@ function startWebSpeechInput() {
         handleSend();
     };
 
-    recognition.onerror = (event) => {
+    recognition.onerror = async (event) => {
         micBtn.classList.remove('listening');
-        addMessage('Sorry! Speech input is not currently available.', 'bot');
         console.error('Speech recognition error:', event.error);
+
+        if (event.error === 'network' || event.error === 'service-not-allowed') {
+            const switched = await switchToVoskFallback('Web Speech recognition failed due to a network/service issue. Switched to offline speech recognition.');
+            if (switched) {
+                startVoskRecording();
+            }
+            return;
+        }
+
+        addMessage('Sorry! Speech input is not currently available.', 'bot');
     };
 
     recognition.onend = () => {
