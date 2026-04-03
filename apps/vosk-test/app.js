@@ -13,29 +13,11 @@ let audioContext;
 let processorNode;
 let sourceNode;
 let isRecording = false;
+const MODEL_URL = '/speech-model/speech-model.tar.gz';
 
-function getModelCandidates() {
-    const fromPage = new URL('./speech-model.tar.gz', window.location.href).toString();
-    const fromAppRoot = new URL('/speech-model/speech-model.tar.gz', window.location.origin).toString();
-    const fromRoot = new URL('/speech-model/speech-model.tar.gz', window.location.origin).toString();
-
-    return [...new Set([fromPage, fromAppRoot, fromRoot])];
-}
-
-async function loadModelWithFallback() {
-    let lastError;
-
-    for (const modelUrl of getModelCandidates()) {
-        try {
-            setStatus('loading', `Loading model from ${new URL(modelUrl).pathname}...`);
-            return await Vosk.createModel(modelUrl);
-        } catch (err) {
-            lastError = err;
-            console.warn(`Model load failed for ${modelUrl}:`, err);
-        }
-    }
-
-    throw lastError || new Error('Unable to load Vosk model from known locations');
+async function loadModel() {
+    setStatus('loading', `Loading model from ${MODEL_URL}...`);
+    return Vosk.createModel(MODEL_URL);
 }
 
 // Format status
@@ -51,7 +33,7 @@ async function initVosk() {
         }
 
         setStatus('loading', 'Loading Model (may take a moment)...');
-        model = await loadModelWithFallback();
+        model = await loadModel();
         
         // initialize recognizer with proper sample rate
         recognizer = new model.KaldiRecognizer(16000);
