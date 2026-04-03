@@ -15,9 +15,9 @@ let sourceNode;
 let isRecording = false;
 
 function getModelCandidates() {
-    const fromPage = new URL('./model.tar.gz', window.location.href).toString();
-    const fromAppRoot = new URL('/apps/vosk-test/model.tar.gz', window.location.origin).toString();
-    const fromRoot = new URL('/vosk-test/model.tar.gz', window.location.origin).toString();
+    const fromPage = new URL('./speech-model.tar.gz', window.location.href).toString();
+    const fromAppRoot = new URL('/apps/vosk-test/speech-model.tar.gz', window.location.origin).toString();
+    const fromRoot = new URL('/vosk-test/speech-model.tar.gz', window.location.origin).toString();
 
     return [...new Set([fromPage, fromAppRoot, fromRoot])];
 }
