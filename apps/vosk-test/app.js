@@ -14,6 +14,30 @@ let processorNode;
 let sourceNode;
 let isRecording = false;
 
+function getModelCandidates() {
+    const fromPage = new URL('./model.tar.gz', window.location.href).toString();
+    const fromAppRoot = new URL('/apps/vosk-test/model.tar.gz', window.location.origin).toString();
+    const fromRoot = new URL('/vosk-test/model.tar.gz', window.location.origin).toString();
+
+    return [...new Set([fromPage, fromAppRoot, fromRoot])];
+}
+
+async function loadModelWithFallback() {
+    let lastError;
+
+    for (const modelUrl of getModelCandidates()) {
+        try {
+            setStatus('loading', `Loading model from ${new URL(modelUrl).pathname}...`);
+            return await Vosk.createModel(modelUrl);
+        } catch (err) {
+            lastError = err;
+            console.warn(`Model load failed for ${modelUrl}:`, err);
+        }
+    }
+
+    throw lastError || new Error('Unable to load Vosk model from known locations');
+}
+
 // Format status
 function setStatus(status, text) {
     statusDot.className = `dot ${status}`;
@@ -22,9 +46,12 @@ function setStatus(status, text) {
 
 async function initVosk() {
     try {
+        if (!window.Vosk || typeof Vosk.createModel !== 'function') {
+            throw new Error('Vosk library not loaded');
+        }
+
         setStatus('loading', 'Loading Model (may take a moment)...');
-        // createModel points to the tar.gz file
-        model = await Vosk.createModel('model.tar.gz');
+        model = await loadModelWithFallback();
         
         // initialize recognizer with proper sample rate
         recognizer = new model.KaldiRecognizer(16000);
@@ -53,6 +80,11 @@ async function initVosk() {
 }
 
 async function startRecording() {
+    if (!recognizer) {
+        setStatus('error', 'Model is not ready yet');
+        return;
+    }
+
     transcriptContainer.classList.add('active');
     
     try {
