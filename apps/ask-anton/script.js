@@ -333,35 +333,63 @@ IMPORTANT: Follow these guidelines when responding:
                 'multi-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.7/esm/multi-thread/wllama.wasm',
             };
 
-            // Initialize wllama with CDN-hosted WASM files
-            this.wllama = new Wllama(CONFIG_PATHS);
+            // Try multithreaded (4 threads) first if cross-origin isolated, fall back to single-threaded
+            const useMultiThread = window.crossOriginIsolated === true;
+            const preferredThreads = useMultiThread ? 4 : 1;
+            console.log(`Cross-origin isolated: ${window.crossOriginIsolated}, attempting ${preferredThreads} thread(s)`);
 
-            // Load model from HuggingFace with optimized settings
-            await this.wllama.loadModelFromHF(
-                'ngxson/SmolLM2-360M-Instruct-Q8_0-GGUF',
-                'smollm2-360m-instruct-q8_0.gguf',
-                {
-                    n_ctx: 512,      // Smaller context for faster processing
-                    n_threads: 1,     // Single thread can be more stable
-                    progressCallback: ({ loaded, total }) => {
-                        const percentage = Math.max(15, Math.round((loaded / total) * 85) + 15);
-                        const progress = loaded / total;
+            const modelConfig = {
+                n_ctx: 512,      // Smaller context for faster processing
+                n_threads: preferredThreads,
+                progressCallback: ({ loaded, total }) => {
+                    const percentage = Math.max(15, Math.round((loaded / total) * 85) + 15);
+                    const progress = loaded / total;
 
-                        if (!isLazyLoad) {
-                            this.updateProgress(
-                                percentage,
-                                `Loading model: ${Math.round((loaded / total) * 100)}%`
-                            );
-                        } else {
-                            console.log(`Loading wllama: ${Math.round((loaded / total) * 100)}%`);
-                            // Call the progress callback for lazy loading
-                            if (progressCallback) {
-                                progressCallback(progress);
-                            }
+                    if (!isLazyLoad) {
+                        this.updateProgress(
+                            percentage,
+                            `Loading model: ${Math.round((loaded / total) * 100)}%`
+                        );
+                    } else {
+                        console.log(`Loading wllama: ${Math.round((loaded / total) * 100)}%`);
+                        // Call the progress callback for lazy loading
+                        if (progressCallback) {
+                            progressCallback(progress);
                         }
                     }
                 }
-            );
+            };
+
+            try {
+                // Initialize wllama with CDN-hosted WASM files
+                this.wllama = new Wllama(CONFIG_PATHS);
+
+                // Load model from HuggingFace with optimized settings
+                await this.wllama.loadModelFromHF(
+                    'ngxson/SmolLM2-360M-Instruct-Q8_0-GGUF',
+                    'smollm2-360m-instruct-q8_0.gguf',
+                    modelConfig
+                );
+                console.log(`Wllama initialized successfully with ${preferredThreads} thread(s)`);
+            } catch (multiErr) {
+                if (preferredThreads > 1) {
+                    console.warn(`Multi-threaded init failed (${multiErr.message}), falling back to single thread`);
+
+                    // Retry with single thread
+                    this.wllama = new Wllama(CONFIG_PATHS);
+                    await this.wllama.loadModelFromHF(
+                        'ngxson/SmolLM2-360M-Instruct-Q8_0-GGUF',
+                        'smollm2-360m-instruct-q8_0.gguf',
+                        {
+                            ...modelConfig,
+                            n_threads: 1
+                        }
+                    );
+                    console.log('Wllama initialized successfully with 1 thread (fallback)');
+                } else {
+                    throw multiErr;
+                }
+            }
 
             if (!isLazyLoad) {
                 this.updateProgress(100, 'Ready to chat! (CPU mode)');
