@@ -386,8 +386,10 @@ class ModelCoderLLM {
     _toPhiPrompt(messages) {
         const normalized = Array.isArray(messages) ? messages : [];
         const systemParts = [];
-        const convoParts = [];
-        let latestUserMessage = "";
+        const userMessages = [];
+        const assistantMessages = [];
+
+        console.log("[Model-Code] _toPhiPrompt received messages:", JSON.stringify(messages, null, 2));
 
         for (const message of normalized) {
             const role = String(message?.role || "user");
@@ -398,36 +400,61 @@ class ModelCoderLLM {
 
             if (role === "developer" || role === "system") {
                 systemParts.push(content);
-                continue;
+            } else if (role === "user") {
+                userMessages.push(content);
+            } else if (role === "assistant") {
+                assistantMessages.push(content);
             }
-
-            if (role === "assistant") {
-                convoParts.push(`### Assistant:\n${content}`);
-                continue;
-            }
-
-            convoParts.push(`### User:\n${content}`);
-            latestUserMessage = content;
         }
 
-        const userAskedForCode = /\b(code|sample|snippet|example|script|function|class|regex|sql|json|yaml|markdown)\b/i.test(latestUserMessage);
-        const hiddenStyleDirective = userAskedForCode
-            ? "Output mode: code-allowed. Include code only if it directly answers the request."
-            : "Output mode: no-code-by-default. Use plain language and avoid code blocks.";
+        // Build the system prompt with single-sentence directive
+        let systemPrompt = systemParts.join("\n\n");
+        if (!systemPrompt) {
+            systemPrompt = HIDDEN_SYSTEM_AUGMENTATION;
+        }
+        systemPrompt += "\nYou always respond with a single sentence.";
 
         const promptParts = [];
-        promptParts.push(`### Instructions:\n${HIDDEN_SYSTEM_AUGMENTATION}\n${hiddenStyleDirective}`);
+        promptParts.push(`### Instructions:\n${systemPrompt}`);
 
-        if (systemParts.length > 0) {
-            promptParts.push(`### Additional Context:\n${systemParts.join("\n\n")}`);
+        // Always include the instruction confirmation exchange
+        promptParts.push(`### User:\nDo you understand your instructions?`);
+        promptParts.push(`### Assistant:\nHere is my single-sentence response: Yes, I understand and will always answer with a single sentence.`);
+
+        // If there's a previous exchange, extract first sentences for few-shot example
+        if (userMessages.length > 1 && assistantMessages.length > 0) {
+            const previousUserMsg = userMessages[userMessages.length - 2];
+            const previousAssistantMsg = assistantMessages[assistantMessages.length - 1];
+
+            // Extract first sentence from previous messages
+            const prevUserFirstSentence = this._extractFirstSentence(previousUserMsg);
+            const prevAssistantFirstSentence = this._extractFirstSentence(previousAssistantMsg);
+
+            promptParts.push(`### User:\n${prevUserFirstSentence}`);
+            promptParts.push(`### Assistant:\nHere is my single-sentence response: ${prevAssistantFirstSentence}`);
         }
 
-        if (convoParts.length > 0) {
-            promptParts.push(convoParts.join("\n\n"));
+        // Add the current user prompt
+        const currentUserMsg = userMessages[userMessages.length - 1] || "";
+        promptParts.push(`### User:\n${currentUserMsg}`);
+        promptParts.push(`### Assistant:\nHere is my single-sentence response:`);
+
+        const finalPrompt = `${promptParts.join("\n\n")}\n`;
+        console.log("[Model-Code] Generated prompt:", finalPrompt);
+        return finalPrompt;
+    }
+
+    _extractFirstSentence(text) {
+        if (!text) return "";
+
+        // Match first sentence ending with . ! or ?
+        const match = text.match(/^[^.!?]+[.!?]/);
+        if (match) {
+            return match[0].trim();
         }
 
-        promptParts.push("### Assistant:");
-        return `${promptParts.join("\n\n")}\n`;
+        // If no sentence-ending punctuation, return the whole text (up to 100 chars)
+        return text.slice(0, 100).trim();
     }
 
     _sanitizeModelText(text) {
@@ -439,6 +466,7 @@ class ModelCoderLLM {
             "### User:\n",
             "\n### User:",
             "\nUser:",
+            "User:",
             "\n### Prompt:",
             "### Prompt:\n",
             "\nPrompt:",
@@ -458,7 +486,25 @@ class ModelCoderLLM {
         value = value.slice(0, cutAt);
 
         value = value.replace(/^\s*(###\s*Assistant:\s*|Assistant:\s*)+/i, "");
-        return value.trim();
+
+        // Remove the "Here is my single-sentence response: " prefix
+        value = value.replace(/^Here is my single-sentence response:\s*/i, "");
+
+        // Remove quotation marks (triple quotes, double quotes, single quotes)
+        value = value.replace(/^"""/g, "").replace(/"""$/g, "");
+        value = value.replace(/^"/g, "").replace(/"$/g, "");
+        value = value.replace(/^'/g, "").replace(/'$/g, "");
+
+        value = value.trim();
+
+        // Extract only the first sentence
+        const firstSentence = this._extractFirstSentence(value);
+        if (firstSentence) {
+            value = firstSentence;
+        }
+
+        console.log("[Model-Code] Sanitized response:", value);
+        return value;
     }
 
     _buildResponsesMessages(input, instructions, previousResponseId) {
@@ -502,6 +548,8 @@ class ModelCoderLLM {
                 mirostat: 0
             },
             stopTokens: [
+                "User:",
+                "\nUser:",
                 "### User:",
                 "### Prompt:",
                 "Prompt:",
