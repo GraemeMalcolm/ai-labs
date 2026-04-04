@@ -21,6 +21,7 @@ let conversationHistory = []; // Track conversation for context
 let inappropriateWords = []; // Loaded from moderation file
 const MODEL_URL = './image_model/retro-classifier-model.json'; // Path to your exported model
 const BASE_MODEL_URL = 'https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_0.25_224/model.json';
+const VOSK_MODEL_URL = new URL('../../../speech-model/speech-model.tar.gz', import.meta.url).toString();
 
 // We need to define the classes. 
 const CLASSES = [
@@ -60,6 +61,24 @@ const CLASS_INFO = {
     ].join('\n')
 };
 
+const WebSpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let sttBackend = 'uninitialized';
+let voskModel = null;
+let voskRecognizer = null;
+let voskMediaStream = null;
+let voskAudioContext = null;
+let voskProcessorNode = null;
+let voskSourceNode = null;
+let voskIsRecording = false;
+let voskTranscriptBuffer = '';
+let voskPartialBuffer = '';
+let voskDetectedSpeech = false;
+let voskSilenceTimer = null;
+let voskNoSpeechTimer = null;
+const VOSK_SPEECH_RMS_THRESHOLD = 0.01;
+const VOSK_END_OF_SPEECH_MS = 1200;
+const VOSK_NO_SPEECH_MS = 7000;
+
 function buildClassInfoPrompt(classIndex) {
     const className = CLASSES[classIndex];
     const classInfo = CLASS_INFO[classIndex];
@@ -83,9 +102,10 @@ async function init() {
     const mobilenetPromise = loadModel();
     const wllamaPromise = initWllama();
     const moderationPromise = loadInappropriateWords();
+    const sttPromise = initSpeechToText();
 
     try {
-        await Promise.all([mobilenetPromise, wllamaPromise, moderationPromise]);
+        await Promise.all([mobilenetPromise, wllamaPromise, moderationPromise, sttPromise]);
 
         // Both models loaded successfully
         hideLoadingOverlay();
@@ -97,6 +117,69 @@ async function init() {
             addMessage(`Error loading models: ${e.message}. Some features may be unavailable.`, "bot");
         }, 2000);
     }
+}
+
+async function initSpeechToText() {
+    if (WebSpeechRecognition) {
+        sttBackend = 'webspeech';
+        micBtn.disabled = false;
+        micBtn.title = 'Voice input';
+        return;
+    }
+
+    await switchToVoskFallback('Web Speech API is unavailable. Using offline speech recognition instead.');
+}
+
+async function ensureVoskInitialized() {
+    if (voskRecognizer) {
+        return true;
+    }
+
+    if (!window.Vosk || typeof window.Vosk.createModel !== 'function') {
+        throw new Error('Vosk library not loaded');
+    }
+
+    voskModel = await window.Vosk.createModel(VOSK_MODEL_URL);
+    voskRecognizer = new voskModel.KaldiRecognizer(16000);
+
+    voskRecognizer.on('result', (message) => {
+        const result = message.result;
+        if (result && result.text) {
+            voskTranscriptBuffer += (voskTranscriptBuffer ? ' ' : '') + result.text;
+            voskPartialBuffer = '';
+        }
+    });
+
+    voskRecognizer.on('partialresult', (message) => {
+        const result = message.result;
+        voskPartialBuffer = (result && result.partial) ? result.partial : '';
+    });
+
+    return true;
+}
+
+async function switchToVoskFallback(announcement = null) {
+    sttBackend = 'vosk-loading';
+    micBtn.disabled = true;
+    micBtn.title = 'Loading offline speech model...';
+
+    try {
+        await ensureVoskInitialized();
+        sttBackend = 'vosk';
+        micBtn.disabled = false;
+        micBtn.title = 'Voice input (offline)';
+        if (announcement) {
+            addMessage(announcement, 'bot');
+        }
+    } catch (error) {
+        console.error('Failed to initialize Vosk fallback:', error);
+        sttBackend = 'unavailable';
+        micBtn.disabled = true;
+        addMessage('Speech input is not available in this browser.', 'bot');
+        return false;
+    }
+
+    return true;
 }
 
 function reverseWord(text) {
@@ -1389,17 +1472,33 @@ if (closeAboutBtn) {
 micBtn.addEventListener('click', handleVoiceInput);
 
 /**
- * Handles voice input using Web Speech API
+ * Handles voice input using Web Speech API with Vosk fallback
  */
 function handleVoiceInput() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-        addMessage("Sorry! Speech input is not currently available.", "bot");
+    if (sttBackend === 'webspeech') {
+        startWebSpeechInput();
         return;
     }
 
-    const recognition = new SpeechRecognition();
+    if (sttBackend === 'vosk-loading') {
+        addMessage('Speech model is still loading. Please try again in a moment.', 'bot');
+        return;
+    }
+
+    if (sttBackend === 'vosk') {
+        if (voskIsRecording) {
+            stopVoskRecording();
+        } else {
+            startVoskRecording();
+        }
+        return;
+    }
+
+    addMessage('Sorry! Speech input is not currently available.', 'bot');
+}
+
+function startWebSpeechInput() {
+    const recognition = new WebSpeechRecognition();
     recognition.lang = 'en-US';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
@@ -1415,15 +1514,165 @@ function handleVoiceInput() {
         handleSend();
     };
 
-    recognition.onerror = (event) => {
+    recognition.onerror = async (event) => {
         micBtn.classList.remove('listening');
-        addMessage("Sorry! Speech input is not currently available.", "bot");
-        console.error("Speech recognition error:", event.error);
+        console.error('Speech recognition error:', event.error);
+
+        if (event.error === 'network' || event.error === 'service-not-allowed') {
+            const switched = await switchToVoskFallback('Web Speech recognition failed due to a network/service issue. Switched to offline speech recognition.');
+            if (switched) {
+                startVoskRecording();
+            }
+            return;
+        }
+
+        addMessage('Sorry! Speech input is not currently available.', 'bot');
     };
 
     recognition.onend = () => {
         micBtn.classList.remove('listening');
     };
+}
+
+async function startVoskRecording() {
+    if (!voskRecognizer) {
+        addMessage('Speech model is not ready yet.', 'bot');
+        return;
+    }
+
+    try {
+        voskTranscriptBuffer = '';
+        voskPartialBuffer = '';
+        voskDetectedSpeech = false;
+        clearVoskTimers();
+        voskMediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                channelCount: 1,
+                sampleRate: 16000
+            }
+        });
+
+        voskAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+        voskSourceNode = voskAudioContext.createMediaStreamSource(voskMediaStream);
+        voskProcessorNode = voskAudioContext.createScriptProcessor(4096, 1, 1);
+
+        voskProcessorNode.onaudioprocess = (event) => {
+            if (voskIsRecording) {
+                try {
+                    voskRecognizer.acceptWaveform(event.inputBuffer);
+                } catch (error) {
+                    console.error('Vosk audio processing error:', error);
+                }
+
+                const speaking = isSpeechFrame(event.inputBuffer);
+                if (speaking) {
+                    voskDetectedSpeech = true;
+                    if (voskNoSpeechTimer) {
+                        clearTimeout(voskNoSpeechTimer);
+                        voskNoSpeechTimer = null;
+                    }
+                    if (voskSilenceTimer) {
+                        clearTimeout(voskSilenceTimer);
+                        voskSilenceTimer = null;
+                    }
+                } else if (voskDetectedSpeech && !voskSilenceTimer) {
+                    voskSilenceTimer = setTimeout(() => {
+                        voskSilenceTimer = null;
+                        if (voskIsRecording) {
+                            stopVoskRecording({ autoStopped: true });
+                        }
+                    }, VOSK_END_OF_SPEECH_MS);
+                }
+            }
+        };
+
+        voskSourceNode.connect(voskProcessorNode);
+        voskProcessorNode.connect(voskAudioContext.destination);
+
+        voskIsRecording = true;
+        micBtn.classList.add('listening');
+        voskNoSpeechTimer = setTimeout(() => {
+            voskNoSpeechTimer = null;
+            if (voskIsRecording && !voskDetectedSpeech) {
+                stopVoskRecording({ noSpeech: true });
+            }
+        }, VOSK_NO_SPEECH_MS);
+    } catch (error) {
+        console.error('Microphone access denied for Vosk:', error);
+        addMessage('Microphone access is required for speech input.', 'bot');
+        cleanupVoskAudioNodes();
+    }
+}
+
+function stopVoskRecording(options = {}) {
+    voskIsRecording = false;
+    micBtn.classList.remove('listening');
+    clearVoskTimers();
+    cleanupVoskAudioNodes();
+
+    const transcript = `${voskTranscriptBuffer} ${voskPartialBuffer}`.replace(/\s+/g, ' ').trim();
+    if (!transcript) {
+        if (options.noSpeech) {
+            addMessage('I did not hear any speech. Please try again.', 'bot');
+        }
+        return;
+    }
+
+    textInput.value = transcript;
+    isVoiceInput = true;
+    handleSend();
+}
+
+function isSpeechFrame(audioBuffer) {
+    const channelData = audioBuffer.getChannelData(0);
+    if (!channelData || channelData.length === 0) {
+        return false;
+    }
+
+    let sumSquares = 0;
+    for (let i = 0; i < channelData.length; i++) {
+        const sample = channelData[i];
+        sumSquares += sample * sample;
+    }
+
+    const rms = Math.sqrt(sumSquares / channelData.length);
+    return rms > VOSK_SPEECH_RMS_THRESHOLD;
+}
+
+function clearVoskTimers() {
+    if (voskSilenceTimer) {
+        clearTimeout(voskSilenceTimer);
+        voskSilenceTimer = null;
+    }
+
+    if (voskNoSpeechTimer) {
+        clearTimeout(voskNoSpeechTimer);
+        voskNoSpeechTimer = null;
+    }
+}
+
+function cleanupVoskAudioNodes() {
+    if (voskProcessorNode) {
+        voskProcessorNode.disconnect();
+        voskProcessorNode = null;
+    }
+
+    if (voskSourceNode) {
+        voskSourceNode.disconnect();
+        voskSourceNode = null;
+    }
+
+    if (voskAudioContext) {
+        voskAudioContext.close();
+        voskAudioContext = null;
+    }
+
+    if (voskMediaStream) {
+        voskMediaStream.getTracks().forEach((track) => track.stop());
+        voskMediaStream = null;
+    }
 }
 
 /**
