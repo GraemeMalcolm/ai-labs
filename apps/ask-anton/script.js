@@ -80,6 +80,10 @@ IMPORTANT: Follow these guidelines when responding:
         this.initialize();
     }
 
+    // ============================================================================
+    // INITIALIZATION
+    // ============================================================================
+
     async initialize() {
         try {
             // Load prohibited words used by content moderation
@@ -99,6 +103,10 @@ IMPORTANT: Follow these guidelines when responding:
             this.showError('Failed to initialize. Please refresh the page.');
         }
     }
+
+    // ============================================================================
+    // UTILITY METHODS
+    // ============================================================================
 
     reverseWord(text) {
         return text.split('').reverse().join('');
@@ -239,6 +247,10 @@ IMPORTANT: Follow these guidelines when responding:
         }
     }
 
+    // ============================================================================
+    // LLM ENGINE INITIALIZATION (WebLLM & Wllama)
+    // ============================================================================
+
     checkWebGPUSupport() {
         // Check if WebGPU is available in the browser
         if (!navigator.gpu) {
@@ -374,6 +386,10 @@ IMPORTANT: Follow these guidelines when responding:
         }
     }
 
+    // ============================================================================
+    // UI STATE MANAGEMENT
+    // ============================================================================
+
     updateProgress(percentage, text) {
         this.elements.progressFill.style.width = `${percentage}%`;
         this.elements.progressText.textContent = text;
@@ -412,6 +428,10 @@ IMPORTANT: Follow these guidelines when responding:
         this.elements.userInput.placeholder = 'Ask a question about AI...';
         this.elements.userInput.focus();
     }
+
+    // ============================================================================
+    // EVENT LISTENERS
+    // ============================================================================
 
     setupEventListeners() {
         // Send button click
@@ -549,6 +569,10 @@ IMPORTANT: Follow these guidelines when responding:
         });
     }
 
+    // ============================================================================
+    // CONTENT MODERATION & TEXT PROCESSING
+    // ============================================================================
+
     autoResizeTextarea() {
         const textarea = this.elements.userInput;
         textarea.style.height = 'auto';
@@ -612,6 +636,10 @@ IMPORTANT: Follow these guidelines when responding:
 
         return uniqueWords.join(' ');
     }
+
+    // ============================================================================
+    // SEARCH & CONTEXT RETRIEVAL
+    // ============================================================================
 
     performSearch(userQuestion) {
         const lowerQuestion = userQuestion.toLowerCase().trim();
@@ -766,6 +794,10 @@ IMPORTANT: Follow these guidelines when responding:
             documents: documents
         };
     }
+
+    // ============================================================================
+    // MESSAGE HANDLING & RESPONSE GENERATION
+    // ============================================================================
 
     async sendMessage() {
         const userMessage = this.elements.userInput.value.trim();
@@ -972,6 +1004,10 @@ IMPORTANT: Follow these guidelines when responding:
         }
     }
 
+    // ============================================================================
+    // MESSAGE UI RENDERING
+    // ============================================================================
+
     addSystemMessage(message) {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'system-message';
@@ -1176,6 +1212,10 @@ IMPORTANT: Follow these guidelines when responding:
             }, 2000);
         }
     }
+
+    // ============================================================================
+    // LLM RESPONSE GENERATION (WebLLM & Wllama)
+    // ============================================================================
 
     async generateWithWebLLM(userMessage, context, messageTextDiv, usedVoiceInput = false) {
         let userPrompt = userMessage;
@@ -1452,6 +1492,58 @@ IMPORTANT: Follow these guidelines when responding:
         this.elements.chatMessages.scrollTop = this.elements.chatMessages.scrollHeight;
     }
 
+    // ============================================================================
+    // SPEECH RECOGNITION HELPER METHODS
+    // ============================================================================
+
+    setMicButtonState(isActive, label = null) {
+        if (isActive) {
+            this.elements.micBtn.style.opacity = '0.6';
+            this.elements.micBtn.classList.add('active');
+            this.elements.micBtn.title = label || 'Listening...';
+            this.elements.micBtn.setAttribute('aria-label', label || 'Listening to your voice input');
+        } else {
+            this.elements.micBtn.style.opacity = '1';
+            this.elements.micBtn.classList.remove('active');
+            this.elements.micBtn.title = label || 'Voice input';
+            this.elements.micBtn.setAttribute('aria-label', label || 'Voice input');
+        }
+    }
+
+    clearSpeechTimers() {
+        if (this.silenceTimer) {
+            clearTimeout(this.silenceTimer);
+            this.silenceTimer = null;
+        }
+        if (this.noSpeechTimer) {
+            clearTimeout(this.noSpeechTimer);
+            this.noSpeechTimer = null;
+        }
+    }
+
+    cleanupAudioResources() {
+        if (this.processorNode) {
+            this.processorNode.disconnect();
+            this.processorNode = null;
+        }
+        if (this.sourceNode) {
+            this.sourceNode.disconnect();
+            this.sourceNode = null;
+        }
+        if (this.audioContext) {
+            this.audioContext.close();
+            this.audioContext = null;
+        }
+        if (this.mediaStream) {
+            this.mediaStream.getTracks().forEach(track => track.stop());
+            this.mediaStream = null;
+        }
+    }
+
+    // ============================================================================
+    // AUDIO PLAYBACK
+    // ============================================================================
+
     playRandomResponseAudio() {
         // Randomly select one of the 7 audio files
         const audioNumber = Math.floor(Math.random() * 7) + 1;
@@ -1469,6 +1561,10 @@ IMPORTANT: Follow these guidelines when responding:
             console.error('Error playing moderation audio:', error);
         });
     }
+
+    // ============================================================================
+    // SPEECH RECOGNITION - WEB SPEECH API & VOSK
+    // ============================================================================
 
     async handleMicClick() {
         // Try Web Speech API first
@@ -1518,11 +1614,8 @@ IMPORTANT: Follow these guidelines when responding:
                 let hasResolved = false;
                 let noSpeechTimer = null;
 
-                // Visual feedback
-                this.elements.micBtn.style.opacity = '0.6';
-                this.elements.micBtn.classList.add('active');
-                this.elements.micBtn.title = 'Listening...';
-                this.elements.micBtn.setAttribute('aria-label', 'Listening to your voice input');
+                // Set active state
+                this.setMicButtonState(true);
 
                 // Start no-speech timeout
                 noSpeechTimer = setTimeout(() => {
@@ -1531,10 +1624,7 @@ IMPORTANT: Follow these guidelines when responding:
                         recognition.stop();
                         if (!hasResolved) {
                             hasResolved = true;
-                            this.elements.micBtn.style.opacity = '1';
-                            this.elements.micBtn.classList.remove('active');
-                            this.elements.micBtn.title = 'Voice input';
-                            this.elements.micBtn.setAttribute('aria-label', 'Voice input');
+                            this.setMicButtonState(false);
                             this.addMessage('assistant', 'No speech detected. Please try again.');
                             resolve(true); // Don't fallback, just inform user
                         }
@@ -1570,10 +1660,7 @@ IMPORTANT: Follow these guidelines when responding:
                     }
 
                     // Reset visual state
-                    this.elements.micBtn.style.opacity = '1';
-                    this.elements.micBtn.classList.remove('active');
-                    this.elements.micBtn.title = 'Voice input';
-                    this.elements.micBtn.setAttribute('aria-label', 'Voice input');
+                    this.setMicButtonState(false);
 
                     if (!hasResolved) {
                         hasResolved = true;
@@ -1595,10 +1682,7 @@ IMPORTANT: Follow these guidelines when responding:
                         noSpeechTimer = null;
                     }
 
-                    this.elements.micBtn.style.opacity = '1';
-                    this.elements.micBtn.classList.remove('active');
-                    this.elements.micBtn.title = 'Voice input';
-                    this.elements.micBtn.setAttribute('aria-label', 'Voice input');
+                    this.setMicButtonState(false);
                 };
 
                 recognition.start();
@@ -1606,10 +1690,7 @@ IMPORTANT: Follow these guidelines when responding:
                 // Don't resolve here - wait for result or error
             } catch (error) {
                 console.error('Error starting Web Speech recognition:', error);
-                this.elements.micBtn.style.opacity = '1';
-                this.elements.micBtn.classList.remove('active');
-                this.elements.micBtn.title = 'Voice input';
-                this.elements.micBtn.setAttribute('aria-label', 'Voice input');
+                this.setMicButtonState(false);
                 resolve(false);
             }
         });
@@ -1685,11 +1766,8 @@ IMPORTANT: Follow these guidelines when responding:
                 }
             }, this.noSpeechTimeout);
 
-            // Visual feedback - button appears active while listening
-            this.elements.micBtn.style.opacity = '0.6';
-            this.elements.micBtn.classList.add('active');
-            this.elements.micBtn.title = 'Listening...';
-            this.elements.micBtn.setAttribute('aria-label', 'Listening to your voice input');
+            // Set active state
+            this.setMicButtonState(true);
 
             console.log('Vosk recording started');
         } catch (error) {
@@ -1701,41 +1779,14 @@ IMPORTANT: Follow these guidelines when responding:
     stopVoskRecording(isCancelled = false) {
         this.isRecording = false;
 
-        // Clear silence timer
-        if (this.silenceTimer) {
-            clearTimeout(this.silenceTimer);
-            this.silenceTimer = null;
-        }
-
-        // Clear no-speech timer
-        if (this.noSpeechTimer) {
-            clearTimeout(this.noSpeechTimer);
-            this.noSpeechTimer = null;
-        }
+        // Clear all timers
+        this.clearSpeechTimers();
 
         // Clean up audio resources
-        if (this.processorNode) {
-            this.processorNode.disconnect();
-            this.processorNode = null;
-        }
-        if (this.sourceNode) {
-            this.sourceNode.disconnect();
-            this.sourceNode = null;
-        }
-        if (this.audioContext) {
-            this.audioContext.close();
-            this.audioContext = null;
-        }
-        if (this.mediaStream) {
-            this.mediaStream.getTracks().forEach(track => track.stop());
-            this.mediaStream = null;
-        }
+        this.cleanupAudioResources();
 
-        // Reset button appearance
-        this.elements.micBtn.style.opacity = '1';
-        this.elements.micBtn.classList.remove('active');
-        this.elements.micBtn.title = 'Voice input';
-        this.elements.micBtn.setAttribute('aria-label', 'Voice input');
+        // Reset button state
+        this.setMicButtonState(false);
 
         console.log('Vosk recording stopped');
 
@@ -1744,6 +1795,10 @@ IMPORTANT: Follow these guidelines when responding:
             this.sendMessage();
         }
     }
+
+    // ============================================================================
+    // UI CONTROLS & MODAL MANAGEMENT
+    // ============================================================================
 
     restartConversation() {
         if (confirm('Are you sure you want to start a new conversation? This will clear the chat history.')) {
