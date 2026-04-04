@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ask Anton - AI Learning Assistant</title>
+    <script src="coi-serviceworker.js"></script>
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
     <link rel="stylesheet" href="styles.css">
@@ -139,7 +140,7 @@
         </div>
 
         <footer role="contentinfo">
-            <p>Powered by WebLLM (Phi-3) + wllama (SmolLM2) • GPU mode for speed, CPU mode for compatibility</p>
+            <p>Powered by WebLLM (Phi-3) + wllama (Phi-2) • GPU mode for speed, CPU mode for compatibility</p>
         </footer>
     </div>
 
@@ -162,7 +163,7 @@
                 <h3>Features</h3>
                 <ul>
                     <li><strong>GPU Mode:</strong> Fast responses using WebLLM with Phi-3-mini (requires WebGPU)</li>
-                    <li><strong>CPU Mode:</strong> Fallback mode using wllama with SmolLM2 (works on all browsers)</li>
+                    <li><strong>CPU Mode:</strong> Fallback mode using wllama with Phi-2 (works on all browsers)</li>
                     <li><strong>Grounded Responses:</strong> Answers are based on a curated knowledge base about AI
                         topics</li>
                     <li><strong>Voice Input:</strong> Use your microphone to ask questions naturally</li>
@@ -207,7 +208,7 @@
 
                 <p class="warning"><strong>Remember to disable it again when you're finished!</strong></p>
 
-                <p>If your browser doesn't support WebGPU, the app automatically uses CPU mode (wllama with SmolLM2),
+                <p>If your browser doesn't support WebGPU, the app automatically uses CPU mode (wllama with Phi-2),
                     which works everywhere but is slower.</p>
             </div>
             <div class="modal-footer">
