@@ -1108,9 +1108,44 @@ class ChatPlayground {
         }
     }
 
+    checkWebGPUSupport() {
+        // Check if WebGPU is available in the browser
+        if (!navigator.gpu) {
+            console.log('WebGPU not supported in this browser');
+            return false;
+        }
+        return true;
+    }
+
     async initializeEngine() {
+        // Check for WebGPU support before attempting to load WebLLM
+        const hasWebGPU = this.checkWebGPUSupport();
+
+        if (!hasWebGPU) {
+            console.log('WebGPU not available, using wllama (CPU mode)');
+            this.webllmAvailable = false;
+            try {
+                await this.initializeWllama();
+                console.log('Wllama initialized successfully');
+                this.usingWllama = true;
+                this.wllamaLoaded = true;
+
+                // Set SmolLM2 default parameters
+                this.config.modelParameters = this.getModelDefaults();
+                this.updateParameterUI();
+            } catch (wllamaError) {
+                console.error('Wllama initialization failed:', wllamaError);
+                this.updateProgress(0, 'AI models unavailable. Please check your internet connection and refresh the page.', true);
+                setTimeout(() => {
+                    this.enableUI();
+                }, 2000);
+            }
+            return;
+        }
+
+        // Try WebLLM first (faster with GPU)
         try {
-            console.log('Attempting to initialize WebLLM first...');
+            console.log('Attempting to initialize WebLLM with WebGPU...');
             await this.initializeWebLLM();
             console.log('WebLLM initialized successfully');
             this.webllmAvailable = true;
@@ -1782,6 +1817,14 @@ class ChatPlayground {
         const trimmedText = text.trimEnd();
         if (!trimmedText) return '';
 
+        // Keep structured multi-line outputs (lists, bullets, etc.) untouched.
+        // Sentence heuristics are unreliable for numbered entries like "1.".
+        const lines = trimmedText.split(/\r?\n/).filter(line => line.trim().length > 0);
+        const hasListLikeLine = lines.some(line => /^\s*(?:[-*]|\d+[.)])\s+/.test(line));
+        if (hasListLikeLine) {
+            return trimmedText;
+        }
+
         // If the response already ends with sentence-final punctuation, keep it as-is
         if (/[.!?]["')\]]*$/.test(trimmedText)) {
             return trimmedText;
@@ -1790,7 +1833,8 @@ class ChatPlayground {
         // Find the last complete sentence boundary and remove trailing partial sentence
         const match = trimmedText.match(/([.!?]["')\]]*)(?![\s\S]*[.!?]["')\]]*)/);
         if (!match) {
-            return '';
+            // If no sentence boundary exists, preserve the response instead of dropping it.
+            return trimmedText;
         }
 
         const sentenceEndIndex = match.index + match[0].length;

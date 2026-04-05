@@ -29,7 +29,10 @@ class AskAnton {
         this.audioContext = null;
         this.processorNode = null;
         this.sourceNode = null;
-        this.speechModelUrl = '/speech-model/speech-model.tar.gz';
+        // Calculate speech model path relative to the base path
+        const basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+        const rootPath = basePath.substring(0, basePath.lastIndexOf('/'));
+        this.speechModelUrl = `${rootPath}/speech-model/speech-model.tar.gz`;
         this.silenceTimer = null;
         this.noSpeechTimer = null;
         this.lastSpeechTime = null;
@@ -446,7 +449,7 @@ IMPORTANT: Follow these guidelines when responding:
         this.elements.userInput.disabled = true;
         this.elements.sendBtn.disabled = true;
         this.elements.micBtn.disabled = true;
-        this.elements.userInput.placeholder = 'Loading CPU model...';
+        this.elements.userInput.placeholder = 'Loading model...';
     }
 
     enableInput() {
@@ -795,7 +798,7 @@ IMPORTANT: Follow these guidelines when responding:
             if (aiConceptsCategory && aiConceptsCategory.documents.length > 0) {
                 const fallbackDoc = aiConceptsCategory.documents[0];
                 return {
-                    context: `[${aiConceptsCategory.category}]\n${fallbackDoc.content}`,
+                    context: fallbackDoc.content,
                     categories: [aiConceptsCategory.category],
                     links: [aiConceptsCategory.link],
                     documents: [fallbackDoc]
@@ -806,7 +809,7 @@ IMPORTANT: Follow these guidelines when responding:
 
         // Build context from all matched documents - use full content, no summarization
         const contextParts = matches.map(match => {
-            return `[${match.category} - ${match.document.title}]\n${match.document.content}`;
+            return match.document.content;
         });
 
         const categories = [...new Set(matches.map(m => m.category))];
@@ -1227,7 +1230,13 @@ IMPORTANT: Follow these guidelines when responding:
         } catch (error) {
             console.error('Error generating response:', error);
             responseMessage.remove();
-            this.addMessage('assistant', 'Sorry, I encountered an error. Please try again.');
+
+            // Suggest switching to CPU mode if currently in GPU mode
+            if (!this.usingWllama) {
+                this.addMessage('assistant', 'Sorry, I encountered an error in GPU mode. Try switching to CPU mode using the toggle at the top, then ask your question again.');
+            } else {
+                this.addMessage('assistant', 'Sorry, I encountered an error. Please try again.');
+            }
         } finally {
             this.isGenerating = false;
             this.stopRequested = false;
