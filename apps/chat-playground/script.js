@@ -1271,21 +1271,49 @@ class ChatPlayground {
             'multi-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.7/esm/multi-thread/wllama.wasm',
         };
 
-        // Initialize wllama with CDN-hosted WASM files
-        this.wllama = new Wllama(CONFIG_PATHS);
+        // Try multithreaded (4 threads) first if cross-origin isolated, fall back to single-threaded
+        const useMultiThread = window.crossOriginIsolated === true;
+        const preferredThreads = useMultiThread ? 4 : 1;
+        console.log(`Cross-origin isolated: ${window.crossOriginIsolated}, attempting ${preferredThreads} thread(s)`);
 
-        // Load SmolLM2 model from HuggingFace
-        await this.wllama.loadModelFromHF(
-            'ngxson/SmolLM2-360M-Instruct-Q8_0-GGUF',
-            'smollm2-360m-instruct-q8_0.gguf',
-            {
-                n_ctx: 2048,
-                n_threads: navigator.hardwareConcurrency || 4,
-                progressCallback: ({ loaded, total }) => {
-                    updateProgress(loaded, total);
-                }
+        const modelConfig = {
+            n_ctx: 2048,
+            n_threads: preferredThreads,
+            progressCallback: ({ loaded, total }) => {
+                updateProgress(loaded, total);
             }
-        );
+        };
+
+        try {
+            // Initialize wllama with CDN-hosted WASM files
+            this.wllama = new Wllama(CONFIG_PATHS);
+
+            // Load SmolLM2 model from HuggingFace
+            await this.wllama.loadModelFromHF(
+                'ngxson/SmolLM2-360M-Instruct-Q8_0-GGUF',
+                'smollm2-360m-instruct-q8_0.gguf',
+                modelConfig
+            );
+            console.log(`Wllama initialized successfully with ${preferredThreads} thread(s)`);
+        } catch (multiErr) {
+            if (preferredThreads > 1) {
+                console.warn(`Multi-threaded init failed (${multiErr.message}), falling back to single thread`);
+
+                // Retry with single thread
+                this.wllama = new Wllama(CONFIG_PATHS);
+                await this.wllama.loadModelFromHF(
+                    'ngxson/SmolLM2-360M-Instruct-Q8_0-GGUF',
+                    'smollm2-360m-instruct-q8_0.gguf',
+                    {
+                        ...modelConfig,
+                        n_threads: 1
+                    }
+                );
+                console.log('Wllama initialized successfully with 1 thread (fallback)');
+            } else {
+                throw multiErr;
+            }
+        }
 
         console.log('Wllama initialized successfully');
         this.wllamaLoaded = true;
