@@ -1,6 +1,6 @@
 // Performance test configuration
-const ITERATIONS = 500;
-const TEST_RUNS = 3;
+const ITERATIONS = 5000;
+const TEST_RUNS = 5;
 
 // Run performance test when page loads
 window.addEventListener('DOMContentLoaded', runPerformanceTest);
